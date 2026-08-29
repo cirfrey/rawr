@@ -1,0 +1,100 @@
+version: "3.9"
+
+services:
+
+  gcc-11:
+    build:
+      context: .
+      dockerfile: gcc/gcc.Dockerfile
+      args:
+        GCC_VERSION: "11"
+        UBUNTU_VERSION: "22.04"
+    container_name: rawr-gcc-11
+    environment:
+      COMPILER_ID: gcc-11
+      COMPILER_FAMILY: gcc
+      CXX: g++-11
+      CC: gcc-11
+      RAWR_MODULE_IFACE: ${RAWR_MODULE_IFACE:-src/rawr.cppm}
+      WATCH_POLL: ${WATCH_POLL:-0}
+      # -fmodules-ts is required for GCC 11–13; remove for GCC 14+
+      CXXFLAGS: -fmodules-ts
+    volumes:
+      - ../..:/workspace:ro
+      - gcc11-build:/build
+      - gcc11-mods:/usr/local/lib/rawr/modules
+    restart: "no"
+
+  gcc-14:
+    build:
+      context: .
+      dockerfile: gcc/gcc.Dockerfile
+      args:
+        GCC_VERSION: "14"
+        UBUNTU_VERSION: "24.04"
+    container_name: rawr-gcc-14
+    environment:
+      COMPILER_ID: gcc-14
+      COMPILER_FAMILY: gcc
+      CXX: g++-14
+      CC: gcc-14
+      RAWR_MODULE_IFACE: ${RAWR_MODULE_IFACE:-src/rawr.cppm}
+      WATCH_POLL: ${WATCH_POLL:-0}
+      # No CXXFLAGS: GCC 14 has modules implicit in -std=c++20
+    volumes:
+      - ../..:/workspace:ro
+      - gcc14-build:/build
+      - gcc14-mods:/usr/local/lib/rawr/modules
+    restart: "no"
+
+  clang-13:
+    build:
+      context: .
+      dockerfile: clang/clang.Dockerfile
+      args:
+        LLVM_VERSION: "13"
+        UBUNTU_VERSION: "22.04"
+    container_name: rawr-clang-13
+    environment:
+      COMPILER_ID: clang-13
+      COMPILER_FAMILY: clang
+      CXX: clang++-13
+      CC: clang-13
+      RAWR_MODULE_IFACE: ${RAWR_MODULE_IFACE:-src/rawr.cppm}
+      WATCH_POLL: ${WATCH_POLL:-0}
+    volumes:
+      - ../..:/workspace:ro
+      - clang13-build:/build
+      - clang13-mods:/usr/local/lib/rawr/modules
+    restart: "no"
+
+  clang-18:
+    build:
+      context: .
+      dockerfile: clang/clang.Dockerfile
+      args:
+        LLVM_VERSION: "18"
+        UBUNTU_VERSION: "22.04"
+    container_name: rawr-clang-18
+    environment:
+      COMPILER_ID: clang-18
+      COMPILER_FAMILY: clang
+      CXX: clang++-18
+      CC: clang-18
+      RAWR_MODULE_IFACE: ${RAWR_MODULE_IFACE:-src/rawr.cppm}
+      WATCH_POLL: ${WATCH_POLL:-0}
+    volumes:
+      - ../..:/workspace:ro
+      - clang18-build:/build
+      - clang18-mods:/usr/local/lib/rawr/modules
+    restart: "no"
+
+volumes:
+  gcc11-build:
+  gcc14-build:
+  clang13-build:
+  clang18-build:
+  gcc11-mods:
+  gcc14-mods:
+  clang13-mods:
+  clang18-mods:

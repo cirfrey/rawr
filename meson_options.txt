@@ -1,0 +1,12 @@
+option('time_trace',
+    type: 'combo',
+    choices: ['disabled', 'local', 'global'],
+    value: 'disabled',
+    description: 'Enable compiler time tracing (-ftime-trace)'
+)
+
+option('scratchpad',
+    type: 'boolean',
+    value: false,
+    description: 'Enable scratchpad functionality'
+)

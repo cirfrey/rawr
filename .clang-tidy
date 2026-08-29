@@ -1,0 +1,10 @@
+Checks: >
+  clang-analyser-*,
+  -clang-diagnostic-unused-command-line-argument,
+  bugprone-*,
+  -bugprone-macro-parentheses,
+  performance-*,
+  modernize-*,
+  -modernize-avoid-c-arrays,
+  readability-*,
+  -readability-misleading-indentation,
