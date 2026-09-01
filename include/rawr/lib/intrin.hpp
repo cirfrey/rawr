@@ -26,6 +26,11 @@
 
 #define RAWR_ASSERTION(...) // Dummy for now.
 
+namespace rawr::inline lib::intrin::detail
+{
+    template <rst N> struct byte_array { byte data[N]{}; };
+}
+
 // Generic intrinsics.
 RAWR_EXPORT namespace rawr::inline lib::intrin
 {
@@ -49,6 +54,31 @@ RAWR_EXPORT namespace rawr::inline lib::intrin
         template <typename From, typename To>
         concept convertible_to = __is_convertible_to(From, To) && requires { static_cast<To>(declval<From>()); };
     #endif
+
+    template <is_trivially_copyable To, is_trivially_copyable From>
+    requires (sizeof(To) == sizeof(From))
+    [[nodiscard]] RAWR_ALWAYS_INLINE constexpr auto bit_cast(From const& from) noexcept -> To
+    { return __builtin_bit_cast(To, from); }
+
+    template <
+        is_trivially_copyable To,
+        is_trivially_copyable From
+    >
+    requires (sizeof(To) < sizeof(From))
+    [[nodiscard]] RAWR_ALWAYS_INLINE constexpr auto bit_cast(From const& from, rst ByteOffset = 0) noexcept -> To
+    {
+        using src_bytes = detail::byte_array<sizeof(From)>;
+        using dst_bytes = detail::byte_array<sizeof(To)>;
+
+        auto const src = __builtin_bit_cast(src_bytes, from);
+        dst_bytes dst{};
+
+        for (rst i = 0; i < sizeof(To); ++i) {
+            dst.data[i] = src.data[ByteOffset + i];
+        }
+
+        return __builtin_bit_cast(To, dst);
+    }
 }
 
 /// Math-related intrinsics.
@@ -622,11 +652,21 @@ RAWR_EXPORT namespace rawr::inline lib::intrin::inline mem
 {
     namespace soft
     {
-        constexpr auto memcpy(void* dst, void const* src, rst n) noexcept -> void*
+        template <typename Dst, typename Src>
+        constexpr auto memcpy(Dst* dst, Src const* src, rst bytes) noexcept -> Dst*
         {
-            auto*       d = static_cast<unsigned char*>(dst);
-            auto const* s = static_cast<unsigned char const*>(src);
-            for (rst i = 0; i != n; ++i) { d[i] = s[i]; }
+            // Fast path: if element sizes match and total bytes align, do direct element casting
+            if constexpr (sizeof(Dst) == sizeof(Src)) {
+                if (bytes % sizeof(Dst) == 0) {
+                    rst const count = bytes / sizeof(Dst);
+                    for (rst i = 0; i < count; ++i) {
+                        dst[i] = bit_cast<Dst>(src[i]);
+                    }
+                    return dst;
+                }
+            }
+
+            // TODO: unimplemented.
             return dst;
         }
 
