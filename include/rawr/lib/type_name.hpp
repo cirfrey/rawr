@@ -1,14 +1,11 @@
 
-//// rawr/lib/type_name.hpp
-#pragma region rawr/lib/type_name.hpp
+//// rawr/lib/type_name.hpp.
+#pragma once
 
-#ifndef RAWR_UNITY
-    #pragma once
-    #include "rawr/lib/detection.pp"
-#endif
+#include "rawr/lib/module.pp"
+#include "rawr/lib/detection.pp"
 
-// Details.
-namespace rawr::inline lib::detail::tn
+namespace rawr::inline lib::type_name::detail
 {
     // Basically string_view::find.
     constexpr auto tn_find(const char* haystack, const char* needle, unsigned long long start)
@@ -31,7 +28,7 @@ namespace rawr::inline lib::detail::tn
 
     template <typename T>
     consteval auto get_tn_info() -> tn_info {
-        #if RAWR_COMPILER_CLANG || RAWR_COMPILER_GCC
+        #if RAWR_COMPILER_FAMILY_GNU
             constexpr auto name           = __PRETTY_FUNCTION__;
             constexpr char start_marker[] = "T = ";
             constexpr char end_marker[]   = "]";
@@ -64,11 +61,11 @@ namespace rawr::inline lib::detail::tn
     };
 }
 
-namespace rawr::inline lib
+RAWR_EXPORT namespace rawr::inline lib
 {
     template <typename T>
     constexpr auto tn = []() consteval {
-        constexpr auto tni = detail::tn::get_tn_info<T>();
+        constexpr auto tni = type_name::detail::get_tn_info<T>();
 
         detail::tn::tn_array<tni.len + 1> ret;
         for(auto i = 0; i < ret.size; ++i)
@@ -77,5 +74,3 @@ namespace rawr::inline lib
         return ret;
     }();
 }
-
-#pragma endregion rawr/lib/type_name.hpp

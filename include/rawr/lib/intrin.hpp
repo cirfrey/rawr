@@ -40,49 +40,55 @@ RAWR_EXPORT namespace rawr::inline lib::intrin
 
     template <typename T> concept is_trivially_copyable = __is_trivially_copyable(T);
     template <typename T> concept is_standard_layout    = __is_standard_layout(T);
+
+    template <typename T> T&& declval() noexcept; // TODO: this doesnt belong here.
+    #if RAWR_COMPILER_FAMILY_GNU
+        template <typename From, typename To>
+        concept convertible_to = __is_convertible(From, To) && requires { static_cast<To>(declval<From>()); };
+    #elif RAWR_COMPILER_MSVC
+        template <typename From, typename To>
+        concept convertible_to = __is_convertible_to(From, To) && requires { static_cast<To>(declval<From>()); };
+    #endif
 }
 
-// Math-related intrinsics.
-// TODO: all the intrinsics after this line need auditing: Ideally the if(is_consteval()) is only on MSVC
-//       branches, as most (probably all) gnu intrinsics are constexpr and we are currently
-//       forcing the user into a soft:: version that is probably slower than just calling
-//       the intrinsic.
+/// Math-related intrinsics.
 
 // TODO: this might also need an arch guard.
 #if RAWR_COMPILER_MSVC
-    namespace rawr::inline lib::intrin::msvc
+    namespace rawr::inline lib::intrin::inline math::msvc
     {
-        extern "C" unsigned __int64 _umul128(unsigned __int64, unsigned __int64, unsigned __int64*);
-        #pragma intrinsic(_umul128)
-        extern "C" __int64 _mul128(__int64, __int64, __int64*);
-        #pragma intrinsic(_mul128)
-        extern "C" unsigned __int64 _udiv128(unsigned __int64, unsigned __int64, unsigned __int64, unsigned __int64*);
-        #pragma intrinsic(_udiv128)
-
-        extern "C" unsigned char _addcarry_u32(unsigned char, unsigned int, unsigned int, unsigned int*);
-        #pragma intrinsic(_addcarry_u32)
-        extern "C" unsigned char _addcarry_u64(unsigned char, unsigned __int64, unsigned __int64, unsigned __int64*);
-        #pragma intrinsic(_addcarry_u64)
-        extern "C" unsigned char _subborrow_u32(unsigned char, unsigned int, unsigned int, unsigned int*);
-        #pragma intrinsic(_subborrow_u32)
-        extern "C" unsigned char _subborrow_u64(unsigned char, unsigned __int64, unsigned __int64, unsigned __int64*);
-        #pragma intrinsic(_subborrow_u64)
-
         extern "C" unsigned short   __popcnt16(unsigned short);
-        #pragma intrinsic(__popcnt16)
         extern "C" unsigned int     __popcnt(unsigned int);
-        #pragma intrinsic(__popcnt)
         extern "C" unsigned __int64 __popcnt64(unsigned __int64);
-        #pragma intrinsic(__popcnt64)
+        #pragma intrinsic(__popcnt16, __popcnt, __popcnt64)
 
         extern "C" unsigned char _BitScanReverse(unsigned long*, unsigned long);
-        #pragma intrinsic(_BitScanReverse)
         extern "C" unsigned char _BitScanReverse64(unsigned long*, unsigned __int64);
-        #pragma intrinsic(_BitScanReverse64)
         extern "C" unsigned char _BitScanForward(unsigned long*, unsigned long);
-        #pragma intrinsic(_BitScanForward)
         extern "C" unsigned char _BitScanForward64(unsigned long*, unsigned __int64);
-        #pragma intrinsic(_BitScanForward64)
+        #pragma intrinsic(_BitScanReverse, _BitScanReverse64, _BitScanForward, _BitScanForward64)
+
+        extern "C" unsigned short   _byteswap_ushort(unsigned short);
+        extern "C" unsigned long    _byteswap_ulong(unsigned long);
+        extern "C" unsigned __int64 _byteswap_uint64(unsigned __int64);
+        #pragma intrinsic(_byteswap_ushort, _byteswap_ulong, _byteswap_uint64)
+
+        extern "C" unsigned int     _rotl  (unsigned int,      int);
+        extern "C" unsigned __int64 _rotl64(unsigned __int64,  int);
+        extern "C" unsigned int     _rotr  (unsigned int,      int);
+        extern "C" unsigned __int64 _rotr64(unsigned __int64,  int);
+        #pragma intrinsic(_rotl,_rotl64, _rotr, _rotr64)
+
+        extern "C" unsigned __int64 _umul128(unsigned __int64, unsigned __int64, unsigned __int64*);
+        extern "C"          __int64 _mul128(__int64, __int64, __int64*);
+        extern "C" unsigned __int64 _udiv128(unsigned __int64, unsigned __int64, unsigned __int64, unsigned __int64*);
+        #pragma intrinsic(_umul128, _mul128, _udiv128)
+
+        extern "C" unsigned char _addcarry_u32(unsigned char, unsigned int, unsigned int, unsigned int*);
+        extern "C" unsigned char _addcarry_u64(unsigned char, unsigned __int64, unsigned __int64, unsigned __int64*);
+        extern "C" unsigned char _subborrow_u32(unsigned char, unsigned int, unsigned int, unsigned int*);
+        extern "C" unsigned char _subborrow_u64(unsigned char, unsigned __int64, unsigned __int64, unsigned __int64*);
+        #pragma intrinsic(_addcarry_u32, _addcarry_u64, _subborrow_u32, _subborrow_u64)
     }
 #endif
 
@@ -200,6 +206,120 @@ RAWR_EXPORT namespace rawr::inline lib::intrin::inline math
     template <raint Raw> [[nodiscard]] constexpr auto trailing_ones(Raw val) noexcept -> Raw { return trailing_zeros(static_cast<Raw>(~val)); }
 }
 
+// Byte-swap and rotation.
+RAWR_EXPORT namespace rawr::inline lib::intrin::inline math
+{
+    namespace soft
+    {
+        template <ruint Raw>
+        [[nodiscard]] constexpr auto bswap(Raw val) noexcept -> Raw
+        {
+                 if constexpr (sizeof(Raw) == 1) { return val; }
+            else if constexpr (sizeof(Raw) == 2) {
+                return static_cast<Raw>(
+                    ((val & Raw{0x00FF}) <<  8) |
+                    ((val & Raw{0xFF00}) >>  8)
+                );
+            }
+            else if constexpr (sizeof(Raw) == 4) {
+                return static_cast<Raw>(
+                    ((val & 0x000000FFU) << 24) |
+                    ((val & 0x0000FF00U) <<  8) |
+                    ((val & 0x00FF0000U) >>  8) |
+                    ((val & 0xFF000000U) >> 24)
+                );
+            }
+            else {
+                return static_cast<Raw>(
+                    ((val & 0x00000000000000FFULL) << 56) |
+                    ((val & 0x000000000000FF00ULL) << 40) |
+                    ((val & 0x0000000000FF0000ULL) << 24) |
+                    ((val & 0x00000000FF000000ULL) <<  8) |
+                    ((val & 0x000000FF00000000ULL) >>  8) |
+                    ((val & 0x0000FF0000000000ULL) >> 24) |
+                    ((val & 0x00FF000000000000ULL) >> 40) |
+                    ((val & 0xFF00000000000000ULL) >> 56)
+                );
+            }
+        }
+
+        // Normalize any int to [0, bits) — handles negative n (rotate right by k == rotate left by bits-k).
+        template <ruint Raw>
+        [[nodiscard]] constexpr auto rotl(Raw val, int n) noexcept -> Raw
+        {
+            constexpr int bits = static_cast<int>(bitsof<Raw>.val);
+            n = ((n % bits) + bits) % bits;
+            if (n == 0) { return val; }
+            return static_cast<Raw>((val << static_cast<unsigned>(n)) | (val >> static_cast<unsigned>(bits - n)));
+        }
+
+        template <ruint Raw>
+        [[nodiscard]] constexpr auto rotr(Raw val, int n) noexcept -> Raw
+        { return soft::rotl(val, -n); }
+    }
+
+    // Byte-swap. Restricted to unsigned — signed bswap has no meaningful interpretation.
+    template <ruint Raw>
+    [[nodiscard]] RAWR_ALWAYS_INLINE constexpr auto bswap(Raw val) noexcept -> Raw
+    {
+        #if RAWR_COMPILER_FAMILY_GNU
+                 if constexpr (sizeof(Raw) == 1) { return val; }
+            else if constexpr (sizeof(Raw) == 2) { return static_cast<Raw>(__builtin_bswap16(static_cast<unsigned short>(val)));         }
+            else if constexpr (sizeof(Raw) == 4) { return static_cast<Raw>(__builtin_bswap32(static_cast<unsigned int>(val)));           }
+            else                                 { return static_cast<Raw>(__builtin_bswap64(static_cast<unsigned long long>(val)));     }
+        #elif RAWR_COMPILER_MSVC
+            if (intrin::is_consteval()) { return soft::bswap(val); }
+                 if constexpr (sizeof(Raw) == 1) { return val; }
+            else if constexpr (sizeof(Raw) == 2) { return static_cast<Raw>(msvc::_byteswap_ushort(static_cast<unsigned short>(val)));    }
+            else if constexpr (sizeof(Raw) == 4) { return static_cast<Raw>(msvc::_byteswap_ulong(static_cast<unsigned long>(val)));      }
+            else                                 { return static_cast<Raw>(msvc::_byteswap_uint64(static_cast<unsigned __int64>(val)));  }
+        #else
+            return soft::bswap(val);
+        #endif
+    }
+
+    // TODO: fix rotation on gcc to the builtin when it exists -> check compiler version.
+
+    // Rotation. Negative n rotates in the opposite direction (matching std::rotl/rotr semantics).
+    // GCC ≥ 12 and Clang ≥ 8 have __builtin_rotateleft*, but GCC 11 (minimum supported) does not.
+    // The idiom in soft:: is recognised by all supported compilers and lowers to a single ROL/ROR on x86.
+    template <ruint Raw>
+    [[nodiscard]] RAWR_ALWAYS_INLINE constexpr auto rotl(Raw val, int n) noexcept -> Raw
+    {
+        #if RAWR_COMPILER_FAMILY_GNU
+            return soft::rotl(val, n);
+        #elif RAWR_COMPILER_MSVC
+            if (intrin::is_consteval()) { return soft::rotl(val, n); }
+            constexpr int bits = static_cast<int>(bitsof<Raw>.val);
+            int const norm = ((n % bits) + bits) % bits;
+            if (norm == 0) { return val; }
+                 if constexpr (sizeof(Raw) == 4) { return static_cast<Raw>(msvc::_rotl  (static_cast<unsigned int>      (val), norm)); }
+            else if constexpr (sizeof(Raw) == 8) { return static_cast<Raw>(msvc::_rotl64(static_cast<unsigned __int64>  (val), norm)); }
+            else { return static_cast<Raw>((val << static_cast<unsigned>(norm)) | (val >> static_cast<unsigned>(bits - norm))); }
+        #else
+            return soft::rotl(val, n);
+        #endif
+    }
+
+    template <ruint Raw>
+    [[nodiscard]] RAWR_ALWAYS_INLINE constexpr auto rotr(Raw val, int n) noexcept -> Raw
+    {
+        #if RAWR_COMPILER_FAMILY_GNU
+            return soft::rotr(val, n);
+        #elif RAWR_COMPILER_MSVC
+            if (intrin::is_consteval()) { return soft::rotr(val, n); }
+            constexpr int bits = static_cast<int>(bitsof<Raw>.val);
+            int const norm = ((n % bits) + bits) % bits;
+            if (norm == 0) { return val; }
+                 if constexpr (sizeof(Raw) == 4) { return static_cast<Raw>(msvc::_rotr  (static_cast<unsigned int>      (val), norm)); }
+            else if constexpr (sizeof(Raw) == 8) { return static_cast<Raw>(msvc::_rotr64(static_cast<unsigned __int64>  (val), norm)); }
+            else { return static_cast<Raw>((val << static_cast<unsigned>(bits - norm)) | (val >> static_cast<unsigned>(norm))); }
+        #else
+            return soft::rotr(val, n);
+        #endif
+    }
+}
+
 // umul64 and udiv128_64.
 RAWR_EXPORT namespace rawr::inline lib::intrin::inline math
 {
@@ -298,7 +418,7 @@ RAWR_EXPORT namespace rawr::inline lib::intrin::inline math
         RAWR_ASSERTION(div128_overflow,   ru64s.hi < divisor);
 
         #if RAWR_COMPILER_MSVC
-            if (intrin::is_consteval())  { return soft::udiv128_64(ru64s.hi, ru64s.lo, divisor); }
+            if (intrin::is_consteval())  { return soft::udiv128_64(ru64s, divisor); }
             ru64 rem  = 0;
             ru64 quot = msvc::_udiv128(ru64s.hi, ru64s.lo, divisor, &rem);
             return { quot, rem };
@@ -431,12 +551,12 @@ RAWR_EXPORT namespace rawr::inline lib::intrin::inline math
             bool const overflowed = __builtin_sub_overflow(lhs, rhs, &result);
             return { result, overflowed };
         #elif RAWR_COMPILER_MSVC
-            if (intrin::is_consteval()) return soft::ov_sub(a, b);
+            if (intrin::is_consteval()) return soft::ov_sub(lhs, rhs);
                 if constexpr (sizeof(Raw) == 4)
                 {
                     unsigned int result_;
                     unsigned char carry = msvc::_subborrow_u32(0, static_cast<unsigned int>(lhs), static_cast<unsigned int>(rhs), &result_);
-                    Raw const result = static_cast<Raw>(result);
+                    Raw const result = static_cast<Raw>(result_);
                     if constexpr (uint<Raw>) return { result, carry != 0 };
                     else return { result, soft::did_sub_underflow(lhs, rhs, result) };
                     }
@@ -480,6 +600,109 @@ RAWR_EXPORT namespace rawr::inline lib::intrin::inline math
             }
         #else
             return soft::ov_mul(lhs, rhs);
+        #endif
+    }
+}
+
+/// Memory intrinsics
+
+#if RAWR_COMPILER_MSVC
+    namespace rawr::inline lib::intrin::inline mem::msvc
+    {
+        extern "C" void* memcpy(void*, void const*, rst);
+        extern "C" void* memset(void*, int, rst);
+        extern "C" void* memmove(void*, void const*, rst);
+        extern "C" int   memcmp(void const*, void const*, rst);
+        #pragma intrinsic(memcpy, memset, memmove, memcmp)
+    }
+#endif
+
+// Memory intrinsics.
+RAWR_EXPORT namespace rawr::inline lib::intrin::inline mem
+{
+    namespace soft
+    {
+        constexpr auto memcpy(void* dst, void const* src, rst n) noexcept -> void*
+        {
+            auto*       d = static_cast<unsigned char*>(dst);
+            auto const* s = static_cast<unsigned char const*>(src);
+            for (rst i = 0; i != n; ++i) { d[i] = s[i]; }
+            return dst;
+        }
+
+        constexpr auto memset(void* dst, int val, rst n) noexcept -> void*
+        {
+            auto* d = static_cast<unsigned char*>(dst);
+            for (rst i = 0; i != n; ++i) { d[i] = static_cast<unsigned char>(val); }
+            return dst;
+        }
+
+        constexpr auto memmove(void* dst, void const* src, rst n) noexcept -> void*
+        {
+            auto*       d = static_cast<unsigned char*>(dst);
+            auto const* s = static_cast<unsigned char const*>(src);
+            if (d < s || d >= s + n) { for (rst i = 0; i   != n; ++i) { d[i] = s[i]; } }
+            else                     { for (rst i = n; i-- != 0;    ) { d[i] = s[i]; } }
+            return dst;
+        }
+
+        [[nodiscard]] constexpr auto memcmp(void const* lhs, void const* rhs, rst n) noexcept -> int
+        {
+            auto const* l = static_cast<unsigned char const*>(lhs);
+            auto const* r = static_cast<unsigned char const*>(rhs);
+            for (rst i = 0; i != n; ++i) {
+                if (l[i] < r[i]) { return -1; }
+                if (l[i] > r[i]) { return  1; }
+            }
+            return 0;
+        }
+    }
+
+    RAWR_ALWAYS_INLINE constexpr auto memcpy(void* dst, void const* src, rst n) noexcept -> void*
+    {
+        if (intrin::is_consteval()) { return soft::memcpy(dst, src, n); }
+        #if RAWR_COMPILER_FAMILY_GNU
+            return __builtin_memcpy(dst, src, n);
+        #elif RAWR_COMPILER_MSVC
+            return msvc::memcpy(dst, src, n);
+        #else
+            return soft::memcpy(dst, src, n);
+        #endif
+    }
+
+    RAWR_ALWAYS_INLINE constexpr auto memset(void* dst, int val, rst n) noexcept -> void*
+    {
+        if (intrin::is_consteval()) { return soft::memset(dst, val, n); }
+        #if RAWR_COMPILER_FAMILY_GNU
+            return __builtin_memset(dst, val, n);
+        #elif RAWR_COMPILER_MSVC
+            return msvc::memset(dst, val, n);
+        #else
+            return soft::memset(dst, val, n);
+        #endif
+    }
+
+    RAWR_ALWAYS_INLINE constexpr auto memmove(void* dst, void const* src, rst n) noexcept -> void*
+    {
+        #if RAWR_COMPILER_FAMILY_GNU
+            return __builtin_memmove(dst, src, n);
+        #elif RAWR_COMPILER_MSVC
+            if (intrin::is_consteval()) { return soft::memmove(dst, src, n); }
+            return msvc::memmove(dst, src, n);
+        #else
+            return soft::memmove(dst, src, n);
+        #endif
+    }
+
+    [[nodiscard]] RAWR_ALWAYS_INLINE constexpr auto memcmp(void const* lhs, void const* rhs, rst n) noexcept -> int
+    {
+        #if RAWR_COMPILER_FAMILY_GNU
+            return __builtin_memcmp(lhs, rhs, n);
+        #elif RAWR_COMPILER_MSVC
+            if (intrin::is_consteval()) { return soft::memcmp(lhs, rhs, n); }
+            return msvc::memcmp(lhs, rhs, n);
+        #else
+            return soft::memcmp(lhs, rhs, n);
         #endif
     }
 }

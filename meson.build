@@ -45,6 +45,7 @@ rawr_modules = files(
     'src/rawr/lib/detection.cppm',
     'src/rawr/lib/diag.cppm',
     'src/rawr/lib/dummy_return.cppm',
+    'src/rawr/lib/fmt.cppm',
     'src/rawr/lib/detection.cppm',
     'src/rawr/lib/intrin.cppm',
     'src/rawr/lib/rich_enum.cppm',

@@ -8,20 +8,24 @@
     export import rawr.lib.detection;
     export import rawr.lib.diag;
     export import rawr.lib.dummy_return;
+    export import rawr.lib.fmt;
     export import rawr.lib.integer;
     export import rawr.lib.intrin;
     export import rawr.lib.rich_enum;
     export import rawr.lib.sync;
+    export import rawr.lib.type_name;
 #else
     #include "rawr/lib/bitfield.hpp"
     #include "rawr/lib/bits.hpp"
     #include "rawr/lib/detection.hpp"
     #include "rawr/lib/diag.hpp"
     #include "rawr/lib/dummy_return.hpp"
+    #include "rawr/lib/fmt.hpp"
     #include "rawr/lib/integer.hpp"
     #include "rawr/lib/intrin.hpp"
     #include "rawr/lib/rich_enum.hpp"
     #include "rawr/lib/sync.hpp"
+    #include "rawr/lib/type_name.hpp"
 #endif
 #include "rawr/lib/attributes.pp"
 #include "rawr/lib/bitfield.pp"

@@ -47,4 +47,6 @@ RAWR_EXPORT namespace rawr::inline lib::inline bits
 
     template <typename T> inline constexpr auto bytesof = bytewidth{ sizeof(T) };
     template <typename T>        constexpr auto bytesofe([[maybe_unused]] T&& expr) noexcept { return bytesof<T>; }
+
+    enum class byte : unsigned char {};
 }
