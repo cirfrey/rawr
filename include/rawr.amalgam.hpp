@@ -15,7 +15,7 @@
 
 // Amalgams are headers; never allow module mode to leak in.
 #ifdef RAWR_MODULE
-    #undef RAWR_MODULE
+#undef RAWR_MODULE
 #endif
 
 /* required by:

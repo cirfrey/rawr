@@ -93,6 +93,8 @@ foreach o : module_manifest.split('\n')
         command: [python, '-c', 'import sys; open(sys.argv[1], "w").close()', '@OUTPUT@']
     )
 
+    mod_deps += {mod + '.stamp': bridge}
+
     # By passing `bridge` into `sources:`, any library that depends on this
     # module is forced by Meson to wait for the bridge (and thus the underlying
     # object compilation) to finish before its own compilation begins.
@@ -116,6 +118,7 @@ run_target(
         dir_include/'rawr.hpp',
         dir_include/'rawr.amalgam.hpp',
     ],
+    depends: mod_deps['rawr.stamp']
 )
 
 clang_tidy = find_program('clang-tidy', required: false)
