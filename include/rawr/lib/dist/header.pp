@@ -1,4 +1,6 @@
 //// rawr/lib/dist/header.pp.
 #pragma once
 
-#define RAWR_EXPORT
+#ifndef RAWR_MODULE
+    #define RAWR_EXPORT
+#endif

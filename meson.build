@@ -107,6 +107,17 @@ foreach o : module_manifest.split('\n')
     }
 endforeach
 
+run_target(
+    'amalgam',
+    command: [
+        python,
+        dir_scripts/'amalgam.py',
+        '-I', dir_include,
+        dir_include/'rawr.hpp',
+        dir_include/'rawr.amalgam.hpp',
+    ],
+)
+
 clang_tidy = find_program('clang-tidy', required: false)
 if clang_tidy.found()
     run_target('tidy',

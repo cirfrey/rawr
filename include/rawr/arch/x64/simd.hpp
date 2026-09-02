@@ -111,5 +111,3 @@ namespace rawr::arch::x64::sse
         #endif
     }
 }
-
-#pragma endregion rawr/arch/x64/simd.hpp

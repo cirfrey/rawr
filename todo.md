@@ -20,9 +20,9 @@
 [ ] README.md
 [ ] LICENSE.md
 [ ] Distribution
-    - [ ] Amalgam script.
+    - [X] Amalgam script.
+    - [X] Amalgam target.
     - [ ] Amalgam on every commit.
-    - [ ] Amalgam on every build.
     - [X] Eliminate .cppm (inject -DRAWR_MODULE via command line)
     - [X] scan-deps working with folders
     - [X] scan-deps not choking on .pp and .hpp

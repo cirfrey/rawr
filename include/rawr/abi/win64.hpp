@@ -1,9 +1,9 @@
-//// rawr/abi/microsoft.hpp.
+//// rawr/abi/win64.hpp.
 // TODO: needs a onceover.
 // TODO: requires lib::ptr<type, size> for cross-compiling things.
 
 #ifdef RAWR_MODULE
-    export module rawr.abi.microsoft;
+    export module rawr.abi.win64;
     import rawr.lib.integer.raw;
 
     #include "rawr/lib/dist/module.pp"
@@ -14,7 +14,7 @@
     #include "rawr/lib/dist/header.pp"
 #endif
 
-RAWR_EXPORT namespace rawr::abi::windows
+RAWR_EXPORT namespace rawr::abi::win64
 {
     // 0x10, 0x60, etc are magic numbers, are they mandated by microsoft?
 
