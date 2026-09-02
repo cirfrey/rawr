@@ -100,7 +100,7 @@ def main():
             if mod_name in parsed_modules:
                 mod = parsed_modules[mod_name]
                 requires_str = ','.join(mod.requires)
-                print(f"{mod.src}|{mod.name}|{requires_str}")
+                print(f"{mod.src.relative_to(Path.cwd()).as_posix()}|{mod.name}|{requires_str}")
     except ValueError as e:
         print(f"[scan_deps.py] ERROR: Circular dependency detected: {e}", file=sys.stderr)
         sys.exit(1)

@@ -1,11 +1,15 @@
-//// rawr/lib/diag/dwarf.hpp
-#pragma once
+//// rawr/lib/diag/dwarf.hpp.
 
-#include "rawr/lib/module.pp"
-#if RAWR_MODULE
+#ifdef RAWR_MODULE
+    export module rawr.lib.diag.dwarf;
     import rawr.lib.detection;
+
+    #include "rawr/lib/dist/module.pp"
 #else
+    #pragma once
     #include "rawr/lib/detection.hpp"
+
+    #include "rawr/lib/dist/header.pp"
 #endif
 #include "rawr/lib/detection.pp"
 #include "rawr/lib/attributes.pp"

@@ -1,14 +1,17 @@
-//// rawr/lib/fmt.hpp
-#pragma once
+//// rawr/lib/fmt.hpp.
 
-
-#include "rawr/lib/module.pp"
-#if RAWR_MODULE
+#ifdef RAWR_MODULE
+    export module rawr.lib.fmt;
     import rawr.lib.type_name;
     import rawr.lib.intrin;
+
+    #include "rawr/lib/dist/module.pp"
 #else
+    #pragma once
     #include "rawr/lib/type_name.hpp"
     #include "rawr/lib/intrin.hpp"
+
+    #include "rawr/lib/dist/header.pp"
 #endif
 
 RAWR_EXPORT namespace rawr::inline lib::format
@@ -350,7 +353,7 @@ RAWR_EXPORT namespace rawr::inline lib::inline format_literals
 }
 
 
-//// Some default_formatters below.
+/// Some default_formatters below.
 
 RAWR_EXPORT namespace rawr::inline lib::format
 {

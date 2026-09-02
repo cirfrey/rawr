@@ -1,8 +1,14 @@
-
 //// rawr/lib/type_name.hpp.
-#pragma once
 
-#include "rawr/lib/module.pp"
+#ifdef RAWR_MODULE
+    export module rawr.lib.type_name;
+
+    #include "rawr/lib/dist/module.pp"
+#else
+    #pragma once
+
+    #include "rawr/lib/dist/header.pp"
+#endif
 #include "rawr/lib/detection.pp"
 
 namespace rawr::inline lib::type_name::detail

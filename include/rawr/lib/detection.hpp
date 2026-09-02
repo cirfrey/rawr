@@ -2,13 +2,17 @@
 // Flat constexpr values in rawr:: for if constexpr dispatch.
 // Enum type names are plural nouns to avoid clashing with module namespaces
 // (rawr::abi is a namespace; rawr::abis is this enum type).
-#pragma once
 
-#include "rawr/lib/module.pp"
-#if RAWR_MODULE
+#ifdef RAWR_MODULE
+    export module rawr.lib.detection;
     import rawr.lib.integer.raw;
+
+    #include "rawr/lib/dist/module.pp"
 #else
+    #pragma once
     #include "rawr/lib/integer/raw.hpp"
+
+    #include "rawr/lib/dist/header.pp"
 #endif
 #include "rawr/lib/detection.pp"
 #include "rawr/lib/rich_enum.pp"

@@ -1,14 +1,18 @@
 
-//// rawr/abi/sysv.hpp
-#pragma once
+//// rawr/abi/sysv.hpp.
 
-#include "rawr/lib/module.pp"
-#if RAWR_MODULE
+#ifdef RAWR_MODULE
+    export module rawr.abi.sysv;
     import rawr.lib.detection;
     import rawr.lib.integer.raw;
+
+    #include "rawr/lib/dist/module.pp"
 #else
+    #pragma once
     #include "rawr/lib/detection.hpp"
     #include "rawr/lib/integer/raw.hpp"
+
+    #include "rawr/lib/dist/header.pp"
 #endif
 #include "rawr/lib/attributes.pp"
 #include "rawr/lib/rich_enum.pp"

@@ -1,13 +1,17 @@
 //// rawr/abi/microsoft.hpp.
-//// TODO: needs a onceover.
-//// TODO: requires lib::ptr<type, size> for cross-compiling things.
-#pragma once
+// TODO: needs a onceover.
+// TODO: requires lib::ptr<type, size> for cross-compiling things.
 
-#include "rawr/lib/module.pp"
-#if RAWR_MODULE
+#ifdef RAWR_MODULE
+    export module rawr.abi.microsoft;
     import rawr.lib.integer.raw;
+
+    #include "rawr/lib/dist/module.pp"
 #else
+    #pragma once
     #include "rawr/lib/integer/raw.hpp"
+
+    #include "rawr/lib/dist/header.pp"
 #endif
 
 RAWR_EXPORT namespace rawr::abi::windows

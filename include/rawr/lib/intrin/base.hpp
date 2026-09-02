@@ -1,11 +1,15 @@
-//// rawr/lib/intrin/base.hpp
-#pragma once
+//// rawr/lib/intrin/base.hpp.
 
-#include "rawr/lib/module.pp"
-#if RAWR_MODULE
+#ifdef RAWR_MODULE
+    export module rawr.lib.intrin.base;
     import rawr.lib.bits;
+
+    #include "rawr/lib/dist/module.pp"
 #else
+    #pragma once
     #include "rawr/lib/bits.hpp"
+
+    #include "rawr/lib/dist/header.pp"
 #endif
 #include "rawr/lib/detection.pp"
 #include "rawr/lib/attributes.pp"

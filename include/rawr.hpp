@@ -1,10 +1,7 @@
 //// rawr.hpp.
-#pragma once
 
-#include "rawr/lib/module.pp"
 #ifdef RAWR_MODULE
     export module rawr;
-
     export import rawr.abi;
     export import rawr.arch;
     export import rawr.bin;
@@ -13,6 +10,7 @@
     export import rawr.platform;
     export import rawr.san;
 #else
+    #pragma once
     #include "rawr/abi.hpp"
     #include "rawr/arch.hpp"
     #include "rawr/bin.hpp"

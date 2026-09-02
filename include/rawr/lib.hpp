@@ -1,8 +1,7 @@
 //// rawr/lib.hpp.
-#pragma once
 
-#include "rawr/lib/module.pp"
-#if RAWR_MODULE
+#ifdef RAWR_MODULE
+    export module rawr.lib;
     export import rawr.lib.bitfield;
     export import rawr.lib.bits;
     export import rawr.lib.detection;
@@ -16,6 +15,7 @@
     export import rawr.lib.test;
     export import rawr.lib.type_name;
 #else
+    #pragma once
     #include "rawr/lib/bitfield.hpp"
     #include "rawr/lib/bits.hpp"
     #include "rawr/lib/detection.hpp"
@@ -33,7 +33,5 @@
 #include "rawr/lib/bitfield.pp"
 #include "rawr/lib/detection.pp"
 #include "rawr/lib/main.pp"
-#include "rawr/lib/module.pp"
-#include "rawr/lib/pp_transitives.pp"
 #include "rawr/lib/pp.pp"
 #include "rawr/lib/rich_enum.pp"

@@ -1,15 +1,19 @@
 //// rawr/lib/test.hpp.
-#pragma once
 
-#include "rawr/lib/module.pp"
-#if RAWR_MODULE
+#ifdef RAWR_MODULE
+    export module rawr.lib.test;
     import rawr.lib.intrin;
     import rawr.lib.integer.raw;
     import rawr.lib.source_location;
+
+    #include "rawr/lib/dist/module.pp"
 #else
+    #pragma once
     #include "rawr/lib/intrin.hpp"
     #include "rawr/lib/integer/raw.hpp"
     #include "rawr/lib/source_location.hpp"
+
+    #include "rawr/lib/dist/header.pp"
 #endif
 #include "rawr/lib/detection.pp"
 

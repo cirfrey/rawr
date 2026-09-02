@@ -1,9 +1,9 @@
-//// rawr/lib/diag.hpp
-#pragma once
+//// rawr/lib/diag.hpp.
 
-#include "rawr/lib/module.pp"
-#if RAWR_MODULE
+#ifdef RAWR_MODULE
+    export module rawr.lib.diag;
     export import rawr.lib.diag.dwarf;
 #else
+    #pragma once
     #include "rawr/lib/diag/dwarf.hpp"
 #endif

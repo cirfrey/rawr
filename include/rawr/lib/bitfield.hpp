@@ -1,13 +1,17 @@
-//// rawr/lib/bitfield.hpp
-#pragma once
+//// rawr/lib/bitfield.hpp.
 
-#include "rawr/lib/module.pp"
-#if RAWR_MODULE
+#ifdef RAWR_MODULE
+    export module rawr.lib.bitfield;
     import rawr.lib.integer.base;
     import rawr.lib.bits;
+
+    #include "rawr/lib/dist/module.pp"
 #else
+    #pragma once
     #include "rawr/lib/integer/base.hpp"
     #include "rawr/lib/bits.hpp"
+
+    #include "rawr/lib/dist/header.pp"
 #endif
 
 RAWR_EXPORT namespace rawr::inline lib::bitfield

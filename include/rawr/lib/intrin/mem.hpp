@@ -1,19 +1,24 @@
-//// rawr/lib/intrin.hpp
-#pragma once
+//// rawr/lib/intrin/mem.hpp.
 
-#include "rawr/lib/module.pp"
-#if RAWR_MODULE
+#ifdef RAWR_MODULE
+    export module rawr.lib.intrin.mem;
     import rawr.lib.intrin.base;
     import rawr.lib.integer.base;
     import rawr.lib.integer.raw;
     import rawr.lib.bits;
     import rawr.lib.detection;
+
+    #include "rawr/lib/dist/module.pp"
 #else
+    #pragma once
+
     #include "rawr/lib/intrin/base.hpp"
     #include "rawr/lib/integer/base.hpp"
     #include "rawr/lib/integer/raw.hpp"
     #include "rawr/lib/bits.hpp"
     #include "rawr/lib/detection.hpp"
+
+    #include "rawr/lib/dist/header.pp"
 #endif
 #include "rawr/lib/detection.pp"
 #include "rawr/lib/attributes.pp"
@@ -30,7 +35,7 @@ RAWR_EXPORT namespace rawr::inline lib::intrin::inline mem::msvc
     auto memcmp (void const*, void const*, rst) -> int;
 
     #if RAWR_COMPILER_MSVC
-    }    
+    }
     #pragma intrinsic(memcpy, memset, memmove, memcmp)
     #endif
 }
@@ -48,7 +53,7 @@ RAWR_EXPORT namespace rawr::inline lib::intrin::inline mem::gnu
                   RAWR_ALWAYS_INLINE constexpr auto memmove(void* d,       void const* s, rst n) noexcept -> void* RAWR_GATED_GNU( return ::__builtin_memmove(d, s, n) )
     [[nodiscard]] RAWR_ALWAYS_INLINE constexpr auto memcmp (void const* a, void const* b, rst n) noexcept -> int   RAWR_GATED_GNU( return ::__builtin_memcmp(a, b, n) )
 
-    
+
     #undef RAWR_GATED_GNU
 }
 

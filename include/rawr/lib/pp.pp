@@ -1,5 +1,5 @@
-//// rawr/lib/pp.hpp – Preprocessor utility macros (FOR_EACH, NARG, CAT, …).
-//
+//// rawr/lib/pp.hpp.
+// Preprocessor utility macros (FOR_EACH, NARG, CAT, ...):
 // This header provides reusable low‑level preprocessor iteration and counting
 // macros that are shared by rawr::restruct, rawr::fmt, rawr::serialize, and
 // others. Up to 256 arguments are supported; the limit can be raised by adding

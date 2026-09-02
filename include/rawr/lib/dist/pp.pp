@@ -1,3 +1,4 @@
+//// rawr/lib/dist/pp.pp.
 #pragma once
 
 #ifndef RAWR_PP_TRANSITIVE_AS_MODULE

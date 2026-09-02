@@ -1,8 +1,8 @@
-//// rawr/lib/test.pp
+//// rawr/lib/test.pp.
 #pragma once
 
 // TODO: import/include linker section once thats done.
-#include "rawr/lib/pp_transitives.pp"
+#include "rawr/lib/dist/pp.pp"
 #if RAWR_PP_TRANSITIVE_AS_MODULE
     import rawr.lib.test;
 #endif

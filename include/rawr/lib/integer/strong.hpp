@@ -1,17 +1,21 @@
-//// rawr/lib/integer/strong.hpp
-#pragma once
+//// rawr/lib/integer/strong.hpp.
 
-#include "rawr/lib/module.pp"
-#if RAWR_MODULE
+#ifdef RAWR_MODULE
+    export module rawr.lib.integer.strong;
     import rawr.lib.integer.base;
     import rawr.lib.integer.raw;
     import rawr.lib.intrin;
     import rawr.lib.bits;
+
+    #include "rawr/lib/dist/module.pp"
 #else
+    #pragma once
     #include "rawr/lib/integer/base.hpp"
     #include "rawr/lib/integer/raw.hpp"
     #include "rawr/lib/intrin.hpp"
     #include "rawr/lib/bits.hpp"
+
+    #include "rawr/lib/dist/header.pp"
 #endif
 
 namespace rawr::inline lib::inline integer::inline strong::detail

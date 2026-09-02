@@ -1,4 +1,4 @@
-//// rawr/lib/detection.pp
+//// rawr/lib/detection.pp.
 //
 // We could cheat and ask the build system to sneak this info to us
 // ... but whats the fun in that?
@@ -13,7 +13,7 @@
 //       then just skip detection?
 #pragma once
 
-//// Library constants and library feature detection:
+/// Library constants and library feature detection:
 
 #define RAWR_DETECTION_MIN_GCC_VERSION   11
 #define RAWR_DETECTION_MIN_CLANG_VERSION 13
@@ -32,7 +32,7 @@
 #endif
 
 
-//// General detection:
+/// General detection:
 
 // ============================================================
 // Compiler

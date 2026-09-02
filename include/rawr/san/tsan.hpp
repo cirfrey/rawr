@@ -1,7 +1,14 @@
 //// rawr/san/tsan.hpp.
-#pragma once
 
-#include "rawr/lib/module.pp"
+#ifdef RAWR_MODULE
+    export module rawr.san.tsan;
+
+    #include "rawr/lib/dist/module.pp"
+#else
+    #pragma once
+
+    #include "rawr/lib/dist/header.pp"
+#endif
 #include "rawr/lib/detection.pp"
 
 namespace rawr::san::tsan::detail

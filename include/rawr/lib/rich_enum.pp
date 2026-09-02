@@ -1,4 +1,5 @@
-//// rawr/data/rich_enum.pp - rawr's strong enumeration abstraction.
+//// rawr/data/rich_enum.pp.
+// Rawr's strong enumeration abstraction:
 // Provides RAWR_RICH_ENUM and RAWR_RICH_FLAGS.
 // MSVC: /Zc:preprocessor required.
 #pragma once

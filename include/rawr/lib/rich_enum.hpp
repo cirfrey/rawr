@@ -1,7 +1,14 @@
 //// rawr/lib/rich_enum.hpp.
-#pragma once
 
-#include "rawr/lib/module.pp"
+#ifdef RAWR_MODULE
+    export module rawr.lib.rich_enum;
+
+    #include "rawr/lib/dist/module.pp"
+#else
+    #pragma once
+
+    #include "rawr/lib/dist/header.pp"
+#endif
 
 RAWR_EXPORT namespace rawr::inline lib
 {

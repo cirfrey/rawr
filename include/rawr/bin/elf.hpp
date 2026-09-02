@@ -1,7 +1,12 @@
 //// rawr/bin/elf.hpp.
-#pragma once
 
-#include "rawr/lib/module.pp"
+#ifdef RAWR_MODULE
+    export module rawr.bin.elf;
+    #include "rawr/lib/dist/module.pp"
+#else
+    #pragma once
+    #include "rawr/lib/dist/header.pp"
+#endif
 #include "rawr/lib/attributes.pp"
 
 // In a static binary with a proper linker script these symbols always exist.

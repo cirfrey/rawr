@@ -1,13 +1,15 @@
 //// rawr/arch/x64/simd.hpp.
-#pragma once
 
-#include "rawr/lib/module.pp"
-#if RAWR_MODULE
+#ifdef RAWR_MODULE
+    export module rawr.arch.x64.simd;
     import rawr.lib.simd.storage;
     import rawr.lib.dummy_return;
     import rawr.lib.detection;
     import rawr.lib.integer.raw;
+
+    #include "rawr/lib/dist/module.pp"
 #else
+    #pragma once
     #include "rawr/lib/simd/storage.hpp"
     #include "rawr/lib/dummy_return.hpp"
     #include "rawr/lib/detection.hpp"

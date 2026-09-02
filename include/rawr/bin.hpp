@@ -1,9 +1,9 @@
 //// rawr/bin.hpp.
-#pragma once
 
-#include "rawr/lib/module.pp"
-#if RAWR_MODULE
+#ifdef RAWR_MODULE
+    export module rawr.bin;
     export import rawr.bin.elf;
 #else
+    #pragma once
     #include "rawr/bin/elf.hpp"
 #endif

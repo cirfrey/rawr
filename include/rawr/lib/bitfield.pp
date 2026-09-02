@@ -1,7 +1,7 @@
-//// rawr/lib/bitfield.pp
+//// rawr/lib/bitfield.pp.
 #pragma once
 
-#include "rawr/lib/pp_transitives.pp"
+#include "rawr/lib/dist/pp.pp"
 #if RAWR_PP_TRANSITIVE_AS_MODULE
     import rawr.lib.bitfield;
     import rawr.lib.bits;

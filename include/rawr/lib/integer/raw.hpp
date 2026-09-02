@@ -1,13 +1,17 @@
-//// rawr/lib/integer/raw.hpp
-#pragma once
+//// rawr/lib/integer/raw.hpp.
 
-#include "rawr/lib/module.pp"
-#if RAWR_MODULE
+#ifdef RAWR_MODULE
+    export module rawr.lib.integer.raw;
     import rawr.lib.integer.base;
     import rawr.lib.bits;
+
+    #include "rawr/lib/dist/module.pp"
 #else
+    #pragma once
     #include "rawr/lib/integer/base.hpp"
     #include "rawr/lib/bits.hpp"
+
+    #include "rawr/lib/dist/header.pp"
 #endif
 
 // Just in case you need the actual underlying type aliases. Prefer the strong

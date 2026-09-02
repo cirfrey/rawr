@@ -2,7 +2,7 @@
 //// rawr/abi/sysv.pp.
 #pragma once
 
-#include "rawr/lib/pp_transitives.pp"
+#include "rawr/lib/dist/pp.pp"
 #if RAWR_PP_TRANSITIVE_AS_MODULE
     import rawr.abi.sysv;
     import rawr.lib.detection;

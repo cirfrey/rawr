@@ -1,13 +1,17 @@
-//// rawr/arch/x64/cas.hpp
-#pragma once
+//// rawr/arch/x64/atomic.hpp.
 
-#include "rawr/lib/module.pp"
-#if RAWR_MODULE
+#ifdef RAWR_MODULE
+    export module rawr.arch.x64.atomic;
     import rawr.lib.integer.base;
     import rawr.lib.sync.base;
+
+    #include "rawr/lib/dist/module.pp"
 #else
+    #pragma once
     #include "rawr/lib/integer/base.hpp"
     #include "rawr/lib/sync/base.hpp"
+
+    #include "rawr/lib/dist/header.pp"
 #endif
 #include "rawr/lib/attributes.pp"
 

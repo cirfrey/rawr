@@ -15,82 +15,25 @@ dir_scripts = meson.current_source_dir()/'scripts'
 dir_build   = meson.current_build_dir()
 dir_include_name = 'include'
 
-rawr_modules = files(
-    'src/rawr/abi/microsoft.cppm',
-    'src/rawr/abi/sysv.cppm',
-
-    'src/rawr/arch/x64/atomic.cppm',
-    'src/rawr/arch/x64/cpuid.cppm',
-    'src/rawr/arch/x64/simd.cppm',
-
-    'src/rawr/arch/x64.cppm',
-
-    'src/rawr/bin/elf.cppm',
-
-    'src/rawr/cxx_abi/itanium.cppm',
-
-    'src/rawr/lib/diag/dwarf.cppm',
-
-    'src/rawr/lib/integer/base.cppm',
-    'src/rawr/lib/integer/raw.cppm',
-    'src/rawr/lib/integer/strong.cppm',
-
-    'src/rawr/lib/intrin/base.cppm',
-    'src/rawr/lib/intrin/math.cppm',
-    'src/rawr/lib/intrin/mem.cppm',
-
-    'src/rawr/lib/simd/storage.cppm',
-
-    'src/rawr/lib/sync/base.cppm',
-
-    'src/rawr/lib/bitfield.cppm',
-    'src/rawr/lib/bits.cppm',
-    'src/rawr/lib/detection.cppm',
-    'src/rawr/lib/diag.cppm',
-    'src/rawr/lib/dummy_return.cppm',
-    'src/rawr/lib/fmt.cppm',
-    'src/rawr/lib/integer.cppm',
-    'src/rawr/lib/intrin.cppm',
-    'src/rawr/lib/rich_enum.cppm',
-    'src/rawr/lib/source_location.cppm',
-    'src/rawr/lib/sync.cppm',
-    'src/rawr/lib/test.cppm',
-    'src/rawr/lib/type_name.cppm',
-
-    'src/rawr/platform/linux.cppm',
-
-    'src/rawr/san/asan.cppm',
-    'src/rawr/san/lsan.cppm',
-    'src/rawr/san/msan.cppm',
-    'src/rawr/san/tsan.cppm',
-
-    'src/rawr/abi.cppm',
-    'src/rawr/arch.cppm',
-    'src/rawr/bin.cppm',
-    'src/rawr/cxx_abi.cppm',
-    'src/rawr/lib.cppm',
-    'src/rawr/platform.cppm',
-    'src/rawr/san.cppm',
-
-    'src/rawr.cppm',
-)
-
 scan_deps = dir_scripts/'scan_deps.py'
 
-module_list = run_command(python, scan_deps,
+module_manifest = run_command(python, scan_deps,
     cpp_id,
     cpp_id == 'msvc' ? '/std=c++20' : '-std=c++20',
     cpp_id == 'msvc' ? '/I' : '-I',
     dir_include,
-    '--modules--', rawr_modules,
+    '-D', 'RAWR_MODULE',
+    '--modules--', dir_include,
     check: true
 ).stdout().strip()
 
+run_command(python, '-c', 'with open("module.manifest", "w") as f: f.write("' + module_manifest.replace('\n', '\\n') + '")', check: true)
 run_command(python, '-c', 'import os; os.makedirs("' + (dir_build/'bmi') + '", exist_ok=True)', check: true)
+
 # Dictionary to hold the declare_dependency() for each module
 mod_deps = {}
-foreach o : module_list.split('\n')
-    if o.strip() == ''
+foreach o : module_manifest.split('\n')
+    if o.strip() == '' or o.startswith('#')
         continue
     endif
 
@@ -98,6 +41,11 @@ foreach o : module_list.split('\n')
     file = parts[0]
     mod  = parts[1]
     deps_str = parts[2]
+
+    if mod == ''
+        # message('Ignoring file with no module exports: ' + file)
+        continue
+    endif
 
     # Resolve dependencies for this module
     current_deps = []
@@ -107,7 +55,7 @@ foreach o : module_list.split('\n')
         endforeach
     endif
 
-    target_args = []
+    target_args = ['-DRAWR_MODULE']
     usage_args = []
 
     if cpp_id == 'clang'
@@ -126,9 +74,11 @@ foreach o : module_list.split('\n')
     endif
 
     lib = library(
-        mod.replace('.', '_'),
-        file,
+        mod,
+        configure_file(input: file, output: mod + '.cppm', copy: true), # Silence meson, as it thinks the .hpp is not a source file,
+                                                                        # when in our specific case it is.
         include_directories: dir_include_name,
+        implicit_include_directories : false,
         dependencies: current_deps,
         cpp_args: target_args
     )
@@ -137,7 +87,7 @@ foreach o : module_list.split('\n')
     # It takes the extracted object as input, meaning it runs instantly
     # AFTER the compiler writes the .pcm and .o files.
     bridge = custom_target(
-        mod.replace('.', '_') + '_stamp',
+        mod + '.stamp',
         input: lib.extract_all_objects(recursive: false),
         output: mod + '.stamp',
         command: [python, '-c', 'import sys; open(sys.argv[1], "w").close()', '@OUTPUT@']
@@ -156,7 +106,6 @@ foreach o : module_list.split('\n')
         )
     }
 endforeach
-
 
 clang_tidy = find_program('clang-tidy', required: false)
 if clang_tidy.found()

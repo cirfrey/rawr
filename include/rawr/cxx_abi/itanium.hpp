@@ -1,7 +1,12 @@
-//// rawr/cxx_abi/itanium.hpp,
-#pragma once
+//// rawr/cxx_abi/itanium.hpp.
 
-#include "rawr/lib/module.pp"
+#ifdef RAWR_MODULE
+    export module rawr.cxx_abi.itanium;
+    #include "rawr/lib/dist/module.pp"
+#else
+    #pragma once
+    #include "rawr/lib/dist/header.pp"
+#endif
 #include "rawr/lib/attributes.pp"
 
 RAWR_EXPORT namespace rawr::cxx_abi::itanium

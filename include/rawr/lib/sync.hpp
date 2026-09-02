@@ -1,9 +1,9 @@
-//// rawr/lib/sync.hpp
-#pragma once
+//// rawr/lib/sync.hpp.
 
-#include "rawr/lib/module.pp"
-#if RAWR_MODULE
+#ifdef RAWR_MODULE
+    export module rawr.lib.sync;
     export import rawr.lib.sync.base;
 #else
+    #pragma once
     #include "rawr/lib/sync/base.hpp"
 #endif
