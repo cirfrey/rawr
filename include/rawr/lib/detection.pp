@@ -351,13 +351,17 @@
     #define RAWR_PLATFORM_ESP8266 1
 // Apple: requires TargetConditionals.h to distinguish iOS from macOS
 #elif defined(__APPLE__)
-    #include <TargetConditionals.h>
-    #if (defined(TARGET_OS_IOS) && TARGET_OS_IOS) || (defined(TARGET_OS_IPHONE) && TARGET_OS_IPHONE)
-        #undef  RAWR_PLATFORM_IOS
+    #if defined(__ENVIRONMENT_MAC_OS_X_VERSION_MIN_REQUIRED__)
+        #undef RAWR_PLATFORM_MACOS
+        #define RAWR_PLATFORM_MACOS 1
+    #elif defined(__ENVIRONMENT_IPHONE_OS_VERSION_MIN_REQUIRED__) || \
+          defined(__ENVIRONMENT_TV_OS_VERSION_MIN_REQUIRED__)       || \
+          defined(__ENVIRONMENT_WATCH_OS_VERSION_MIN_REQUIRED__)
+        #undef RAWR_PLATFORM_IOS
         #define RAWR_PLATFORM_IOS 1
     #else
-        #undef  RAWR_PLATFORM_MACOS
-        #define RAWR_PLATFORM_MACOS 1
+        #undef RAWR_PLATFORM_UNKNOWN
+        #define RAWR_PLATFORM_UNKNOWN 1
     #endif
 // Android defines both __ANDROID__ and __linux__ — must come before Linux
 #elif defined(__ANDROID__)

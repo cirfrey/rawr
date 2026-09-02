@@ -52,7 +52,7 @@
 */
 #pragma region "rawr/lib/dist/module.pp"
 #if RAWR_AMALGAM_SOURCE_MAPPING
-#line 1 "rawr/lib/dist/module.pp"
+    #line 0 "rawr/lib/dist/module.pp"
 #endif
 	//// rawr/lib/dist/module.pp.
 	//RAWR_AMALGAM_IGNORE #pragma once
@@ -96,7 +96,7 @@
 */
 #pragma region "rawr/lib/dist/header.pp"
 #if RAWR_AMALGAM_SOURCE_MAPPING
-#line 1 "rawr/lib/dist/header.pp"
+    #line 0 "rawr/lib/dist/header.pp"
 #endif
 	//// rawr/lib/dist/header.pp.
 	//RAWR_AMALGAM_IGNORE #pragma once
@@ -121,7 +121,7 @@
 */
 #pragma region "rawr/lib/bits.hpp"
 #if RAWR_AMALGAM_SOURCE_MAPPING
-#line 1 "rawr/lib/bits.hpp"
+    #line 0 "rawr/lib/bits.hpp"
 #endif
 	//// rawr/lib/bits.hpp.
 	
@@ -210,7 +210,7 @@
 */
 #pragma region "rawr/lib/detection.pp"
 #if RAWR_AMALGAM_SOURCE_MAPPING
-#line 1 "rawr/lib/detection.pp"
+    #line 0 "rawr/lib/detection.pp"
 #endif
 	//// rawr/lib/detection.pp.
 	//
@@ -565,13 +565,17 @@
 	    #define RAWR_PLATFORM_ESP8266 1
 	// Apple: requires TargetConditionals.h to distinguish iOS from macOS
 	#elif defined(__APPLE__)
-	    #include <TargetConditionals.h>
-	    #if (defined(TARGET_OS_IOS) && TARGET_OS_IOS) || (defined(TARGET_OS_IPHONE) && TARGET_OS_IPHONE)
-	        #undef  RAWR_PLATFORM_IOS
+	    #if defined(__ENVIRONMENT_MAC_OS_X_VERSION_MIN_REQUIRED__)
+	        #undef RAWR_PLATFORM_MACOS
+	        #define RAWR_PLATFORM_MACOS 1
+	    #elif defined(__ENVIRONMENT_IPHONE_OS_VERSION_MIN_REQUIRED__) || \
+	          defined(__ENVIRONMENT_TV_OS_VERSION_MIN_REQUIRED__)       || \
+	          defined(__ENVIRONMENT_WATCH_OS_VERSION_MIN_REQUIRED__)
+	        #undef RAWR_PLATFORM_IOS
 	        #define RAWR_PLATFORM_IOS 1
 	    #else
-	        #undef  RAWR_PLATFORM_MACOS
-	        #define RAWR_PLATFORM_MACOS 1
+	        #undef RAWR_PLATFORM_UNKNOWN
+	        #define RAWR_PLATFORM_UNKNOWN 1
 	    #endif
 	// Android defines both __ANDROID__ and __linux__ — must come before Linux
 	#elif defined(__ANDROID__)
@@ -994,7 +998,7 @@
 */
 #pragma region "rawr/lib/integer/base.hpp"
 #if RAWR_AMALGAM_SOURCE_MAPPING
-#line 1 "rawr/lib/integer/base.hpp"
+    #line 0 "rawr/lib/integer/base.hpp"
 #endif
 	//// rawr/lib/integer/base.hpp.
 	
@@ -1239,7 +1243,7 @@
 */
 #pragma region "rawr/lib/integer/raw.hpp"
 #if RAWR_AMALGAM_SOURCE_MAPPING
-#line 1 "rawr/lib/integer/raw.hpp"
+    #line 0 "rawr/lib/integer/raw.hpp"
 #endif
 	//// rawr/lib/integer/raw.hpp.
 	
@@ -1301,7 +1305,7 @@
 */
 #pragma region "rawr/lib/pp.pp"
 #if RAWR_AMALGAM_SOURCE_MAPPING
-#line 1 "rawr/lib/pp.pp"
+    #line 0 "rawr/lib/pp.pp"
 #endif
 	//// rawr/lib/pp.hpp.
 	// Preprocessor utility macros (FOR_EACH, NARG, CAT, ...):
@@ -1675,7 +1679,7 @@
 */
 #pragma region "rawr/lib/rich_enum.pp"
 #if RAWR_AMALGAM_SOURCE_MAPPING
-#line 1 "rawr/lib/rich_enum.pp"
+    #line 0 "rawr/lib/rich_enum.pp"
 #endif
 	//// rawr/data/rich_enum.pp.
 	// Rawr's strong enumeration abstraction:
@@ -1886,7 +1890,7 @@
 */
 #pragma region "rawr/lib/detection.hpp"
 #if RAWR_AMALGAM_SOURCE_MAPPING
-#line 1 "rawr/lib/detection.hpp"
+    #line 0 "rawr/lib/detection.hpp"
 #endif
 	//// rawr/lib/detection.hpp.
 	// Flat constexpr values in rawr:: for if constexpr dispatch.
@@ -2131,7 +2135,7 @@
 */
 #pragma region "rawr/lib/attributes.pp"
 #if RAWR_AMALGAM_SOURCE_MAPPING
-#line 1 "rawr/lib/attributes.pp"
+    #line 0 "rawr/lib/attributes.pp"
 #endif
 	//// rawr/lib/attributes.pp.
 	//RAWR_AMALGAM_IGNORE #pragma once
@@ -2179,7 +2183,7 @@
 */
 #pragma region "rawr/abi/sysv.hpp"
 #if RAWR_AMALGAM_SOURCE_MAPPING
-#line 1 "rawr/abi/sysv.hpp"
+    #line 0 "rawr/abi/sysv.hpp"
 #endif
 	
 	//// rawr/abi/sysv.hpp.
@@ -2430,7 +2434,7 @@
 */
 #pragma region "rawr/abi/win64.hpp"
 #if RAWR_AMALGAM_SOURCE_MAPPING
-#line 1 "rawr/abi/win64.hpp"
+    #line 0 "rawr/abi/win64.hpp"
 #endif
 	//// rawr/abi/win64.hpp.
 	// TODO: needs a onceover.
@@ -2516,7 +2520,7 @@
 */
 #pragma region "rawr/abi/win64.pp"
 #if RAWR_AMALGAM_SOURCE_MAPPING
-#line 1 "rawr/abi/win64.pp"
+    #line 0 "rawr/abi/win64.pp"
 #endif
 	//// rawr/abi/win64.pp.
 	//RAWR_AMALGAM_IGNORE #pragma once
@@ -2542,7 +2546,7 @@
 */
 #pragma region "rawr/lib/dist/pp.pp"
 #if RAWR_AMALGAM_SOURCE_MAPPING
-#line 1 "rawr/lib/dist/pp.pp"
+    #line 0 "rawr/lib/dist/pp.pp"
 #endif
 	//// rawr/lib/dist/pp.pp.
 	//RAWR_AMALGAM_IGNORE #pragma once
@@ -2562,7 +2566,7 @@
 */
 #pragma region "rawr/lib/diag/dwarf.hpp"
 #if RAWR_AMALGAM_SOURCE_MAPPING
-#line 1 "rawr/lib/diag/dwarf.hpp"
+    #line 0 "rawr/lib/diag/dwarf.hpp"
 #endif
 	//// rawr/lib/diag/dwarf.hpp.
 	
@@ -2635,7 +2639,7 @@
 */
 #pragma region "rawr/abi/sysv.pp"
 #if RAWR_AMALGAM_SOURCE_MAPPING
-#line 1 "rawr/abi/sysv.pp"
+    #line 0 "rawr/abi/sysv.pp"
 #endif
 	
 	//// rawr/abi/sysv.pp.
@@ -2716,7 +2720,7 @@
 */
 #pragma region "rawr/abi.hpp"
 #if RAWR_AMALGAM_SOURCE_MAPPING
-#line 1 "rawr/abi.hpp"
+    #line 0 "rawr/abi.hpp"
 #endif
 	//// rawr/abi.hpp.
 	
@@ -2740,7 +2744,7 @@
 */
 #pragma region "rawr/lib/sync/base.hpp"
 #if RAWR_AMALGAM_SOURCE_MAPPING
-#line 1 "rawr/lib/sync/base.hpp"
+    #line 0 "rawr/lib/sync/base.hpp"
 #endif
 	
 	//// rawr/lib/sync/base.hpp.
@@ -2776,7 +2780,7 @@
 */
 #pragma region "rawr/arch/x64/atomic.hpp"
 #if RAWR_AMALGAM_SOURCE_MAPPING
-#line 1 "rawr/arch/x64/atomic.hpp"
+    #line 0 "rawr/arch/x64/atomic.hpp"
 #endif
 	//// rawr/arch/x64/atomic.hpp.
 	
@@ -2976,7 +2980,7 @@
 */
 #pragma region "rawr/lib/bitfield.hpp"
 #if RAWR_AMALGAM_SOURCE_MAPPING
-#line 1 "rawr/lib/bitfield.hpp"
+    #line 0 "rawr/lib/bitfield.hpp"
 #endif
 	//// rawr/lib/bitfield.hpp.
 	
@@ -3105,7 +3109,7 @@
 */
 #pragma region "rawr/lib/bitfield.pp"
 #if RAWR_AMALGAM_SOURCE_MAPPING
-#line 1 "rawr/lib/bitfield.pp"
+    #line 0 "rawr/lib/bitfield.pp"
 #endif
 	//// rawr/lib/bitfield.pp.
 	//RAWR_AMALGAM_IGNORE #pragma once
@@ -3200,7 +3204,7 @@
 */
 #pragma region "rawr/arch/x64/cpuid.hpp"
 #if RAWR_AMALGAM_SOURCE_MAPPING
-#line 1 "rawr/arch/x64/cpuid.hpp"
+    #line 0 "rawr/arch/x64/cpuid.hpp"
 #endif
 	//// rawr/arch/x64/cpuid.hpp.
 	
@@ -3468,7 +3472,7 @@
 */
 #pragma region "rawr/lib/simd/storage.pp"
 #if RAWR_AMALGAM_SOURCE_MAPPING
-#line 1 "rawr/lib/simd/storage.pp"
+    #line 0 "rawr/lib/simd/storage.pp"
 #endif
 	//// rawr/lib/simd/storage.pp.
 	//RAWR_AMALGAM_IGNORE #pragma once
@@ -3507,7 +3511,7 @@
 */
 #pragma region "rawr/lib/simd/storage.hpp"
 #if RAWR_AMALGAM_SOURCE_MAPPING
-#line 1 "rawr/lib/simd/storage.hpp"
+    #line 0 "rawr/lib/simd/storage.hpp"
 #endif
 	//// rawr/lib/simd/storage.hpp.
 	
@@ -3577,7 +3581,7 @@
 */
 #pragma region "rawr/lib/dummy_return.hpp"
 #if RAWR_AMALGAM_SOURCE_MAPPING
-#line 1 "rawr/lib/dummy_return.hpp"
+    #line 0 "rawr/lib/dummy_return.hpp"
 #endif
 	//// rawr/lib/dummy_return.hpp.
 	
@@ -3605,7 +3609,7 @@
 */
 #pragma region "rawr/lib/intrin/base.hpp"
 #if RAWR_AMALGAM_SOURCE_MAPPING
-#line 1 "rawr/lib/intrin/base.hpp"
+    #line 0 "rawr/lib/intrin/base.hpp"
 #endif
 	//// rawr/lib/intrin/base.hpp.
 	
@@ -3685,7 +3689,7 @@
 */
 #pragma region "rawr/lib/intrin/math.hpp"
 #if RAWR_AMALGAM_SOURCE_MAPPING
-#line 1 "rawr/lib/intrin/math.hpp"
+    #line 0 "rawr/lib/intrin/math.hpp"
 #endif
 	//// rawr/lib/intrin/math.hpp.
 	
@@ -4270,7 +4274,7 @@
 */
 #pragma region "rawr/lib/intrin/mem.hpp"
 #if RAWR_AMALGAM_SOURCE_MAPPING
-#line 1 "rawr/lib/intrin/mem.hpp"
+    #line 0 "rawr/lib/intrin/mem.hpp"
 #endif
 	//// rawr/lib/intrin/mem.hpp.
 	
@@ -4434,7 +4438,7 @@
 */
 #pragma region "rawr/lib/intrin.hpp"
 #if RAWR_AMALGAM_SOURCE_MAPPING
-#line 1 "rawr/lib/intrin.hpp"
+    #line 0 "rawr/lib/intrin.hpp"
 #endif
 	//// rawr/lib/intrin.hpp.
 	
@@ -4457,7 +4461,7 @@
 */
 #pragma region "rawr/arch/x64/simd.hpp"
 #if RAWR_AMALGAM_SOURCE_MAPPING
-#line 1 "rawr/arch/x64/simd.hpp"
+    #line 0 "rawr/arch/x64/simd.hpp"
 #endif
 	//// rawr/arch/x64/simd.hpp.
 	
@@ -4582,7 +4586,7 @@
 */
 #pragma region "rawr/arch/x64.hpp"
 #if RAWR_AMALGAM_SOURCE_MAPPING
-#line 1 "rawr/arch/x64.hpp"
+    #line 0 "rawr/arch/x64.hpp"
 #endif
 	//// rawr/arch/x64.hpp.
 	
@@ -4605,7 +4609,7 @@
 */
 #pragma region "rawr/arch.hpp"
 #if RAWR_AMALGAM_SOURCE_MAPPING
-#line 1 "rawr/arch.hpp"
+    #line 0 "rawr/arch.hpp"
 #endif
 	//// rawr/arch.hpp.
 	
@@ -4624,7 +4628,7 @@
 */
 #pragma region "rawr/bin/elf.hpp"
 #if RAWR_AMALGAM_SOURCE_MAPPING
-#line 1 "rawr/bin/elf.hpp"
+    #line 0 "rawr/bin/elf.hpp"
 #endif
 	//// rawr/bin/elf.hpp.
 	
@@ -4702,7 +4706,7 @@
 */
 #pragma region "rawr/bin.hpp"
 #if RAWR_AMALGAM_SOURCE_MAPPING
-#line 1 "rawr/bin.hpp"
+    #line 0 "rawr/bin.hpp"
 #endif
 	//// rawr/bin.hpp.
 	
@@ -4721,7 +4725,7 @@
 */
 #pragma region "rawr/cxx_abi/itanium.hpp"
 #if RAWR_AMALGAM_SOURCE_MAPPING
-#line 1 "rawr/cxx_abi/itanium.hpp"
+    #line 0 "rawr/cxx_abi/itanium.hpp"
 #endif
 	//// rawr/cxx_abi/itanium.hpp.
 	
@@ -4754,7 +4758,7 @@
 */
 #pragma region "rawr/cxx_abi.hpp"
 #if RAWR_AMALGAM_SOURCE_MAPPING
-#line 1 "rawr/cxx_abi.hpp"
+    #line 0 "rawr/cxx_abi.hpp"
 #endif
 	//// rawr/cxx_abi.hpp.
 	
@@ -4773,7 +4777,7 @@
 */
 #pragma region "rawr/lib/diag.hpp"
 #if RAWR_AMALGAM_SOURCE_MAPPING
-#line 1 "rawr/lib/diag.hpp"
+    #line 0 "rawr/lib/diag.hpp"
 #endif
 	//// rawr/lib/diag.hpp.
 	
@@ -4793,7 +4797,7 @@
 */
 #pragma region "rawr/lib/type_name.hpp"
 #if RAWR_AMALGAM_SOURCE_MAPPING
-#line 1 "rawr/lib/type_name.hpp"
+    #line 0 "rawr/lib/type_name.hpp"
 #endif
 	//// rawr/lib/type_name.hpp.
 	
@@ -4885,7 +4889,7 @@
 */
 #pragma region "rawr/lib/fmt.hpp"
 #if RAWR_AMALGAM_SOURCE_MAPPING
-#line 1 "rawr/lib/fmt.hpp"
+    #line 0 "rawr/lib/fmt.hpp"
 #endif
 	//// rawr/lib/fmt.hpp.
 	
@@ -5461,7 +5465,7 @@
 */
 #pragma region "rawr/lib/integer/strong.hpp"
 #if RAWR_AMALGAM_SOURCE_MAPPING
-#line 1 "rawr/lib/integer/strong.hpp"
+    #line 0 "rawr/lib/integer/strong.hpp"
 #endif
 	//// rawr/lib/integer/strong.hpp.
 	
@@ -6366,7 +6370,7 @@
 */
 #pragma region "rawr/lib/integer.hpp"
 #if RAWR_AMALGAM_SOURCE_MAPPING
-#line 1 "rawr/lib/integer.hpp"
+    #line 0 "rawr/lib/integer.hpp"
 #endif
 	//// rawr/lib/integer.hpp.
 	
@@ -6389,7 +6393,7 @@
 */
 #pragma region "rawr/lib/rich_enum.hpp"
 #if RAWR_AMALGAM_SOURCE_MAPPING
-#line 1 "rawr/lib/rich_enum.hpp"
+    #line 0 "rawr/lib/rich_enum.hpp"
 #endif
 	//// rawr/lib/rich_enum.hpp.
 	
@@ -6424,7 +6428,7 @@
 */
 #pragma region "rawr/lib/sync.hpp"
 #if RAWR_AMALGAM_SOURCE_MAPPING
-#line 1 "rawr/lib/sync.hpp"
+    #line 0 "rawr/lib/sync.hpp"
 #endif
 	//// rawr/lib/sync.hpp.
 	
@@ -6443,7 +6447,7 @@
 */
 #pragma region "rawr/lib/source_location.hpp"
 #if RAWR_AMALGAM_SOURCE_MAPPING
-#line 1 "rawr/lib/source_location.hpp"
+    #line 0 "rawr/lib/source_location.hpp"
 #endif
 	//// rawr/lib/source_location.hpp.
 	
@@ -6486,7 +6490,7 @@
 */
 #pragma region "rawr/lib/test.hpp"
 #if RAWR_AMALGAM_SOURCE_MAPPING
-#line 1 "rawr/lib/test.hpp"
+    #line 0 "rawr/lib/test.hpp"
 #endif
 	//// rawr/lib/test.hpp.
 	
@@ -6649,7 +6653,7 @@
 */
 #pragma region "rawr/lib/main.pp"
 #if RAWR_AMALGAM_SOURCE_MAPPING
-#line 1 "rawr/lib/main.pp"
+    #line 0 "rawr/lib/main.pp"
 #endif
 	//RAWR_AMALGAM_IGNORE #pragma once
 	
@@ -6672,7 +6676,7 @@
 */
 #pragma region "rawr/lib.hpp"
 #if RAWR_AMALGAM_SOURCE_MAPPING
-#line 1 "rawr/lib.hpp"
+    #line 0 "rawr/lib.hpp"
 #endif
 	//// rawr/lib.hpp.
 	
@@ -6719,7 +6723,7 @@
 */
 #pragma region "rawr/platform/linux.hpp"
 #if RAWR_AMALGAM_SOURCE_MAPPING
-#line 1 "rawr/platform/linux.hpp"
+    #line 0 "rawr/platform/linux.hpp"
 #endif
 	//// rawr/platform/linux.hpp.
 	
@@ -7084,7 +7088,7 @@
 */
 #pragma region "rawr/platform.hpp"
 #if RAWR_AMALGAM_SOURCE_MAPPING
-#line 1 "rawr/platform.hpp"
+    #line 0 "rawr/platform.hpp"
 #endif
 	//// rawr/platform.hpp.
 	
@@ -7103,7 +7107,7 @@
 */
 #pragma region "rawr/san/asan.hpp"
 #if RAWR_AMALGAM_SOURCE_MAPPING
-#line 1 "rawr/san/asan.hpp"
+    #line 0 "rawr/san/asan.hpp"
 #endif
 	//// rawr/san/asan.hpp.
 	
@@ -7179,7 +7183,7 @@
 */
 #pragma region "rawr/san/lsan.hpp"
 #if RAWR_AMALGAM_SOURCE_MAPPING
-#line 1 "rawr/san/lsan.hpp"
+    #line 0 "rawr/san/lsan.hpp"
 #endif
 	//// rawr/san/lsan.hpp.
 	
@@ -7226,7 +7230,7 @@
 */
 #pragma region "rawr/san/msan.hpp"
 #if RAWR_AMALGAM_SOURCE_MAPPING
-#line 1 "rawr/san/msan.hpp"
+    #line 0 "rawr/san/msan.hpp"
 #endif
 	//// rawr/san/msan.hpp.
 	
@@ -7282,7 +7286,7 @@
 */
 #pragma region "rawr/san/tsan.hpp"
 #if RAWR_AMALGAM_SOURCE_MAPPING
-#line 1 "rawr/san/tsan.hpp"
+    #line 0 "rawr/san/tsan.hpp"
 #endif
 	//// rawr/san/tsan.hpp.
 	
@@ -7339,7 +7343,7 @@
 */
 #pragma region "rawr/san/attributes.pp"
 #if RAWR_AMALGAM_SOURCE_MAPPING
-#line 1 "rawr/san/attributes.pp"
+    #line 0 "rawr/san/attributes.pp"
 #endif
 	//// rawr/san/attributes.pp.
 	//RAWR_AMALGAM_IGNORE #pragma once
@@ -7375,7 +7379,7 @@
 */
 #pragma region "rawr/san.hpp"
 #if RAWR_AMALGAM_SOURCE_MAPPING
-#line 1 "rawr/san.hpp"
+    #line 0 "rawr/san.hpp"
 #endif
 	//// rawr/san.hpp.
 	
@@ -7398,7 +7402,7 @@
 
 #pragma region "rawr.hpp"
 #if RAWR_AMALGAM_SOURCE_MAPPING
-#line 1 "rawr.hpp"
+    #line 0 "rawr.hpp"
 #endif
 	//// rawr.hpp.
 	

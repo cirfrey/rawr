@@ -235,7 +235,7 @@ class Amalgamator:
 
         self.output.append(
             "#if RAWR_AMALGAM_SOURCE_MAPPING\n"
-            f'#line 1 "{display}"\n'
+            f'    #line 0 "{display}"\n'
             "#endif\n"
         )
 
