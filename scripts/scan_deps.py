@@ -88,14 +88,13 @@ def main():
     # 2. Idiomatic Topological Sorting
     # graphlib expects {node: [dependencies...]}
     graph = {
-        name: mod.requires
-        for name, mod in parsed_modules.items()
+        name: sorted(mod.requires)
+        for name, mod in sorted(parsed_modules.items())
     }
 
     sorter = TopologicalSorter(graph)
 
     try:
-        # static_order() returns an iterable of topologically sorted nodes
         for mod_name in sorter.static_order():
             if mod_name in parsed_modules:
                 mod = parsed_modules[mod_name]
