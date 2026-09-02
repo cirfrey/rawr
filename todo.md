@@ -17,6 +17,7 @@
     - [ ] More complex primitives ?
 [ ] Refactor rawr.lib.integer.strong into generated header -> better debug messages.
 [ ] Refactor rawr.lib.intrin into "if constexpr" based dispatch (gnu:: and msvc:: always declared)
+[ ] Refactor most dispatch code around the same pattern as intrin, eliminate #if as much as possible.
 [ ] README.md
 [ ] LICENSE.md
 [ ] Distribution

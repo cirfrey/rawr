@@ -23,7 +23,7 @@ module_manifest = run_command(python, scan_deps,
     cpp_id == 'msvc' ? '/I' : '-I',
     dir_include,
     '-D', 'RAWR_MODULE',
-    '--modules--', dir_include,
+    '--modules--', dir_include/'rawr.hpp', dir_include/'rawr',
     check: true
 ).stdout().strip()
 

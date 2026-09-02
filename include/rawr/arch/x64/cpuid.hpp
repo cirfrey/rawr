@@ -39,7 +39,7 @@ RAWR_EXPORT namespace rawr::arch::x64
         cpuid_ret ret;
 
         #if RAWR_COMPILER_MSVC
-            msvc_detail::__cpuidex(reinterpret_cast<int*>(ret.regs), static_cast<int>(leaf), static_cast<int>(subleaf));
+            msvc::__cpuidex(reinterpret_cast<int*>(ret.regs), static_cast<int>(args.leaf), static_cast<int>(args.subleaf));
         #elif RAWR_COMPILER_FAMILY_GNU
             // TODO: use __builtin_ia32_cpuidext instead.
             asm volatile (

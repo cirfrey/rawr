@@ -6,6 +6,7 @@
     import rawr.lib.dummy_return;
     import rawr.lib.detection;
     import rawr.lib.integer.raw;
+    import rawr.lib.intrin;
 
     #include "rawr/lib/dist/module.pp"
 #else
@@ -14,6 +15,7 @@
     #include "rawr/lib/dummy_return.hpp"
     #include "rawr/lib/detection.hpp"
     #include "rawr/lib/integer/raw.hpp"
+    #include "rawr/lib/intrin.hpp"
 #endif
 #include "rawr/lib/attributes.pp"
 #include "rawr/lib/detection.pp"
@@ -96,7 +98,7 @@ namespace rawr::arch::x64::sse
     RAWR_ALWAYS_INLINE constexpr auto add_u32x4(simd::storage::ru32x4 lhs, simd::storage::ru32x4 rhs) -> simd::storage::ru32x4
     {
         #if RAWR_COMPILER_MSVC
-            if(intrin::is_constexpr()) { return soft::add_u32x4(lhs, rhs); }
+            if(intrin::is_consteval()) { return soft::add_u32x4(lhs, rhs); }
 
             auto v = msvc::_mm_add_epi32(
                 reinterpret_cast<msvc::__m128&>(lhs),

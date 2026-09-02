@@ -16,10 +16,10 @@ RAWR_EXPORT namespace rawr::inline lib
     // NOTE: a rich_flags is also a rich_enum.
     template <typename E> concept rich_flags = requires { requires E::_is_rawr_rich_flags; typename E::enum_type; };
 
-    namespace trait
+    namespace enum_trait
     {
         template <typename E>  struct plain_enum    { using type = E; };
         template <rich_enum E> struct plain_enum<E> { using type = typename E::enum_type; };
     }
-    template <typename E> using plain_enum = typename trait::plain_enum<E>::type;
+    template <typename E> using plain_enum = typename enum_trait::plain_enum<E>::type;
 }

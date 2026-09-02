@@ -13,12 +13,12 @@ RAWR_EXPORT namespace rawr::inline lib::inline bits
     inline constexpr auto bits_in_byte = 8; // TODO: detect.
 
     struct bitwidth {
-        decltype(sizeof(0)) val{};
+        unsigned long long val{};
         [[nodiscard]] constexpr auto is_zero() const noexcept -> bool { return val == 0; }
     };
 
     struct bytewidth {
-        decltype(sizeof(0)) val{};
+        unsigned long long val{};
         [[nodiscard]] constexpr auto is_zero() const noexcept -> bool { return val == 0; }
 
         constexpr operator bitwidth() const noexcept { return bitwidth{val * bits_in_byte}; }

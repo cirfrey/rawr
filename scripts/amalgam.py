@@ -21,6 +21,12 @@ PRAGMA_ONCE_RE = re.compile(
     r'(?P<tail>[ \t]*(?://.*)?)$'
 )
 
+EXPORT_MODULE_RE = re.compile(
+    r'^(?P<indent>[ \t]*)export[ \t]+module[ \t]+'
+    r'[A-Za-z_][A-Za-z0-9_.]*[ \t]*;'
+    r'[ \t]*(?://.*)?$'
+)
+
 
 class Amalgamator:
     def __init__(self, roots: list[Path]) -> None:
@@ -170,19 +176,19 @@ class Amalgamator:
 
     def comment_directive(self, line: str) -> str:
         """
-        Convert:
+        Prefix a source directive with the reversible amalgamation
+        marker while preserving indentation and line ending.
 
-            <indent>#include "foo.hpp"
+            #include "foo.hpp"
 
-        into:
+        becomes:
 
-            <indent>//RAWR_AMALGAM_IGNORE #include "foo.hpp"
-
-        while preserving the original line ending.
+            //RAWR_AMALGAM_IGNORE #include "foo.hpp"
         """
-
         match = re.match(
-            r'^(?P<indent>[ \t]*)(?P<directive>#.*?)(?P<newline>\r\n|\r|\n)?$',
+            r'^(?P<indent>[ \t]*)'
+            r'(?P<directive>#.*?|\bexport[ \t]+module\b.*)'
+            r'(?P<newline>\r\n|\r|\n)?$',
             line,
         )
 
@@ -202,7 +208,9 @@ class Amalgamator:
         if not required_by:
             return
 
-        self.output.append("/* required by:\n")
+        self.output.append(
+            "/* required by:\n"
+        )
 
         for requirer in sorted(
             required_by,
@@ -214,6 +222,21 @@ class Amalgamator:
 
         self.output.append(
             "*/\n"
+        )
+
+    def emit_line_directive(self, path: Path) -> None:
+        """
+        Emit a source mapping directive for the beginning of a file.
+
+        RAWR_AMALGAM_SOURCE_MAPPING may be defined to 0 by the
+        consumer to disable amalgamator-generated #line directives.
+        """
+        display = self.display_path(path)
+
+        self.output.append(
+            "#if RAWR_AMALGAM_SOURCE_MAPPING\n"
+            f'#line 1 "{display}"\n'
+            "#endif\n"
         )
 
     def emit(self, path: Path) -> None:
@@ -237,58 +260,59 @@ class Amalgamator:
             f'#pragma region "{display}"\n'
         )
 
+        self.emit_line_directive(path)
+
         text = self.read(path)
 
-        # Preserve the source's line structure exactly.
-        #
-        # In particular, splitlines(keepends=True) means that if the
-        # source ends in a newline, that newline remains part of the
-        # emitted source.
+        # Preserve source line endings.
         for line in text.splitlines(keepends=True):
             body = line.rstrip("\r\n")
 
-            line = "\t" + line
+            # Keep source visually nested inside its region.
+            indented = "\t" + line
 
-            include = INCLUDE_RE.match(body)
+            if INCLUDE_RE.match(body):
+                include = INCLUDE_RE.match(body)
+                assert include is not None
 
-            if include:
                 dependency = self.find_include(
                     include.group("path")
                 )
 
                 if dependency is None:
-                    # Unresolved include: leave it untouched.
-                    self.output.append(line)
+                    # Unresolved include: leave untouched.
+                    self.output.append(indented)
                 else:
-                    # The actual dependency has already been emitted.
-                    # Preserve the original include as a reversible
-                    # breadcrumb.
+                    # Dependency has already been emitted.
                     self.output.append(
-                        self.comment_directive(line)
+                        self.comment_directive(indented)
                     )
 
                 continue
 
             if PRAGMA_ONCE_RE.match(body):
                 self.output.append(
-                    self.comment_directive(line)
+                    self.comment_directive(indented)
+                )
+                continue
+
+            if EXPORT_MODULE_RE.match(body):
+                self.output.append(
+                    self.comment_directive(indented)
                 )
                 continue
 
             # Everything else passes through unchanged.
-            self.output.append(line)
+            self.output.append(indented)
 
-        # Make the generated region delimiter structurally separate
-        # from the original file contents.
-        #
-        # If the source already ends with a newline, add one more so
-        # there is a blank line before #pragma endregion.
+        # If the source doesn't end in a newline, provide one so the
+        # generated region delimiter is separated from its contents.
         if text and not text.endswith(("\n", "\r")):
             self.output.append("\n")
 
         self.output.append(
             "\n"
-            f"#pragma endregion \"{display}\"\n"
+            f'#pragma endregion "{display}"\n'
             "\n"
         )
 
@@ -296,31 +320,43 @@ class Amalgamator:
 
     def generate(self, root: Path) -> str:
         self.output = [
-            "#pragma region rawr-amalgam\n"
+            "#pragma region rawr-amalgam\n",
             "// Generated by rawr-amalgam. Do not edit.\n",
-            "// To restore amalgamated #include and #pragma once directives,\n",
-            "// remove the prefix //RAWR_AMALGAM_IGNORE from those lines.\n",
+            "//\n",
+            "// This is a header-mode amalgamation of rawr.\n",
+            "//\n",
+            "// Define RAWR_AMALGAM_SOURCE_MAPPING=0 to disable source mapping.\n",
+            "//\n",
+            "// To restore amalgamated #include, #pragma once, and\n",
+            "// export module directives, remove the prefix\n",
+            "// //RAWR_AMALGAM_IGNORE from those lines.\n",
+            "\n",
+
+            "#ifndef RAWR_AMALGAM_SOURCE_MAPPING\n",
+            "#define RAWR_AMALGAM_SOURCE_MAPPING 1\n",
+            "#endif\n",
+            "\n",
+
+            "// Amalgams are headers; never allow module mode to leak in.\n",
+            "#ifdef RAWR_MODULE\n",
+            "#undef RAWR_MODULE\n",
+            "#endif\n",
             "\n",
         ]
 
         root = root.resolve()
 
-        # -------------------------------------------------------------
-        # Phase 1:
-        #
-        # Discover the entire graph and therefore every required_by
-        # relationship before producing any output.
-        # -------------------------------------------------------------
+        # Phase 1: discover the complete include graph.
         self.discover(root)
 
-        # -------------------------------------------------------------
-        # Phase 2:
-        #
-        # Emit the graph dependency-first.
-        # -------------------------------------------------------------
+        # Phase 2: emit dependency-first.
         self.emit(root)
 
-        return "".join(self.output) + "\n#pragma endregion rawr-amalgam\n"
+        self.output.append(
+            "#pragma endregion rawr-amalgam\n"
+        )
+
+        return "".join(self.output)
 
 
 def main() -> int:

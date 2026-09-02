@@ -45,7 +45,7 @@ RAWR_EXPORT namespace rawr::inline lib::intrin::inline mem::gnu
     #if RAWR_COMPILER_FAMILY_GNU
         #define RAWR_GATED_GNU(...) { __VA_ARGS__; }
     #else
-        #define RAWR_GATED_GNU();
+        #define RAWR_GATED_GNU(...) ;
     #endif
 
                   RAWR_ALWAYS_INLINE constexpr auto memcpy (void* d,       void const* s, rst n) noexcept -> void* RAWR_GATED_GNU( return ::__builtin_memcpy (d, s, n) )
