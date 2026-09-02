@@ -15,7 +15,10 @@
 
 RAWR_EXPORT namespace rawr::inline lib::inline detection
 {
-    RAWR_RICH_ENUM(compilers, ru8, (unknown, gcc, clang, msvc), ());
+    RAWR_RICH_ENUM(compilers, ru8, (unknown, gcc, clang, msvc), (
+        [[nodiscard]] constexpr auto is_family_gnu() const noexcept
+        { return to_enum_type() == enum_type::gcc || to_enum_type() == enum_type::clang; }
+    ));
     constexpr compilers this_compiler =
         RAWR_COMPILER_CLANG ? compilers::clang :
         RAWR_COMPILER_GCC   ? compilers::gcc :
@@ -91,7 +94,7 @@ RAWR_EXPORT namespace rawr::inline lib::inline detection
                                  platforms::unknown;
 
 
-    RAWR_RICH_ENUM(archs,        ru8, (
+    RAWR_RICH_ENUM(archs, ru8, (
         unknown,
         x86, x64, arm32, arm64,
         riscv32, riscv64,

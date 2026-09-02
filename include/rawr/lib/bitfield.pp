@@ -12,7 +12,6 @@
     #include "rawr/lib/bits.hpp"
     #include "rawr/lib/integer/base.hpp"
 #endif
-
 #include "rawr/lib/pp.pp"
 
 /// --- entry points: word type inferred (3 args) or explicit (4 args) ---

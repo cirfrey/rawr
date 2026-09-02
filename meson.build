@@ -34,7 +34,10 @@ rawr_modules = files(
     'src/rawr/lib/integer/base.cppm',
     'src/rawr/lib/integer/raw.cppm',
     'src/rawr/lib/integer/strong.cppm',
-    'src/rawr/lib/integer.cppm',
+
+    'src/rawr/lib/intrin/base.cppm',
+    'src/rawr/lib/intrin/math.cppm',
+    'src/rawr/lib/intrin/mem.cppm',
 
     'src/rawr/lib/simd/storage.cppm',
 
@@ -46,10 +49,13 @@ rawr_modules = files(
     'src/rawr/lib/diag.cppm',
     'src/rawr/lib/dummy_return.cppm',
     'src/rawr/lib/fmt.cppm',
-    'src/rawr/lib/detection.cppm',
+    'src/rawr/lib/integer.cppm',
     'src/rawr/lib/intrin.cppm',
     'src/rawr/lib/rich_enum.cppm',
+    'src/rawr/lib/source_location.cppm',
     'src/rawr/lib/sync.cppm',
+    'src/rawr/lib/test.cppm',
+    'src/rawr/lib/type_name.cppm',
 
     'src/rawr/platform/linux.cppm',
 

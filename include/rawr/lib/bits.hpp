@@ -49,4 +49,5 @@ RAWR_EXPORT namespace rawr::inline lib::inline bits
     template <typename T>        constexpr auto bytesofe([[maybe_unused]] T&& expr) noexcept { return bytesof<T>; }
 
     enum class byte : unsigned char {};
+    template <unsigned long long N> struct byte_array { byte data[N]{}; };
 }

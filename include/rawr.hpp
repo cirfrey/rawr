@@ -2,7 +2,9 @@
 #pragma once
 
 #include "rawr/lib/module.pp"
-#if RAWR_MODULE
+#ifdef RAWR_MODULE
+    export module rawr;
+
     export import rawr.abi;
     export import rawr.arch;
     export import rawr.bin;

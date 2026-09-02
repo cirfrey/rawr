@@ -67,7 +67,7 @@ RAWR_EXPORT namespace rawr::inline lib
     constexpr auto tn = []() consteval {
         constexpr auto tni = type_name::detail::get_tn_info<T>();
 
-        detail::tn::tn_array<tni.len + 1> ret;
+        type_name::detail::tn_array<tni.len + 1> ret;
         for(auto i = 0; i < ret.size; ++i)
             ret.data[i] = tni.start[i];
 
