@@ -333,13 +333,13 @@ class Amalgamator:
             "\n",
 
             "#ifndef RAWR_AMALGAM_SOURCE_MAPPING\n",
-            "#define RAWR_AMALGAM_SOURCE_MAPPING 1\n",
+            "    #define RAWR_AMALGAM_SOURCE_MAPPING 1\n",
             "#endif\n",
             "\n",
 
             "// Amalgams are headers; never allow module mode to leak in.\n",
             "#ifdef RAWR_MODULE\n",
-            "#undef RAWR_MODULE\n",
+            "    #undef RAWR_MODULE\n",
             "#endif\n",
             "\n",
         ]

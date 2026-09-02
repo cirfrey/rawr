@@ -10,12 +10,12 @@
 // //RAWR_AMALGAM_IGNORE from those lines.
 
 #ifndef RAWR_AMALGAM_SOURCE_MAPPING
-#define RAWR_AMALGAM_SOURCE_MAPPING 1
+    #define RAWR_AMALGAM_SOURCE_MAPPING 1
 #endif
 
 // Amalgams are headers; never allow module mode to leak in.
 #ifdef RAWR_MODULE
-#undef RAWR_MODULE
+    #undef RAWR_MODULE
 #endif
 
 /* required by:
