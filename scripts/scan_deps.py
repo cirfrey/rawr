@@ -21,7 +21,7 @@ def scan_deps(src: Path, compiler: str, flags: list[str]) -> ModuleData:
     global scanner
 
     if scanner:
-        cmd = [scanner, '-format=p1689', '--', compiler, *flags, '-c', str(src)]
+        cmd = [scanner, '-format=p1689', '--', compiler, *flags, '-x', 'c++', '-c', str(src)]
     else:
         cmd = [compiler, *flags, '-std=c++20', '-fmodules-ts',
                '-fdeps-format=p1689', '-fdeps-file=/dev/stdout',
@@ -31,15 +31,29 @@ def scan_deps(src: Path, compiler: str, flags: list[str]) -> ModuleData:
     r = subprocess.run(cmd, text=True, capture_output=True)
 
     if r.returncode != 0:
-        raise DependencyScanError(f"Scanning {src} failed:\n{cmd}\n{r.stderr or r.stdout}")
+        # Usually this means its a .pp file.
+        print(f"[scan_deps.py] ERROR: Failed to parse dependencies for {src}:\nSTDOUT: {r.stdout}\nSTDERR: {r.stderr}", file=sys.stderr)
+        return ModuleData(
+            src=src,
+            name="",
+            requires=[],
+        )
+        #raise DependencyScanError(f"Scanning {src} failed: {cmd}\n{r.stderr}{r.stdout}")
 
     deps = json.loads(r.stdout)['rules'][0]
 
-    # Extract the primary module provided by this file
-    primary_dep = deps["provides"][0]
+    # On non-module translation units, the "provides" key may not exist, that is, when the file is a bare
+    # header with no module declaration (but maybe a module import).
+    if "provides" in deps:
+        source_path = deps["provides"][0]["source-path"]
+        name = deps["provides"][0]["logical-name"]
+    else:
+        source_path = src
+        name = ""
+
     return ModuleData(
-        src=Path(primary_dep["source-path"]),
-        name=primary_dep["logical-name"],
+        src=Path(source_path),
+        name=name,
         requires=[d["logical-name"] for d in deps.get("requires", [])]
     )
 
@@ -47,7 +61,10 @@ def main():
     split_index = sys.argv.index('--modules--')
     compiler = sys.argv[1]
     flags = sys.argv[2:split_index]
-    srcs = [Path(p) for p in sys.argv[split_index + 1:]]
+    srcs = [f for l in (
+        [Path(p)] if Path(p).is_file() else list(Path(p).rglob('*')) for p in sys.argv[split_index + 1:]
+        ) for f in l if f.is_file()
+    ]
 
     parsed_modules: dict[str, ModuleData] = {}
 
@@ -63,7 +80,7 @@ def main():
         for future in as_completed(future_to_src):
             try:
                 mod_data = future.result()
-                parsed_modules[mod_data.name] = mod_data
+                parsed_modules[mod_data.name if mod_data.name else str(mod_data.src)] = mod_data
             except DependencyScanError as e:
                 print(f"[scan_deps.py] ERROR: {e}", file=sys.stderr)
                 sys.exit(1)

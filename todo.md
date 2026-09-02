@@ -20,8 +20,15 @@
 [ ] Refactor rawr.lib.intrin into "if constexpr" based dispatch (gnu:: and msvc:: always declared)
 [ ] README.md
 [ ] LICENSE.md
-[ ] module.manifest in source tree (with comment explaining format).
-[ ] Generate .cppm via build system (?).
+[ ] Distribution
+    - [ ] Amalgam script
+    - [ ] Amalgam on every commit / build
+    - [ ] Eliminate .cppm (inject -DRAWR_MODULE via command line)
+    - [X] scan-deps working with folders
+    - [X] scan-deps not choking on .pp and .hpp
+    - [ ] Meson project version from rawr/lib/dist/version.(h)pp
+    - [ ] pp_transitives.pp -> dist/pp.pp
+    - [ ] module.pp         -> dist/cppm.pp + dist/hpp.pp
 
 # Longer term
 
@@ -52,6 +59,10 @@
 [X] reevaluate if ::data should be merged into ::lib
 [X] evaluate if ::diag should go as ::lib::diag instead.
 [X] evaluate if .cppm belong in src/
+[ ] Distribution
+    - [ ] module.manifest in source tree (with comment explaining format).
+    - [ ] CMake.
+    - [ ] Integrate with package managers.
 
 # Even longer term
 
