@@ -146,6 +146,7 @@ RAWR_EXPORT namespace rawr::inline lib::inline integer::inline base
 
     template <bitwidth Bits>     using ruint_exact   = detail::select_type_by_size<Bits, unsigned char, unsigned short, unsigned int, unsigned long, unsigned long long>::type;
     template <bitwidth Bits>     using rsint_exact   = detail::select_type_by_size<Bits,   signed char,   signed short,   signed int,   signed long,   signed long long>::type;
+    template <bitwidth Bits>     using rfloat_exact  = detail::select_type_by_size<Bits,         float,         double,  long double>::type;
     template <unsigned long Num> using ruint_capable = decltype(detail::ruint_capable<Num>());
 }
 
