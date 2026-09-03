@@ -9,6 +9,15 @@
 // instead of:
 //     #if defined(RAWR_COMPILER_CLANG) && !defined(RAWR_PLATFORM_WINDOWS)
 //
+// Composite flags are defined in #if blocks to allow things like RAWR_PP_IF(COMPOSITE, ...),
+// If we naiively did
+//     #define RAWR_IS_64BIT (RAWR_PTR_SIZE == 8)
+// The following expansion would happen
+//     RAWR_PP_IF(RAWR_IS_64BIT, ...) => RAWR_PP_IF_(4 == 8)
+// That doesn't compile, instead we define it inside an #if block and the expansion
+// behaves as you'd expect.
+// It's a little more work on our end, but thats what we're here for, right?
+//
 // TODO: maybe allow the user to override somehow, like if one of the values is set
 //       then just skip detection?
 #pragma once
@@ -23,10 +32,10 @@
     #define RAWR_DETECTION_NO_COMPILER_ERROR 0
 #else
     #if RAWR_DETECTION_NO_COMPILER_ERROR
-        #undef RAWR_DETECTION_NO_COMPILER_ERROR
+        #undef  RAWR_DETECTION_NO_COMPILER_ERROR
         #define RAWR_DETECTION_NO_COMPILER_ERROR 1
     #else
-        #undef RAWR_DETECTION_NO_COMPILER_ERROR
+        #undef  RAWR_DETECTION_NO_COMPILER_ERROR
         #define RAWR_DETECTION_NO_COMPILER_ERROR 0
     #endif
 #endif
@@ -76,7 +85,12 @@
     #define RAWR_COMPILER_VERSION_PATCH 0
     #define RAWR_COMPILER_VERSION_BUILD 0
 #endif
-#define RAWR_COMPILER_FAMILY_GNU (RAWR_COMPILER_GCC || RAWR_COMPILER_CLANG)
+
+#define RAWR_COMPILER_FAMILY_GNU 0
+#if RAWR_COMPILER_CLANG || RAWR_COMPILER_GCC
+    #undef  RAWR_COMPILER_FAMILY_GNU
+    #define RAWR_COMPILER_FAMILY_GNU 1
+#endif
 
 #if !RAWR_DETECTION_NO_COMPILER_ERROR
     #if RAWR_COMPILER_GCC
@@ -171,10 +185,27 @@
     #undef  RAWR_ARCH_UNKNOWN
     #define RAWR_ARCH_UNKNOWN 1
 #endif
-#define RAWR_ARCH_FAMILY_RISCV (RAWR_ARCH_RISCV64 || RAWR_ARCH_RISCV32)
-#define RAWR_ARCH_FAMILY_WASM  (RAWR_ARCH_WASM32  || RAWR_ARCH_WASM64)
-#define RAWR_ARCH_FAMILY_X86   (RAWR_ARCH_X64     || RAWR_ARCH_X86)
-#define RAWR_ARCH_FAMILY_ARM   (RAWR_ARCH_ARM64   || RAWR_ARCH_ARM32)
+
+#define RAWR_ARCH_FAMILY_RISCV 0
+#define RAWR_ARCH_FAMILY_X86 0
+#define RAWR_ARCH_FAMILY_WASM 0
+#define RAWR_ARCH_FAMILY_ARM 0
+#if RAWR_ARCH_RISCV64 || RAWR_ARCH_RISCV32
+    #undef  RAWR_ARCH_FAMILY_RISCV
+    #define RAWR_ARCH_FAMILY_RISCV 1
+#endif
+#if RAWR_ARCH_WASM32 || RAWR_ARCH_WASM64
+    #undef  RAWR_ARCH_FAMILY_WASM
+    #define RAWR_ARCH_FAMILY_WASM 1
+#endif
+#if RAWR_ARCH_X64 || RAWR_ARCH_X86
+    #undef  RAWR_ARCH_FAMILY_X86
+    #define RAWR_ARCH_FAMILY_X86 1
+#endif
+#if RAWR_ARCH_ARM64 || RAWR_ARCH_ARM32
+    #undef  RAWR_ARCH_FAMILY_ARM
+    #define RAWR_ARCH_FAMILY_ARM 1
+#endif
 
 // Defaults
 #define RAWR_ARCH_X86_SSE     0
@@ -193,55 +224,55 @@
 #if RAWR_ARCH_FAMILY_X86
     // SSE / SSE2 are guaranteed on x64 by ABI, so we use ||, not &&
     #if RAWR_ARCH_X64 || defined(__SSE__)
-        #undef RAWR_ARCH_X86_SSE
+        #undef  RAWR_ARCH_X86_SSE
         #define RAWR_ARCH_X86_SSE 1
     #endif
     #if RAWR_ARCH_X64 || defined(__SSE2__)
-        #undef RAWR_ARCH_X86_SSE2
+        #undef  RAWR_ARCH_X86_SSE2
         #define RAWR_ARCH_X86_SSE2 1
     #endif
     #if defined(__SSE4_1__)
-        #undef RAWR_ARCH_X86_SSE41
+        #undef  RAWR_ARCH_X86_SSE41
         #define RAWR_ARCH_X86_SSE41 1
     #endif
     #if defined(__SSE4_2__)
-        #undef RAWR_ARCH_X86_SSE42
+        #undef  RAWR_ARCH_X86_SSE42
         #define RAWR_ARCH_X86_SSE42 1
     #endif
     #if defined(__AVX__)
-        #undef RAWR_ARCH_X86_AVX
+        #undef  RAWR_ARCH_X86_AVX
         #define RAWR_ARCH_X86_AVX 1
     #endif
     #if defined(__AVX2__)
-        #undef RAWR_ARCH_X86_AVX2
+        #undef  RAWR_ARCH_X86_AVX2
         #define RAWR_ARCH_X86_AVX2 1
     #endif
     #if defined(__AVX512F__)
-        #undef RAWR_ARCH_X86_AVX512F
+        #undef  RAWR_ARCH_X86_AVX512F
         #define RAWR_ARCH_X86_AVX512F 1
     #endif
     #if defined(__FMA__)
-        #undef RAWR_ARCH_X86_FMA
+        #undef  RAWR_ARCH_X86_FMA
         #define RAWR_ARCH_X86_FMA 1
     #endif
     #if defined(__BMI__)
-        #undef RAWR_ARCH_X86_BMI1
+        #undef  RAWR_ARCH_X86_BMI1
         #define RAWR_ARCH_X86_BMI1 1
     #endif
     #if defined(__BMI2__)
-        #undef RAWR_ARCH_X86_BMI2
+        #undef  RAWR_ARCH_X86_BMI2
         #define RAWR_ARCH_X86_BMI2 1
     #endif
     #if defined(__POPCNT__)
-        #undef RAWR_ARCH_X86_POPCNT
+        #undef  RAWR_ARCH_X86_POPCNT
         #define RAWR_ARCH_X86_POPCNT 1
     #endif
     #if defined(__LZCNT__)
-        #undef RAWR_ARCH_X86_LZCNT
+        #undef  RAWR_ARCH_X86_LZCNT
         #define RAWR_ARCH_X86_LZCNT 1
     #endif
     #if defined(__CLWB__)
-        #undef RAWR_ARCH_X86_CLWB
+        #undef  RAWR_ARCH_X86_CLWB
         #define RAWR_ARCH_X86_CLWB 1
     #endif
     // Note: MSVC exposes few independent ISA flags — only AVX/AVX2/AVX512 via /arch:.
@@ -258,27 +289,27 @@
 #define RAWR_ARCH_ARM_ATOMIC_CAS 0
 #if RAWR_ARCH_FAMILY_ARM
     #if defined(__ARM_NEON)
-        #undef RAWR_ARCH_ARM_NEON
+        #undef  RAWR_ARCH_ARM_NEON
         #define RAWR_ARCH_ARM_NEON 1
     #endif
     #if defined(__ARM_FEATURE_SVE)
-        #undef RAWR_ARCH_ARM_SVE
+        #undef  RAWR_ARCH_ARM_SVE
         #define RAWR_ARCH_ARM_SVE 1
     #endif
     #if defined(__ARM_FEATURE_SVE2)
-        #undef RAWR_ARCH_ARM_SVE2
+        #undef  RAWR_ARCH_ARM_SVE2
         #define RAWR_ARCH_ARM_SVE2 1
     #endif
     #if defined(__ARM_FEATURE_DOTPROD)
-        #undef RAWR_ARCH_ARM_DOTPROD
+        #undef  RAWR_ARCH_ARM_DOTPROD
         #define RAWR_ARCH_ARM_DOTPROD 1
     #endif
     #if defined(__ARM_FEATURE_FP16_VECTOR_ARITHMETIC)
-        #undef RAWR_ARCH_ARM_FP16
+        #undef  RAWR_ARCH_ARM_FP16
         #define RAWR_ARCH_ARM_FP16 1
     #endif
     #if defined(__ARM_FEATURE_BF16)
-        #undef RAWR_ARCH_ARM_BF16
+        #undef  RAWR_ARCH_ARM_BF16
         #define RAWR_ARCH_ARM_BF16 1
     #endif
     // ARMv6-M (Cortex-M0/M0+/M1) is the one ARM32 profile that excludes
@@ -352,15 +383,15 @@
 // Apple: requires TargetConditionals.h to distinguish iOS from macOS
 #elif defined(__APPLE__)
     #if defined(__ENVIRONMENT_MAC_OS_X_VERSION_MIN_REQUIRED__)
-        #undef RAWR_PLATFORM_MACOS
+        #undef  RAWR_PLATFORM_MACOS
         #define RAWR_PLATFORM_MACOS 1
     #elif defined(__ENVIRONMENT_IPHONE_OS_VERSION_MIN_REQUIRED__) || \
           defined(__ENVIRONMENT_TV_OS_VERSION_MIN_REQUIRED__)       || \
           defined(__ENVIRONMENT_WATCH_OS_VERSION_MIN_REQUIRED__)
-        #undef RAWR_PLATFORM_IOS
+        #undef  RAWR_PLATFORM_IOS
         #define RAWR_PLATFORM_IOS 1
     #else
-        #undef RAWR_PLATFORM_UNKNOWN
+        #undef  RAWR_PLATFORM_UNKNOWN
         #define RAWR_PLATFORM_UNKNOWN 1
     #endif
 // Android defines both __ANDROID__ and __linux__ — must come before Linux
@@ -570,8 +601,17 @@
 #else
     #define RAWR_PTR_SIZE 4
 #endif
-#define RAWR_IS_64BIT (RAWR_PTR_SIZE == 8)
-#define RAWR_IS_32BIT (RAWR_PTR_SIZE == 4)
+
+#define RAWR_IS_64BIT 0
+#define RAWR_IS_32BIT 0
+#if RAWR_PTR_SIZE == 8
+    #undef  RAWR_IS_64BIT
+    #define RAWR_IS_64BIT 1
+#endif
+#if RAWR_PTR_SIZE == 4
+    #undef  RAWR_IS_32BIT
+    #define RAWR_IS_32BIT 1
+#endif
 
 // ============================================================
 // Endianness
@@ -612,16 +652,18 @@
 // WASM deliberately excluded — Emscripten emulates POSIX in userspace,
 // standalone WASM/WASI has a completely different interface.
 // Cygwin provides POSIX over Windows, hence included.
-#define RAWR_IS_POSIX (      \
-    RAWR_PLATFORM_LINUX   || \
+#define RAWR_IS_POSIX 0
+#if RAWR_PLATFORM_LINUX   || \
     RAWR_PLATFORM_MACOS   || \
     RAWR_PLATFORM_IOS     || \
     RAWR_PLATFORM_ANDROID || \
     RAWR_PLATFORM_OPENBSD || \
     RAWR_PLATFORM_FREEBSD || \
     RAWR_PLATFORM_NETBSD  || \
-    RAWR_ENV_CYGWIN          \
-)
+    RAWR_ENV_CYGWIN
+    #undef  RAWR_IS_POSIX
+    #define RAWR_IS_POSIX 1
+#endif
 
 #if defined(__cpp_exceptions) || defined(__EXCEPTIONS) || defined(_CPPUNWIND)
     #define RAWR_HAS_EXCEPTIONS 1
@@ -759,11 +801,13 @@
 
 // Helper for "any sanitizer is active" (useful for tweaking timeouts or disabling optimizations)
 // Note: Excludes CFI, SafeStack, and RTC as they usually don't dictate timeout adjustments.
-#define RAWR_SAN_ANY_SANITIZER ( \
-    RAWR_SAN_ASAN   || \
+#define RAWR_SAN_ANY_SANITIZER 0
+#if RAWR_SAN_ASAN   || \
     RAWR_SAN_HWASAN || \
     RAWR_SAN_TSAN   || \
     RAWR_SAN_MSAN   || \
     RAWR_SAN_LSAN   || \
-    RAWR_SAN_UBSAN     \
-)
+    RAWR_SAN_UBSAN
+    #undef  RAWR_SAN_ANY_SANITIZER
+    #define RAWR_SAN_ANY_SANITIZER 1
+#endif

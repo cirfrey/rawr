@@ -68,6 +68,7 @@
 	- rawr/abi/win64.hpp
 	- rawr/arch/x64/atomic.hpp
 	- rawr/arch/x64/cpuid.hpp
+	- rawr/arch/x64/simd.hpp
 	- rawr/bin/elf.hpp
 	- rawr/cxx_abi/itanium.hpp
 	- rawr/lib/bitfield.hpp
@@ -186,10 +187,9 @@
 
 /* required by:
 	- rawr/abi/sysv.pp
-	- rawr/arch/x64/cpuid.hpp
-	- rawr/arch/x64/simd.hpp
 	- rawr/lib.hpp
 	- rawr/lib/attributes.pp
+	- rawr/lib/compiler.pp
 	- rawr/lib/detection.hpp
 	- rawr/lib/diag/dwarf.hpp
 	- rawr/lib/integer/base.hpp
@@ -203,7 +203,6 @@
 	- rawr/lib/type_name.hpp
 	- rawr/platform/linux.hpp
 	- rawr/san/asan.hpp
-	- rawr/san/attributes.pp
 	- rawr/san/lsan.hpp
 	- rawr/san/msan.hpp
 	- rawr/san/tsan.hpp
@@ -223,6 +222,15 @@
 	// instead of:
 	//     #if defined(RAWR_COMPILER_CLANG) && !defined(RAWR_PLATFORM_WINDOWS)
 	//
+	// Composite flags are defined in #if blocks to allow things like RAWR_PP_IF(COMPOSITE, ...),
+	// If we naiively did
+	//     #define RAWR_IS_64BIT (RAWR_PTR_SIZE == 8)
+	// The following expansion would happen
+	//     RAWR_PP_IF(RAWR_IS_64BIT, ...) => RAWR_PP_IF_(4 == 8)
+	// That doesn't compile, instead we define it inside an #if block and the expansion
+	// behaves as you'd expect.
+	// It's a little more work on our end, but thats what we're here for, right?
+	//
 	// TODO: maybe allow the user to override somehow, like if one of the values is set
 	//       then just skip detection?
 	//RAWR_AMALGAM_IGNORE #pragma once
@@ -237,10 +245,10 @@
 	    #define RAWR_DETECTION_NO_COMPILER_ERROR 0
 	#else
 	    #if RAWR_DETECTION_NO_COMPILER_ERROR
-	        #undef RAWR_DETECTION_NO_COMPILER_ERROR
+	        #undef  RAWR_DETECTION_NO_COMPILER_ERROR
 	        #define RAWR_DETECTION_NO_COMPILER_ERROR 1
 	    #else
-	        #undef RAWR_DETECTION_NO_COMPILER_ERROR
+	        #undef  RAWR_DETECTION_NO_COMPILER_ERROR
 	        #define RAWR_DETECTION_NO_COMPILER_ERROR 0
 	    #endif
 	#endif
@@ -290,7 +298,12 @@
 	    #define RAWR_COMPILER_VERSION_PATCH 0
 	    #define RAWR_COMPILER_VERSION_BUILD 0
 	#endif
-	#define RAWR_COMPILER_FAMILY_GNU (RAWR_COMPILER_GCC || RAWR_COMPILER_CLANG)
+	
+	#define RAWR_COMPILER_FAMILY_GNU 0
+	#if RAWR_COMPILER_CLANG || RAWR_COMPILER_GCC
+	    #undef  RAWR_COMPILER_FAMILY_GNU
+	    #define RAWR_COMPILER_FAMILY_GNU 1
+	#endif
 	
 	#if !RAWR_DETECTION_NO_COMPILER_ERROR
 	    #if RAWR_COMPILER_GCC
@@ -385,10 +398,27 @@
 	    #undef  RAWR_ARCH_UNKNOWN
 	    #define RAWR_ARCH_UNKNOWN 1
 	#endif
-	#define RAWR_ARCH_FAMILY_RISCV (RAWR_ARCH_RISCV64 || RAWR_ARCH_RISCV32)
-	#define RAWR_ARCH_FAMILY_WASM  (RAWR_ARCH_WASM32  || RAWR_ARCH_WASM64)
-	#define RAWR_ARCH_FAMILY_X86   (RAWR_ARCH_X64     || RAWR_ARCH_X86)
-	#define RAWR_ARCH_FAMILY_ARM   (RAWR_ARCH_ARM64   || RAWR_ARCH_ARM32)
+	
+	#define RAWR_ARCH_FAMILY_RISCV 0
+	#define RAWR_ARCH_FAMILY_X86 0
+	#define RAWR_ARCH_FAMILY_WASM 0
+	#define RAWR_ARCH_FAMILY_ARM 0
+	#if RAWR_ARCH_RISCV64 || RAWR_ARCH_RISCV32
+	    #undef  RAWR_ARCH_FAMILY_RISCV
+	    #define RAWR_ARCH_FAMILY_RISCV 1
+	#endif
+	#if RAWR_ARCH_WASM32 || RAWR_ARCH_WASM64
+	    #undef  RAWR_ARCH_FAMILY_WASM
+	    #define RAWR_ARCH_FAMILY_WASM 1
+	#endif
+	#if RAWR_ARCH_X64 || RAWR_ARCH_X86
+	    #undef  RAWR_ARCH_FAMILY_X86
+	    #define RAWR_ARCH_FAMILY_X86 1
+	#endif
+	#if RAWR_ARCH_ARM64 || RAWR_ARCH_ARM32
+	    #undef  RAWR_ARCH_FAMILY_ARM
+	    #define RAWR_ARCH_FAMILY_ARM 1
+	#endif
 	
 	// Defaults
 	#define RAWR_ARCH_X86_SSE     0
@@ -407,55 +437,55 @@
 	#if RAWR_ARCH_FAMILY_X86
 	    // SSE / SSE2 are guaranteed on x64 by ABI, so we use ||, not &&
 	    #if RAWR_ARCH_X64 || defined(__SSE__)
-	        #undef RAWR_ARCH_X86_SSE
+	        #undef  RAWR_ARCH_X86_SSE
 	        #define RAWR_ARCH_X86_SSE 1
 	    #endif
 	    #if RAWR_ARCH_X64 || defined(__SSE2__)
-	        #undef RAWR_ARCH_X86_SSE2
+	        #undef  RAWR_ARCH_X86_SSE2
 	        #define RAWR_ARCH_X86_SSE2 1
 	    #endif
 	    #if defined(__SSE4_1__)
-	        #undef RAWR_ARCH_X86_SSE41
+	        #undef  RAWR_ARCH_X86_SSE41
 	        #define RAWR_ARCH_X86_SSE41 1
 	    #endif
 	    #if defined(__SSE4_2__)
-	        #undef RAWR_ARCH_X86_SSE42
+	        #undef  RAWR_ARCH_X86_SSE42
 	        #define RAWR_ARCH_X86_SSE42 1
 	    #endif
 	    #if defined(__AVX__)
-	        #undef RAWR_ARCH_X86_AVX
+	        #undef  RAWR_ARCH_X86_AVX
 	        #define RAWR_ARCH_X86_AVX 1
 	    #endif
 	    #if defined(__AVX2__)
-	        #undef RAWR_ARCH_X86_AVX2
+	        #undef  RAWR_ARCH_X86_AVX2
 	        #define RAWR_ARCH_X86_AVX2 1
 	    #endif
 	    #if defined(__AVX512F__)
-	        #undef RAWR_ARCH_X86_AVX512F
+	        #undef  RAWR_ARCH_X86_AVX512F
 	        #define RAWR_ARCH_X86_AVX512F 1
 	    #endif
 	    #if defined(__FMA__)
-	        #undef RAWR_ARCH_X86_FMA
+	        #undef  RAWR_ARCH_X86_FMA
 	        #define RAWR_ARCH_X86_FMA 1
 	    #endif
 	    #if defined(__BMI__)
-	        #undef RAWR_ARCH_X86_BMI1
+	        #undef  RAWR_ARCH_X86_BMI1
 	        #define RAWR_ARCH_X86_BMI1 1
 	    #endif
 	    #if defined(__BMI2__)
-	        #undef RAWR_ARCH_X86_BMI2
+	        #undef  RAWR_ARCH_X86_BMI2
 	        #define RAWR_ARCH_X86_BMI2 1
 	    #endif
 	    #if defined(__POPCNT__)
-	        #undef RAWR_ARCH_X86_POPCNT
+	        #undef  RAWR_ARCH_X86_POPCNT
 	        #define RAWR_ARCH_X86_POPCNT 1
 	    #endif
 	    #if defined(__LZCNT__)
-	        #undef RAWR_ARCH_X86_LZCNT
+	        #undef  RAWR_ARCH_X86_LZCNT
 	        #define RAWR_ARCH_X86_LZCNT 1
 	    #endif
 	    #if defined(__CLWB__)
-	        #undef RAWR_ARCH_X86_CLWB
+	        #undef  RAWR_ARCH_X86_CLWB
 	        #define RAWR_ARCH_X86_CLWB 1
 	    #endif
 	    // Note: MSVC exposes few independent ISA flags — only AVX/AVX2/AVX512 via /arch:.
@@ -472,27 +502,27 @@
 	#define RAWR_ARCH_ARM_ATOMIC_CAS 0
 	#if RAWR_ARCH_FAMILY_ARM
 	    #if defined(__ARM_NEON)
-	        #undef RAWR_ARCH_ARM_NEON
+	        #undef  RAWR_ARCH_ARM_NEON
 	        #define RAWR_ARCH_ARM_NEON 1
 	    #endif
 	    #if defined(__ARM_FEATURE_SVE)
-	        #undef RAWR_ARCH_ARM_SVE
+	        #undef  RAWR_ARCH_ARM_SVE
 	        #define RAWR_ARCH_ARM_SVE 1
 	    #endif
 	    #if defined(__ARM_FEATURE_SVE2)
-	        #undef RAWR_ARCH_ARM_SVE2
+	        #undef  RAWR_ARCH_ARM_SVE2
 	        #define RAWR_ARCH_ARM_SVE2 1
 	    #endif
 	    #if defined(__ARM_FEATURE_DOTPROD)
-	        #undef RAWR_ARCH_ARM_DOTPROD
+	        #undef  RAWR_ARCH_ARM_DOTPROD
 	        #define RAWR_ARCH_ARM_DOTPROD 1
 	    #endif
 	    #if defined(__ARM_FEATURE_FP16_VECTOR_ARITHMETIC)
-	        #undef RAWR_ARCH_ARM_FP16
+	        #undef  RAWR_ARCH_ARM_FP16
 	        #define RAWR_ARCH_ARM_FP16 1
 	    #endif
 	    #if defined(__ARM_FEATURE_BF16)
-	        #undef RAWR_ARCH_ARM_BF16
+	        #undef  RAWR_ARCH_ARM_BF16
 	        #define RAWR_ARCH_ARM_BF16 1
 	    #endif
 	    // ARMv6-M (Cortex-M0/M0+/M1) is the one ARM32 profile that excludes
@@ -566,15 +596,15 @@
 	// Apple: requires TargetConditionals.h to distinguish iOS from macOS
 	#elif defined(__APPLE__)
 	    #if defined(__ENVIRONMENT_MAC_OS_X_VERSION_MIN_REQUIRED__)
-	        #undef RAWR_PLATFORM_MACOS
+	        #undef  RAWR_PLATFORM_MACOS
 	        #define RAWR_PLATFORM_MACOS 1
 	    #elif defined(__ENVIRONMENT_IPHONE_OS_VERSION_MIN_REQUIRED__) || \
 	          defined(__ENVIRONMENT_TV_OS_VERSION_MIN_REQUIRED__)       || \
 	          defined(__ENVIRONMENT_WATCH_OS_VERSION_MIN_REQUIRED__)
-	        #undef RAWR_PLATFORM_IOS
+	        #undef  RAWR_PLATFORM_IOS
 	        #define RAWR_PLATFORM_IOS 1
 	    #else
-	        #undef RAWR_PLATFORM_UNKNOWN
+	        #undef  RAWR_PLATFORM_UNKNOWN
 	        #define RAWR_PLATFORM_UNKNOWN 1
 	    #endif
 	// Android defines both __ANDROID__ and __linux__ — must come before Linux
@@ -784,8 +814,17 @@
 	#else
 	    #define RAWR_PTR_SIZE 4
 	#endif
-	#define RAWR_IS_64BIT (RAWR_PTR_SIZE == 8)
-	#define RAWR_IS_32BIT (RAWR_PTR_SIZE == 4)
+	
+	#define RAWR_IS_64BIT 0
+	#define RAWR_IS_32BIT 0
+	#if RAWR_PTR_SIZE == 8
+	    #undef  RAWR_IS_64BIT
+	    #define RAWR_IS_64BIT 1
+	#endif
+	#if RAWR_PTR_SIZE == 4
+	    #undef  RAWR_IS_32BIT
+	    #define RAWR_IS_32BIT 1
+	#endif
 	
 	// ============================================================
 	// Endianness
@@ -826,16 +865,18 @@
 	// WASM deliberately excluded — Emscripten emulates POSIX in userspace,
 	// standalone WASM/WASI has a completely different interface.
 	// Cygwin provides POSIX over Windows, hence included.
-	#define RAWR_IS_POSIX (      \
-	    RAWR_PLATFORM_LINUX   || \
+	#define RAWR_IS_POSIX 0
+	#if RAWR_PLATFORM_LINUX   || \
 	    RAWR_PLATFORM_MACOS   || \
 	    RAWR_PLATFORM_IOS     || \
 	    RAWR_PLATFORM_ANDROID || \
 	    RAWR_PLATFORM_OPENBSD || \
 	    RAWR_PLATFORM_FREEBSD || \
 	    RAWR_PLATFORM_NETBSD  || \
-	    RAWR_ENV_CYGWIN          \
-	)
+	    RAWR_ENV_CYGWIN
+	    #undef  RAWR_IS_POSIX
+	    #define RAWR_IS_POSIX 1
+	#endif
 	
 	#if defined(__cpp_exceptions) || defined(__EXCEPTIONS) || defined(_CPPUNWIND)
 	    #define RAWR_HAS_EXCEPTIONS 1
@@ -973,14 +1014,16 @@
 	
 	// Helper for "any sanitizer is active" (useful for tweaking timeouts or disabling optimizations)
 	// Note: Excludes CFI, SafeStack, and RTC as they usually don't dictate timeout adjustments.
-	#define RAWR_SAN_ANY_SANITIZER ( \
-	    RAWR_SAN_ASAN   || \
+	#define RAWR_SAN_ANY_SANITIZER 0
+	#if RAWR_SAN_ASAN   || \
 	    RAWR_SAN_HWASAN || \
 	    RAWR_SAN_TSAN   || \
 	    RAWR_SAN_MSAN   || \
 	    RAWR_SAN_LSAN   || \
-	    RAWR_SAN_UBSAN     \
-	)
+	    RAWR_SAN_UBSAN
+	    #undef  RAWR_SAN_ANY_SANITIZER
+	    #define RAWR_SAN_ANY_SANITIZER 1
+	#endif
 
 #pragma endregion "rawr/lib/detection.pp"
 
@@ -1148,6 +1191,7 @@
 	
 	    template <bitwidth Bits>     using ruint_exact   = detail::select_type_by_size<Bits, unsigned char, unsigned short, unsigned int, unsigned long, unsigned long long>::type;
 	    template <bitwidth Bits>     using rsint_exact   = detail::select_type_by_size<Bits,   signed char,   signed short,   signed int,   signed long,   signed long long>::type;
+	    template <bitwidth Bits>     using rfloat_exact  = detail::select_type_by_size<Bits,         float,         double,  long double>::type;
 	    template <unsigned long Num> using ruint_capable = decltype(detail::ruint_capable<Num>());
 	}
 	
@@ -1265,13 +1309,12 @@
 	// wrapped versions instead.
 	RAWR_EXPORT namespace rawr::inline lib::inline integer::inline raw
 	{
-	    using ru8  = ruint_exact<biw8>;  using rs8  = rsint_exact<biw8>;
-	    using ru16 = ruint_exact<biw16>; using rs16 = rsint_exact<biw16>;
-	    using ru32 = ruint_exact<biw32>; using rs32 = rsint_exact<biw32>;
-	    using ru64 = ruint_exact<biw64>; using rs64 = rsint_exact<biw64>;
-	    using rf32 = float;
-	    using rf64 = double;
-	    static_assert(bitsof<rf32> == biw32 && bitsof<rf64> == biw64);
+	    using ru8  = ruint_exact<biw8>;   using rs8  = rsint_exact<biw8>;
+	    using ru16 = ruint_exact<biw16>;  using rs16 = rsint_exact<biw16>;
+	    using ru32 = ruint_exact<biw32>;  using rs32 = rsint_exact<biw32>;
+	    using ru64 = ruint_exact<biw64>;  using rs64 = rsint_exact<biw64>;
+	    using rf32 = rfloat_exact<biw32>; using rf64 = rfloat_exact<biw64>;
+	
 	    // Our very own free-range std::size_t.
 	    using rst  = decltype(sizeof(0));
 	    // Corresponds to std::intptr_t.
@@ -1300,6 +1343,7 @@
 /* required by:
 	- rawr/lib.hpp
 	- rawr/lib/bitfield.pp
+	- rawr/lib/compiler.pp
 	- rawr/lib/rich_enum.pp
 	- rawr/platform/linux.hpp
 */
@@ -1882,6 +1926,7 @@
 /* required by:
 	- rawr/abi/sysv.hpp
 	- rawr/abi/sysv.pp
+	- rawr/arch/x64/cpuid.hpp
 	- rawr/arch/x64/simd.hpp
 	- rawr/lib.hpp
 	- rawr/lib/diag/dwarf.hpp
@@ -2127,11 +2172,13 @@
 	- rawr/bin/elf.hpp
 	- rawr/cxx_abi/itanium.hpp
 	- rawr/lib.hpp
+	- rawr/lib/compiler.pp
 	- rawr/lib/diag/dwarf.hpp
 	- rawr/lib/intrin/base.hpp
 	- rawr/lib/intrin/math.hpp
 	- rawr/lib/intrin/mem.hpp
 	- rawr/platform/linux.hpp
+	- rawr/san/attributes.pp
 */
 #pragma region "rawr/lib/attributes.pp"
 #if RAWR_AMALGAM_SOURCE_MAPPING
@@ -2142,7 +2189,13 @@
 	
 	//RAWR_AMALGAM_IGNORE #include "rawr/lib/detection.pp"
 	
+	#define RAWR_RAW_PRAGMA(x) _Pragma(#x)
+	
 	#if RAWR_COMPILER_MSVC
+	    #define RAWR_DECLSPEC(x)   __declspec(x)
+	    #define RAWR_ATTRIBUTE(x)
+	    #define RAWR_PRAGMA(x)     __pragma(x) // Can use __pragma directly without stringification.
+	
 	    #define RAWR_UNREACHABLE   __assume(false)
 	    #define RAWR_NORETURN      __declspec(noreturn)
 	    #define RAWR_HIDDEN
@@ -2156,12 +2209,16 @@
 	    #define RAWR_ASM_ALIAS(sym)
 	    #define RAWR_SYMBOL_ALIAS_PRAGMA(from, to) __pragma(comment(linker, "/alternatename:" from "=" to))
 	#else
+	    #define RAWR_DECLSPEC(x)
+	    #define RAWR_ATTRIBUTE(x)  __attribute__((x))
+	    #define RAWR_PRAGMA(x)     RAWR_RAW_PRAGMA(x) // Needs deffered resolution.
+	
 	    #define RAWR_UNREACHABLE   __builtin_unreachable()
-	    #define RAWR_NORETURN      __attribute__((noreturn))
-	    #define RAWR_HIDDEN        __attribute__((visibility("hidden")))
-	    #define RAWR_ALWAYS_INLINE __attribute__((always_inline)) inline
-	    #define RAWR_FLATTEN       __attribute__((flatten))
-	    #define RAWR_NAKED         __attribute__((naked))
+	    #define RAWR_NORETURN      RAWR_ATTRIBUTE(noreturn)
+	    #define RAWR_HIDDEN        RAWR_ATTRIBUTE(visibility("hidden"))
+	    #define RAWR_ALWAYS_INLINE RAWR_ATTRIBUTE(always_inline) inline
+	    #define RAWR_FLATTEN       RAWR_ATTRIBUTE(flatten)
+	    #define RAWR_NAKED         RAWR_ATTRIBUTE(naked)
 	
 	    #define RAWR_ASM_ALIAS(sym) asm(sym)
 	    #define RAWR_SYMBOL_ALIAS_PRAGMA(from, to)
@@ -2776,6 +2833,100 @@
 #pragma endregion "rawr/lib/sync/base.hpp"
 
 /* required by:
+	- rawr/arch/x64/atomic.hpp
+	- rawr/arch/x64/cpuid.hpp
+	- rawr/arch/x64/simd.hpp
+	- rawr/lib/intrin/mem.hpp
+	- rawr/lib/test.hpp
+*/
+#pragma region "rawr/lib/compiler.pp"
+#if RAWR_AMALGAM_SOURCE_MAPPING
+    #line 0 "rawr/lib/compiler.pp"
+#endif
+	//// rawr/lib/compiler.pp.
+	// Macro utilities for ergonomic compiler gating.
+	//RAWR_AMALGAM_IGNORE #pragma once
+	
+	//RAWR_AMALGAM_IGNORE #include "rawr/lib/detection.pp"
+	//RAWR_AMALGAM_IGNORE #include "rawr/lib/attributes.pp"
+	//RAWR_AMALGAM_IGNORE #include "rawr/lib/pp.pp"
+	
+	#if RAWR_COMPILER_MSVC
+	
+	    #define RAWR_MSVC(...)                    __VA_ARGS__
+	    #define RAWR_NOT_MSVC(...)
+	    #define RAWR_MSVC_COND(Cond, ...)         RAWR_PP_WHEN(Cond, __VA_ARGS__)
+	    #define RAWR_MSVC_IF(Cond, True, False)   RAWR_PP_IF(Cond, True, False)
+	    #define RAWR_MSVC_IF_S(Cond, True, False) RAWR_PP_STRIP(RAWR_PP_IF(Cond, True, False))
+	    #define RAWR_MSVC_PRAGMA(...)             __pragma(__VA_ARGS__)
+	
+	    #define RAWR_MSVC_INTRIN(Cond, Name, ...) \
+	        RAWR_PP_IF(Cond, \
+	            extern "C" { auto Name __VA_ARGS__; } __pragma(intrinsic(Name)), \
+	                         auto Name __VA_ARGS__ \
+	        )
+	#else
+	    #define RAWR_MSVC(...)
+	    #define RAWR_NOT_MSVC(...) __VA_ARGS__
+	    #define RAWR_MSVC_COND(Cond, ...)
+	    #define RAWR_MSVC_IF(Cond, True, False)
+	    #define RAWR_MSVC_IF_S(Cond, True, False)
+	    #define RAWR_MSVC_PRAGMA(...)
+	
+	    #define RAWR_MSVC_INTRIN(Cond, Name, ...) auto Name __VA_ARGS__
+	#endif
+	
+	#if RAWR_COMPILER_FAMILY_GNU
+	    #define RAWR_GNU(...)                    __VA_ARGS__
+	    #define RAWR_NOT_GNU(...)
+	    #define RAWR_GNU_COND(Cond, ...)         RAWR_PP_WHEN(Cond, __VA_ARGS__)
+	    #define RAWR_GNU_IF(Cond, True, False)   RAWR_PP_IF(Cond, True, False)
+	    #define RAWR_GNU_IF_S(Cond, True, False) RAWR_PP_STRIP(RAWR_PP_IF(Cond, True, False))
+	    #define RAWR_GNU_PRAGMA(...)             RAWR_RAW_PRAGMA(__VA_ARGS__)
+	#else
+	    #define RAWR_GNU(...)
+	    #define RAWR_NOT_GNU(...) __VA_ARGS__
+	    #define RAWR_GNU_COND(Cond, ...)
+	    #define RAWR_GNU_IF(Cond, True, False)
+	    #define RAWR_GNU_IF_S(Cond, True, False)
+	    #define RAWR_GNU_PRAGMA(...)
+	#endif
+	
+	#if RAWR_COMPILER_CLANG
+	    #define RAWR_CLANG(...)                    __VA_ARGS__
+	    #define RAWR_NOT_CLANG(...)
+	    #define RAWR_CLANG_COND(Cond, ...)         RAWR_PP_WHEN(Cond, __VA_ARGS__)
+	    #define RAWR_CLANG_IF(Cond, True, False)   RAWR_PP_IF(Cond, True, False)
+	    #define RAWR_CLANG_IF_S(Cond, True, False) RAWR_PP_STRIP(RAWR_PP_IF(Cond, True, False))
+	    #define RAWR_CLANG_PRAGMA(...)             RAWR_RAW_PRAGMA(__VA_ARGS__)
+	#else
+	    #define RAWR_CLANG(...)
+	    #define RAWR_NOT_CLANG(...) __VA_ARGS__
+	    #define RAWR_CLANG_COND(Cond, ...)
+	    #define RAWR_CLANG_IF(Cond, True, False)
+	    #define RAWR_CLANG_IF_S(Cond, True, False)
+	    #define RAWR_CLANG_PRAGMA(...)
+	#endif
+	
+	#if RAWR_COMPILER_GCC
+	    #define RAWR_GCC(...)                    __VA_ARGS__
+	    #define RAWR_NOT_GCC(...)
+	    #define RAWR_GCC_COND(Cond, ...)         RAWR_PP_WHEN(Cond, __VA_ARGS__)
+	    #define RAWR_GCC_IF(Cond, True, False)   RAWR_PP_IF(Cond, True, False)
+	    #define RAWR_GCC_IF_S(Cond, True, False) RAWR_PP_STRIP(RAWR_PP_IF(Cond, True, False))
+	    #define RAWR_GCC_PRAGMA(...)             RAWR_RAW_PRAGMA(__VA_ARGS__)
+	#else
+	    #define RAWR_GCC(...)
+	    #define RAWR_NOT_GCC(...) __VA_ARGS__
+	    #define RAWR_GCC_COND(Cond, ...)
+	    #define RAWR_GCC_IF(Cond, True, False)
+	    #define RAWR_GCC_IF_S(Cond, True, False)
+	    #define RAWR_GCC_PRAGMA(...)
+	#endif
+
+#pragma endregion "rawr/lib/compiler.pp"
+
+/* required by:
 	- rawr/arch/x64.hpp
 */
 #pragma region "rawr/arch/x64/atomic.hpp"
@@ -2798,38 +2949,31 @@
 	    //RAWR_AMALGAM_IGNORE #include "rawr/lib/dist/header.pp"
 	#endif
 	//RAWR_AMALGAM_IGNORE #include "rawr/lib/attributes.pp"
+	//RAWR_AMALGAM_IGNORE #include "rawr/lib/compiler.pp"
 	
-	#if RAWR_COMPILER_MSVC
-	    namespace rawr::arch::x64::atomic::msvc
-	    {
-	        extern "C" char    _InterlockedCompareExchange8 (char volatile*,    char,    char);
-	        extern "C" short   _InterlockedCompareExchange16(short volatile*,   short,   short);
-	        extern "C" long    _InterlockedCompareExchange  (long volatile*,    long,    long);
-	        extern "C" __int64 _InterlockedCompareExchange64(__int64 volatile*, __int64, __int64);
-	        #pragma intrinsic(_InterlockedCompareExchange8)
-	        #pragma intrinsic(_InterlockedCompareExchange16)
-	        #pragma intrinsic(_InterlockedCompareExchange)
-	        #pragma intrinsic(_InterlockedCompareExchange64)
+	RAWR_EXPORT namespace rawr::arch::x64::atomic::msvc
+	{
+	    // RAWR_IS_64BIT is used instead of RAWR_ARCH_X64 because those intrinsics are also supported on arm64.
 	
-	        extern "C" char    _InterlockedExchange8 (char volatile*,    char);
-	        extern "C" short   _InterlockedExchange16(short volatile*,   short);
-	        extern "C" long    _InterlockedExchange  (long volatile*,    long);
-	        extern "C" __int64 _InterlockedExchange64(__int64 volatile*, __int64);
-	        #pragma intrinsic(_InterlockedExchange8)
-	        #pragma intrinsic(_InterlockedExchange16)
-	        #pragma intrinsic(_InterlockedExchange)
-	        #pragma intrinsic(_InterlockedExchange64)
+	    RAWR_NOT_MSVC( using __int64 = rsint_exact<{64}>; )
 	
-	        extern "C" char    _InterlockedExchangeAdd8 (char volatile*,    char);
-	        extern "C" short   _InterlockedExchangeAdd16(short volatile*,   short);
-	        extern "C" long    _InterlockedExchangeAdd  (long volatile*,    long);
-	        extern "C" __int64 _InterlockedExchangeAdd64(__int64 volatile*, __int64);
-	        #pragma intrinsic(_InterlockedExchangeAdd8)
-	        #pragma intrinsic(_InterlockedExchangeAdd16)
-	        #pragma intrinsic(_InterlockedExchangeAdd)
-	        #pragma intrinsic(_InterlockedExchangeAdd64)
-	    }
-	#endif
+	    RAWR_MSVC_INTRIN(1, _InterlockedCompareExchange8,  (char volatile*,    char,    char)    -> char);
+	    RAWR_MSVC_INTRIN(1, _InterlockedCompareExchange16, (short volatile*,   short,   short)   -> short);
+	    RAWR_MSVC_INTRIN(1, _InterlockedCompareExchange,   (long volatile*,    long,    long)    -> long);
+	    RAWR_MSVC_INTRIN(1, _InterlockedCompareExchange64, (__int64 volatile*, __int64, __int64) -> __int64);
+	
+	    RAWR_MSVC_INTRIN(1,             _InterlockedExchange8,  (char volatile*,    char)    -> char);
+	    RAWR_MSVC_INTRIN(1,             _InterlockedExchange16, (short volatile*,   short)   -> short);
+	    RAWR_MSVC_INTRIN(1,             _InterlockedExchange,   (long volatile*,    long)    -> long);
+	    RAWR_MSVC_INTRIN(RAWR_IS_64BIT, _InterlockedExchange64, (__int64 volatile*, __int64) -> __int64);
+	
+	    RAWR_MSVC_INTRIN(1,             _InterlockedExchangeAdd8,  (char volatile*,    char)    -> char);
+	    RAWR_MSVC_INTRIN(1,             _InterlockedExchangeAdd16, (short volatile*,   short)   -> short);
+	    RAWR_MSVC_INTRIN(1,             _InterlockedExchangeAdd,   (long volatile*,    long)    -> long);
+	    RAWR_MSVC_INTRIN(RAWR_IS_64BIT, _InterlockedExchangeAdd64, (__int64 volatile*, __int64) -> __int64);
+	
+	    RAWR_MSVC_INTRIN(RAWR_ARCH_FAMILY_X86, _ReadWriteBarrier, () -> void);
+	}
 	
 	#if RAWR_COMPILER_FAMILY_GNU
 	    namespace rawr::arch::x64::atomic::gnu
@@ -2906,7 +3050,7 @@
 	            // gap TSO allows. As long as every store on this word goes through
 	            // that path, a plain load + compiler barrier is sufficient here.
 	            T v = *static_cast<T const volatile*>(addr);
-	            _ReadWriteBarrier();
+	            msvc::_ReadWriteBarrier();
 	            return v;
 	        #else
 	            static_assert(sizeof(T) == 0, "rawr::arch::x64::cas: no known compiler backend");
@@ -3214,6 +3358,7 @@
 	    import rawr.lib.integer.base;
 	    import rawr.lib.integer.raw;
 	    import rawr.lib.bits;
+	    import rawr.lib.detection;
 	
 	    //RAWR_AMALGAM_IGNORE #include "rawr/lib/dist/module.pp"
 	#else
@@ -3222,42 +3367,50 @@
 	    //RAWR_AMALGAM_IGNORE #include "rawr/lib/integer/base.hpp"
 	    //RAWR_AMALGAM_IGNORE #include "rawr/lib/integer/raw.hpp"
 	    //RAWR_AMALGAM_IGNORE #include "rawr/lib/bits.hpp"
+	    //RAWR_AMALGAM_IGNORE #include "rawr/lib/detection.hpp"
 	
 	    //RAWR_AMALGAM_IGNORE #include "rawr/lib/dist/header.pp"
 	#endif
-	//RAWR_AMALGAM_IGNORE #include "rawr/lib/detection.pp"
 	//RAWR_AMALGAM_IGNORE #include "rawr/lib/attributes.pp"
+	//RAWR_AMALGAM_IGNORE #include "rawr/lib/compiler.pp"
 	//RAWR_AMALGAM_IGNORE #include "rawr/lib/bitfield.pp"
 	
-	#if RAWR_COMPILER_MSVC
-	    namespace rawr::arch::x64::msvc
-	    {
-	        extern "C" void __cpuidex(int cpuInfo[4], int function_id, int subfunction_id);
-	        #pragma intrinsic(__cpuidex)
-	    }
-	#endif
+	RAWR_EXPORT namespace rawr::arch::x64::msvc
+	{
+	    RAWR_MSVC_INTRIN(RAWR_ARCH_X64, __cpuidex, (int[4], int, int) -> void);
+	}
+	
+	RAWR_EXPORT namespace rawr::arch::x64::gnu
+	{
+	    RAWR_ALWAYS_INLINE auto ia32_cpuidext(int regs[4], int leaf, int subleaf) -> void
+	    RAWR_GNU_COND(RAWR_ARCH_X64, {
+	        // TODO: This feels like a copout.
+	        __asm__ __volatile__(
+	            "cpuid"
+	            : "=a"(regs[0]), "=b"(regs[1]), "=c"(regs[2]), "=d"(regs[3])
+	            : "a"(leaf), "c"(subleaf)
+	        );
+	    });
+	}
 	
 	RAWR_EXPORT namespace rawr::arch::x64
 	{
 	    // TODO: this needs review for potential accidental overhead.
 	    struct cpuid_args { ru32 leaf, subleaf; };
 	    struct cpuid_ret { ru32 regs[4]; };
+	
+	    template <typename = void>
 	    RAWR_ALWAYS_INLINE auto cpuid(cpuid_args args) -> cpuid_ret
 	    {
 	        cpuid_ret ret;
 	
-	        #if RAWR_COMPILER_MSVC
+	        if constexpr(!this_arch.is_x64()) {
+	            static_assert(this_arch.is_x64());
+	        } else if constexpr(this_compiler.is_msvc()) {
 	            msvc::__cpuidex(reinterpret_cast<int*>(ret.regs), static_cast<int>(args.leaf), static_cast<int>(args.subleaf));
-	        #elif RAWR_COMPILER_FAMILY_GNU
-	            // TODO: use __builtin_ia32_cpuidext instead.
-	            asm volatile (
-	                "cpuid"
-	                : "=a"(ret.regs[0]), "=b"(ret.regs[1]), "=c"(ret.regs[2]), "=d"(ret.regs[3])
-	                : "a"(args.leaf), "c"(args.subleaf)
-	            );
-	        #else
-	            static_assert(false);
-	        #endif
+	        } else if constexpr(this_compiler.is_family_gnu()) {
+	            gnu::ia32_cpuidext(reinterpret_cast<int*>(ret.regs), static_cast<int>(args.leaf), static_cast<int>(args.subleaf));
+	        }
 	
 	        return ret;
 	    }
@@ -4299,40 +4452,23 @@
 	    //RAWR_AMALGAM_IGNORE #include "rawr/lib/dist/header.pp"
 	#endif
 	//RAWR_AMALGAM_IGNORE #include "rawr/lib/detection.pp"
+	//RAWR_AMALGAM_IGNORE #include "rawr/lib/compiler.pp"
 	//RAWR_AMALGAM_IGNORE #include "rawr/lib/attributes.pp"
 	
 	RAWR_EXPORT namespace rawr::inline lib::intrin::inline mem::msvc
 	{
-	    #if RAWR_COMPILER_MSVC
-	    extern "C" {
-	    #endif
-	
-	    auto memcpy (void*,       void const*, rst) -> void*;
-	    auto memset (void*,       int,         rst) -> void*;
-	    auto memmove(void*,       void const*, rst) -> void*;
-	    auto memcmp (void const*, void const*, rst) -> int;
-	
-	    #if RAWR_COMPILER_MSVC
-	    }
-	    #pragma intrinsic(memcpy, memset, memmove, memcmp)
-	    #endif
+	    RAWR_MSVC_INTRIN(1, memcpy,  (void*,       void const*, rst) -> void*);
+	    RAWR_MSVC_INTRIN(1, memset,  (void*,       int, rst)         -> void*);
+	    RAWR_MSVC_INTRIN(1, memmove, (void*,       void const*, rst) -> void*);
+	    RAWR_MSVC_INTRIN(1, memcmp,  (void const*, void const*, rst) -> int);
 	}
 	
 	RAWR_EXPORT namespace rawr::inline lib::intrin::inline mem::gnu
 	{
-	    #if RAWR_COMPILER_FAMILY_GNU
-	        #define RAWR_GATED_GNU(...) { __VA_ARGS__; }
-	    #else
-	        #define RAWR_GATED_GNU(...) ;
-	    #endif
-	
-	                  RAWR_ALWAYS_INLINE constexpr auto memcpy (void* d,       void const* s, rst n) noexcept -> void* RAWR_GATED_GNU( return ::__builtin_memcpy (d, s, n) )
-	                  RAWR_ALWAYS_INLINE           auto memset (void* d,       int v,         rst n) noexcept -> void* RAWR_GATED_GNU( return ::__builtin_memset (d, v, n) )
-	                  RAWR_ALWAYS_INLINE constexpr auto memmove(void* d,       void const* s, rst n) noexcept -> void* RAWR_GATED_GNU( return ::__builtin_memmove(d, s, n) )
-	    [[nodiscard]] RAWR_ALWAYS_INLINE constexpr auto memcmp (void const* a, void const* b, rst n) noexcept -> int   RAWR_GATED_GNU( return ::__builtin_memcmp(a, b, n) )
-	
-	
-	    #undef RAWR_GATED_GNU
+	                  RAWR_ALWAYS_INLINE constexpr auto memcpy (void* d,       void const* s, rst n) noexcept -> void* RAWR_GNU({ return ::__builtin_memcpy (d, s, n); });
+	                  RAWR_ALWAYS_INLINE           auto memset (void* d,       int v,         rst n) noexcept -> void* RAWR_GNU({ return ::__builtin_memset (d, v, n); });
+	                  RAWR_ALWAYS_INLINE constexpr auto memmove(void* d,       void const* s, rst n) noexcept -> void* RAWR_GNU({ return ::__builtin_memmove(d, s, n); });
+	    [[nodiscard]] RAWR_ALWAYS_INLINE constexpr auto memcmp (void const* a, void const* b, rst n) noexcept -> int   RAWR_GNU({ return ::__builtin_memcmp (a, b, n); });
 	}
 	
 	// Memory intrinsics.
@@ -4481,69 +4617,68 @@
 	    //RAWR_AMALGAM_IGNORE #include "rawr/lib/detection.hpp"
 	    //RAWR_AMALGAM_IGNORE #include "rawr/lib/integer/raw.hpp"
 	    //RAWR_AMALGAM_IGNORE #include "rawr/lib/intrin.hpp"
+	
+	    //RAWR_AMALGAM_IGNORE #include "rawr/lib/dist/header.pp"
 	#endif
 	//RAWR_AMALGAM_IGNORE #include "rawr/lib/attributes.pp"
-	//RAWR_AMALGAM_IGNORE #include "rawr/lib/detection.pp"
+	//RAWR_AMALGAM_IGNORE #include "rawr/lib/compiler.pp"
 	
-	#if RAWR_COMPILER_MSVC
-	    // MSVC is quite picky about intrinsics, you have to *declare* them.
-	    // Its also very picky about the names of the types involved.
-	    // Somehow its not picky about whether or not they are namespaced.
-	    namespace rawr::arch::x64::msvc
-	    {
-	        union __declspec(intrin_type) alignas(16) __m128 {
-	            ru8  ru8 [16];
-	            rs8  rs8 [16];
-	            ru16 ru16[8];
-	            rs16 rs16[8];
-	            ru32 ru32[4];
-	            rs32 rs32[4];
-	            rf32 rf32[4];
-	            ru64 ru64[2];
-	            rs64 rs64[2];
-	            rf64 rf64[2];
-	        };
-	        using __m128i = __m128;
-	        using __m128d = __m128;
+	// MSVC is quite picky about intrinsics, you have to *declare* them.
+	// Its also very picky about the names of the types involved.
+	// Somehow its not picky about whether or not they are namespaced.
+	namespace rawr::arch::x64::msvc
+	{
+	    union RAWR_DECLSPEC(intrin_type) alignas(16) __m128 {
+	        rawr::ru8  ru8 [16];
+	        rawr::rs8  rs8 [16];
+	        rawr::ru16 ru16[8];
+	        rawr::rs16 rs16[8];
+	        rawr::ru32 ru32[4];
+	        rawr::rs32 rs32[4];
+	        rawr::rf32 rf32[4];
+	        rawr::ru64 ru64[2];
+	        rawr::rs64 rs64[2];
+	        rawr::rf64 rf64[2];
+	    };
+	    using __m128i = __m128;
+	    using __m128d = __m128;
 	
-	        union __declspec(intrin_type) alignas(32) __m256 {
-	            ru8  ru8 [32];
-	            rs8  rs8 [32];
-	            ru16 ru16[16];
-	            rs16 rs16[16];
-	            ru32 ru32[8];
-	            rs32 rs32[8];
-	            rf32 rf32[8];
-	            ru64 ru64[4];
-	            rs64 rs64[4];
-	            rf64 rf64[4];
-	        };
-	        using __m256i = __m256;
-	        using __m256d = __m256;
+	    union RAWR_DECLSPEC(intrin_type) alignas(32) __m256 {
+	        rawr::ru8  ru8 [32];
+	        rawr::rs8  rs8 [32];
+	        rawr::ru16 ru16[16];
+	        rawr::rs16 rs16[16];
+	        rawr::ru32 ru32[8];
+	        rawr::rs32 rs32[8];
+	        rawr::rf32 rf32[8];
+	        rawr::ru64 ru64[4];
+	        rawr::rs64 rs64[4];
+	        rawr::rf64 rf64[4];
+	    };
+	    using __m256i = __m256;
+	    using __m256d = __m256;
 	
-	        union __declspec(intrin_type) alignas(64) __m512 {
-	            ru8  ru8 [64];
-	            rs8  rs8 [64];
-	            ru16 ru16[32];
-	            rs16 rs16[32];
-	            ru32 ru32[16];
-	            rs32 rs32[16];
-	            rf32 rf32[16];
-	            ru64 ru64[8];
-	            rs64 rs64[8];
-	            rf64 rf64[8];
-	        };
-	        using __m512i = __m512;
-	        using __m512d = __m512;
+	    union RAWR_DECLSPEC(intrin_type) alignas(64) __m512 {
+	        rawr::ru8  ru8 [64];
+	        rawr::rs8  rs8 [64];
+	        rawr::ru16 ru16[32];
+	        rawr::rs16 rs16[32];
+	        rawr::ru32 ru32[16];
+	        rawr::rs32 rs32[16];
+	        rawr::rf32 rf32[16];
+	        rawr::ru64 ru64[8];
+	        rawr::rs64 rs64[8];
+	        rawr::rf64 rf64[8];
+	    };
+	    using __m512i = __m512;
+	    using __m512d = __m512;
 	
-	        // These HAVE to be declared exactly like this, otherwise MSVC
-	        // complains. The text needs to be EXACTLY this, you can't alias
-	        // type names or have the type be a struct instead of an union or
-	        // anything like that either.
-	        extern "C" __m128 _mm_add_epi32(__m128, __m128);
-	        #pragma intrinsic(_mm_add_epi32)
-	    }
-	#endif
+	    // These HAVE to be declared exactly like this, otherwise MSVC
+	    // complains. The text needs to be EXACTLY this, you can't alias
+	    // type names or have the type be a struct instead of an union or
+	    // anything like that either.
+	    RAWR_MSVC_INTRIN(RAWR_ARCH_X64, _mm_add_epi32, (__m128i, __m128i) -> __m128i);
+	}
 	
 	namespace rawr::arch::x64::sse
 	{
@@ -4562,20 +4697,19 @@
 	    template <compilers C = this_compiler, archs A = this_arch>
 	    RAWR_ALWAYS_INLINE constexpr auto add_u32x4(simd::storage::ru32x4 lhs, simd::storage::ru32x4 rhs) -> simd::storage::ru32x4
 	    {
-	        #if RAWR_COMPILER_MSVC
+	        if constexpr(!this_arch.is_x64()) {
+	            static_assert("Unimplemented");
+	            return dummy_return{};
+	        } else if constexpr(this_compiler.is_family_gnu()) {
+	            return { lhs.lanes + rhs.lanes };
+	        } else if constexpr(this_compiler.is_msvc()) {
 	            if(intrin::is_consteval()) { return soft::add_u32x4(lhs, rhs); }
-	
-	            auto v = msvc::_mm_add_epi32(
+	            auto val = msvc::_mm_add_epi32(
 	                reinterpret_cast<msvc::__m128&>(lhs),
 	                reinterpret_cast<msvc::__m128&>(rhs)
 	            );
-	            return reinterpret_cast<simd::storage::ru32x4&>(v);
-	        #elif RAWR_COMPILER_FAMILY_GNU
-	            return { lhs.lanes + rhs.lanes };
-	        #else
-	            static_assert("Unimplemented");
-	            return dummy_return{};
-	        #endif
+	            return reinterpret_cast<simd::storage::ru32x4&>(val);
+	        }
 	    }
 	}
 
@@ -6510,6 +6644,7 @@
 	    //RAWR_AMALGAM_IGNORE #include "rawr/lib/dist/header.pp"
 	#endif
 	//RAWR_AMALGAM_IGNORE #include "rawr/lib/detection.pp"
+	//RAWR_AMALGAM_IGNORE #include "rawr/lib/compiler.pp"
 	
 	#if RAWR_COMPILER_MSVC
 	    namespace rawr::inline lib::inline test::msvc
@@ -6523,18 +6658,19 @@
 	
 	RAWR_EXPORT namespace rawr::inline lib::inline test
 	{
-	    #if RAWR_COMPILER_CLANG || RAWR_COMPILER_GCC
+	    RAWR_GNU(
 	        template<typename T>
-	        [[nodiscard]] __attribute__((always_inline))
+	        [[nodiscard]] RAWR_ALWAYS_INLINE
 	        auto no_fold(T val) -> T {
 	            asm volatile("" : "+r,m"(val) :: "memory");
 	            return val;
 	        }
-	    #elif RAWR_COMPILER_MSVC
+	    )
+	    RAWR_MSVC(
 	        template<typename T>
 	        [[nodiscard]] auto no_fold(T val) -> T
 	        { return msvc::no_fold(val); }
-	    #endif
+	    )
 	
 	    struct test_suite_check
 	    {
@@ -6563,16 +6699,12 @@
 	    struct autosized_test_suite
 	    {
 	    private:
-	        #if RAWR_COMPILER_GCC
-	            #pragma GCC diagnostic push
-	            #pragma GCC diagnostic ignored "-Wnon-template-friend"
-	            #pragma GCC diagnostic ignored "-Wsfinae-incomplete" // What's this and why is it needed?
-	        #endif
+	        RAWR_GCC_PRAGMA(GCC diagnostic push)
+	        RAWR_GCC_PRAGMA(GCC diagnostic ignored "-Wnon-template-friend")
+	        RAWR_GCC_PRAGMA(GCC diagnostic ignored "-Wsfinae-incomplete") // What's this and why is it needed?
 	        template<int N> struct Flag { friend constexpr auto adl_flag(Flag<N>); };
 	        template<int N> struct Writer { friend constexpr auto adl_flag(Flag<N>) { return true; } };
-	        #if RAWR_COMPILER_GCC
-	            #pragma GCC diagnostic pop
-	        #endif
+	        RAWR_GCC_PRAGMA(GCC diagnostic pop)
 	
 	    protected:
 	        template <int N, auto U>
@@ -7348,29 +7480,14 @@
 	//// rawr/san/attributes.pp.
 	//RAWR_AMALGAM_IGNORE #pragma once
 	
-	//RAWR_AMALGAM_IGNORE #include "rawr/lib/detection.pp"
+	//RAWR_AMALGAM_IGNORE #include "rawr/lib/attributes.pp"
 	
-	// Gnu specific (clang/gcc).
-	#if RAWR_COMPILER_FAMILY_GNU
-	    #define RAWR_NO_SANITIZE_THREAD    __attribute__((no_sanitize("thread")))
-	    #define RAWR_NO_SANITIZE_MEMORY    __attribute__((no_sanitize("memory")))
-	    #define RAWR_NO_SANITIZE_UNDEFINED __attribute__((no_sanitize("undefined")))
-	    #define RAWR_NO_SANITIZE_HWADDRESS __attribute__((no_sanitize("hwaddress")))
-	#else
-	    #define RAWR_NO_SANITIZE_THREAD
-	    #define RAWR_NO_SANITIZE_MEMORY
-	    #define RAWR_NO_SANITIZE_UNDEFINED
-	    #define RAWR_NO_SANITIZE_HWADDRESS
-	#endif
-	
-	// Common.
-	#if RAWR_COMPILER_FAMILY_GNU
-	    #define RAWR_NO_SANITIZE_ADDRESS __attribute__((no_sanitize("address")))
-	    #define RAWR_NO_SANITIZE_CFI     __attribute__((no_sanitize("cfi")))
-	#else
-	    #define RAWR_NO_SANITIZE_ADDRESS __declspec(no_sanitize_address)
-	    #define RAWR_NO_SANITIZE_CFI     __declspec(guard(nocf))
-	#endif
+	#define RAWR_NO_SANITIZE_THREAD    RAWR_ATTRIBUTE(no_sanitize("thread"))
+	#define RAWR_NO_SANITIZE_MEMORY    RAWR_ATTRIBUTE(no_sanitize("memory"))
+	#define RAWR_NO_SANITIZE_UNDEFINED RAWR_ATTRIBUTE(no_sanitize("undefined"))
+	#define RAWR_NO_SANITIZE_HWADDRESS RAWR_ATTRIBUTE(no_sanitize("hwaddress"))
+	#define RAWR_NO_SANITIZE_ADDRESS   RAWR_ATTRIBUTE(no_sanitize("address"))  RAWR_DECLSPEC(no_sanitize_address)
+	#define RAWR_NO_SANITIZE_CFI       RAWR_ATTRIBUTE(no_sanitize("cfi"))      RAWR_DECLSPEC(guard(nocf))
 
 #pragma endregion "rawr/san/attributes.pp"
 
