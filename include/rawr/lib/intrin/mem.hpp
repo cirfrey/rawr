@@ -20,41 +20,23 @@
 
     #include "rawr/lib/dist/header.pp"
 #endif
-#include "rawr/lib/detection.pp"
+#include "rawr/lib/compiler.pp"
 #include "rawr/lib/attributes.pp"
 
 RAWR_EXPORT namespace rawr::inline lib::intrin::inline mem::msvc
 {
-    #if RAWR_COMPILER_MSVC
-    extern "C" {
-    #endif
-
-    auto memcpy (void*,       void const*, rst) -> void*;
-    auto memset (void*,       int,         rst) -> void*;
-    auto memmove(void*,       void const*, rst) -> void*;
-    auto memcmp (void const*, void const*, rst) -> int;
-
-    #if RAWR_COMPILER_MSVC
-    }
-    #pragma intrinsic(memcpy, memset, memmove, memcmp)
-    #endif
+    RAWR_MSVC_INTRIN(1, memcpy,  (void*,       void const*, rst) -> void*);
+    RAWR_MSVC_INTRIN(1, memset,  (void*,       int, rst)         -> void*);
+    RAWR_MSVC_INTRIN(1, memmove, (void*,       void const*, rst) -> void*);
+    RAWR_MSVC_INTRIN(1, memcmp,  (void const*, void const*, rst) -> int);
 }
 
 RAWR_EXPORT namespace rawr::inline lib::intrin::inline mem::gnu
 {
-    #if RAWR_COMPILER_FAMILY_GNU
-        #define RAWR_GATED_GNU(...) { __VA_ARGS__; }
-    #else
-        #define RAWR_GATED_GNU(...) ;
-    #endif
-
-                  RAWR_ALWAYS_INLINE constexpr auto memcpy (void* d,       void const* s, rst n) noexcept -> void* RAWR_GATED_GNU( return ::__builtin_memcpy (d, s, n) )
-                  RAWR_ALWAYS_INLINE           auto memset (void* d,       int v,         rst n) noexcept -> void* RAWR_GATED_GNU( return ::__builtin_memset (d, v, n) )
-                  RAWR_ALWAYS_INLINE constexpr auto memmove(void* d,       void const* s, rst n) noexcept -> void* RAWR_GATED_GNU( return ::__builtin_memmove(d, s, n) )
-    [[nodiscard]] RAWR_ALWAYS_INLINE constexpr auto memcmp (void const* a, void const* b, rst n) noexcept -> int   RAWR_GATED_GNU( return ::__builtin_memcmp(a, b, n) )
-
-
-    #undef RAWR_GATED_GNU
+                  RAWR_ALWAYS_INLINE constexpr auto memcpy (void* d,       void const* s, rst n) noexcept -> void* RAWR_GNU({ return ::__builtin_memcpy (d, s, n); });
+                  RAWR_ALWAYS_INLINE           auto memset (void* d,       int v,         rst n) noexcept -> void* RAWR_GNU({ return ::__builtin_memset (d, v, n); });
+                  RAWR_ALWAYS_INLINE constexpr auto memmove(void* d,       void const* s, rst n) noexcept -> void* RAWR_GNU({ return ::__builtin_memmove(d, s, n); });
+    [[nodiscard]] RAWR_ALWAYS_INLINE constexpr auto memcmp (void const* a, void const* b, rst n) noexcept -> int   RAWR_GNU({ return ::__builtin_memcmp (a, b, n); });
 }
 
 // Memory intrinsics.
@@ -110,41 +92,33 @@ RAWR_EXPORT namespace rawr::inline lib::intrin::inline mem
 
     RAWR_ALWAYS_INLINE constexpr auto memcpy(auto* dst, auto const* src, rst n) noexcept -> void*
     {
-        if (intrin::is_consteval()) { return soft::memcpy(dst, src, n); }
-             if constexpr(this_compiler.is_family_gnu()) return  gnu::memcpy(dst, src, n);
-        else if constexpr(this_compiler.is_msvc())       return msvc::memcpy(dst, src, n);
-        else                                             return soft::memcpy(dst, src, n);
+        if (intrin::is_consteval())                      { return soft::memcpy(dst, src, n); }
+             if constexpr(this_compiler.is_family_gnu()) { return  gnu::memcpy(dst, src, n); }
+        else if constexpr(this_compiler.is_msvc())       { return msvc::memcpy(dst, src, n); }
+        else                                             { return soft::memcpy(dst, src, n); }
     }
 
     RAWR_ALWAYS_INLINE constexpr auto memset(void* dst, int val, rst n) noexcept -> void*
     {
-        if (intrin::is_consteval()) { return soft::memset(dst, val, n); }
-             if constexpr(this_compiler.is_family_gnu()) return  gnu::memset(dst, val, n);
-        else if constexpr(this_compiler.is_msvc())       return msvc::memset(dst, val, n);
-        else                                             return soft::memset(dst, val, n);
+        if (intrin::is_consteval())                      { return soft::memset(dst, val, n); }
+             if constexpr(this_compiler.is_family_gnu()) { return  gnu::memset(dst, val, n); }
+        else if constexpr(this_compiler.is_msvc())       { return msvc::memset(dst, val, n); }
+        else                                             { return soft::memset(dst, val, n); }
     }
 
     RAWR_ALWAYS_INLINE constexpr auto memmove(void* dst, void const* src, rst n) noexcept -> void*
     {
-        #if RAWR_COMPILER_FAMILY_GNU
-            return gnu::memmove(dst, src, n);
-        #elif RAWR_COMPILER_MSVC
-            if (intrin::is_consteval()) { return soft::memmove(dst, src, n); }
-            return msvc::memmove(dst, src, n);
-        #else
-            return soft::memmove(dst, src, n);
-        #endif
+        if (intrin::is_consteval())                      { return soft::memmove(dst, src, n); }
+             if constexpr(this_compiler.is_family_gnu()) { return  gnu::memmove(dst, src, n); }
+        else if constexpr(this_compiler.is_msvc())       { return msvc::memmove(dst, src, n); }
+        else                                             { return soft::memmove(dst, src, n); }
     }
 
     [[nodiscard]] RAWR_ALWAYS_INLINE constexpr auto memcmp(void const* lhs, void const* rhs, rst n) noexcept -> int
     {
-        #if RAWR_COMPILER_FAMILY_GNU
-            return gnu::memcmp(lhs, rhs, n);
-        #elif RAWR_COMPILER_MSVC
-            if (intrin::is_consteval()) { return soft::memcmp(lhs, rhs, n); }
-            return msvc::memcmp(lhs, rhs, n);
-        #else
-            return soft::memcmp(lhs, rhs, n);
-        #endif
+        if (intrin::is_consteval())                      { return soft::memcmp(lhs, rhs, n); }
+             if constexpr(this_compiler.is_family_gnu()) { return  gnu::memcmp(lhs, rhs, n); }
+        else if constexpr(this_compiler.is_msvc())       { return msvc::memcmp(lhs, rhs, n); }
+        else                                             { return soft::memcmp(lhs, rhs, n); }
     }
 }

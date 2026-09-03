@@ -734,6 +734,12 @@
 // Utility/build Flags
 // ============================================================
 
+#ifdef __SIZEOF_INT128__
+    #define RAWR_HAS_INT128 1
+#else
+    #define RAWR_HAS_INT128 0
+#endif
+
 // POSIX: meaningful syscall-level POSIX APIs exist.
 // WASM deliberately excluded — Emscripten emulates POSIX in userspace,
 // standalone WASM/WASI has a completely different interface.

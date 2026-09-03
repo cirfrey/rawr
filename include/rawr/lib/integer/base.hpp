@@ -71,25 +71,38 @@ RAWR_EXPORT namespace rawr::inline lib::inline integer::inline base
     //       to two (or more) different types.
     //       For example, for rsint: int and long sometimes are the same size on some architectures.
     #if RAWR_COMPILER_MSVC
-        template <typename T, bitwidth Bits = biw0> concept rsint = (detail::is_same<T, char>::value || detail::is_same<T, signed   char>::value || detail::is_same<T, signed   short>::value || detail::is_same<T, signed   int>::value || detail::is_same<T, signed   long>::value || detail::is_same<T, signed   long long>::value) && (Bits == biw0 || bitsof<T> == Bits);
-        template <typename T, bitwidth Bits = biw0> concept ruint =                                    (detail::is_same<T, unsigned char>::value || detail::is_same<T, unsigned short>::value || detail::is_same<T, unsigned int>::value || detail::is_same<T, unsigned long>::value || detail::is_same<T, unsigned long long>::value) && (Bits == biw0 || bitsof<T> == Bits);
+        template <typename T, bitwidth Bits = biw0> concept rsint = (detail::is_same<T, signed   char>::value || detail::is_same<T, signed   short>::value || detail::is_same<T, signed   int>::value || detail::is_same<T, signed   long>::value || detail::is_same<T, signed   long long>::value) && (Bits == biw0 || bitsof<T> == Bits);
+        template <typename T, bitwidth Bits = biw0> concept ruint = (detail::is_same<T, unsigned char>::value || detail::is_same<T, unsigned short>::value || detail::is_same<T, unsigned int>::value || detail::is_same<T, unsigned long>::value || detail::is_same<T, unsigned long long>::value) && (Bits == biw0 || bitsof<T> == Bits);
     #else
-        template <typename T, bitwidth Bits = biw0> concept rsint = (__is_same(T, char)              || __is_same(T, signed   char)              || __is_same(T, signed   short)              || __is_same(T, signed   int)              || __is_same(T, signed   long)              || __is_same(T, signed long long))    && (Bits == biw0 || bitsof<T> == Bits);
-        template <typename T, bitwidth Bits = biw0> concept ruint =                                    (__is_same(T, unsigned char)              || __is_same(T, unsigned short)              || __is_same(T, unsigned int)              || __is_same(T, unsigned long)              || __is_same(T, unsigned long long))  && (Bits == biw0 || bitsof<T> == Bits);
+        template <typename T, bitwidth Bits = biw0> concept rsint = (
+            __is_same(T, signed   char) || __is_same(T, signed   short) || __is_same(T, signed   int) || __is_same(T, signed   long) || __is_same(T, signed long long)
+            #if RAWR_HAS_INT128
+                || __is_same(T, __int128)
+            #endif
+            ) && (Bits == biw0 || bitsof<T> == Bits);
+        template <typename T, bitwidth Bits = biw0> concept ruint = (
+            __is_same(T, unsigned char) || __is_same(T, unsigned short) || __is_same(T, unsigned int) || __is_same(T, unsigned long) || __is_same(T, unsigned long long)
+            #if RAWR_HAS_INT128
+                || __is_same(T, unsigned __int128)
+            #endif
+            )  && (Bits == biw0 || bitsof<T> == Bits);
     #endif
-    template <typename T> concept ruint8  = ruint<T, biw8>;
-    template <typename T> concept ruint16 = ruint<T, biw16>;
-    template <typename T> concept ruint32 = ruint<T, biw32>;
-    template <typename T> concept ruint64 = ruint<T, biw64>;
-    template <typename T> concept rsint8  = rsint<T, biw8>;
-    template <typename T> concept rsint16 = rsint<T, biw16>;
-    template <typename T> concept rsint32 = rsint<T, biw32>;
-    template <typename T> concept rsint64 = rsint<T, biw64>;
+    template <typename T> concept ruint8   = ruint<T, biw8>;
+    template <typename T> concept ruint16  = ruint<T, biw16>;
+    template <typename T> concept ruint32  = ruint<T, biw32>;
+    template <typename T> concept ruint64  = ruint<T, biw64>;
+    template <typename T> concept ruint128 = ruint<T, biw128>;
+    template <typename T> concept rsint8   = rsint<T, biw8>;
+    template <typename T> concept rsint16  = rsint<T, biw16>;
+    template <typename T> concept rsint32  = rsint<T, biw32>;
+    template <typename T> concept rsint64  = rsint<T, biw64>;
+    template <typename T> concept rsint128 = rsint<T, biw128>;
     template <typename T, bitwidth Bits = biw0> concept raint = rsint<T, Bits> || ruint<T, Bits>;
-    template <typename T> concept raint8  = raint<T, biw8>;
-    template <typename T> concept raint16 = raint<T, biw16>;
-    template <typename T> concept raint32 = raint<T, biw32>;
-    template <typename T> concept raint64 = raint<T, biw64>;
+    template <typename T> concept raint8   = raint<T, biw8>;
+    template <typename T> concept raint16  = raint<T, biw16>;
+    template <typename T> concept raint32  = raint<T, biw32>;
+    template <typename T> concept raint64  = raint<T, biw64>;
+    template <typename T> concept raint128 = raint<T, biw128>;
 
     // uint and sint are opt-in. Specialize as needed.
     namespace trait
@@ -103,37 +116,43 @@ RAWR_EXPORT namespace rawr::inline lib::inline integer::inline base
 
     // These encode any integer type, raw or custom.
     template <typename T, bitwidth Bits = biw0> concept uint = trait::uint<T>::value && (Bits == biw0 || bitsof<T> == Bits);
-    template <typename T> concept uint8  = uint<T, biw8>;
-    template <typename T> concept uint16 = uint<T, biw16>;
-    template <typename T> concept uint32 = uint<T, biw32>;
-    template <typename T> concept uint64 = uint<T, biw64>;
+    template <typename T> concept uint8   = uint<T, biw8>;
+    template <typename T> concept uint16  = uint<T, biw16>;
+    template <typename T> concept uint32  = uint<T, biw32>;
+    template <typename T> concept uint64  = uint<T, biw64>;
+    template <typename T> concept uint128 = uint<T, biw128>;
     template <typename T, bitwidth Bits = biw0> concept sint = trait::sint<T>::value && (Bits == biw0 || bitsof<T> == Bits);
-    template <typename T> concept sint8  = sint<T, biw8>;
-    template <typename T> concept sint16 = sint<T, biw16>;
-    template <typename T> concept sint32 = sint<T, biw32>;
-    template <typename T> concept sint64 = sint<T, biw64>;
+    template <typename T> concept sint8   = sint<T, biw8>;
+    template <typename T> concept sint16  = sint<T, biw16>;
+    template <typename T> concept sint32  = sint<T, biw32>;
+    template <typename T> concept sint64  = sint<T, biw64>;
+    template <typename T> concept sint128 = sint<T, biw128>;
     template <typename T, bitwidth Bits = biw0> concept aint = uint<T, Bits> || sint<T, Bits>;
-    template <typename T> concept aint8  = aint<T, biw8>;
-    template <typename T> concept aint16 = aint<T, biw16>;
-    template <typename T> concept aint32 = aint<T, biw32>;
-    template <typename T> concept aint64 = aint<T, biw64>;
+    template <typename T> concept aint8   = aint<T, biw8>;
+    template <typename T> concept aint16  = aint<T, biw16>;
+    template <typename T> concept aint32  = aint<T, biw32>;
+    template <typename T> concept aint64  = aint<T, biw64>;
+    template <typename T> concept aint128 = aint<T, biw128>;
 
     // For completeness, heres how you detect ONLY custom integer types.
     template <typename T, bitwidth Bits = biw0> concept cuint = (!ruint<T> && trait::uint<T>::value) && (Bits == biw0 || bitsof<T> == Bits);
-    template <typename T> concept cuint8  = cuint<T, biw8>;
-    template <typename T> concept cuint16 = cuint<T, biw16>;
-    template <typename T> concept cuint32 = cuint<T, biw32>;
-    template <typename T> concept cuint64 = cuint<T, biw64>;
+    template <typename T> concept cuint8   = cuint<T, biw8>;
+    template <typename T> concept cuint16  = cuint<T, biw16>;
+    template <typename T> concept cuint32  = cuint<T, biw32>;
+    template <typename T> concept cuint64  = cuint<T, biw64>;
+    template <typename T> concept cuint128 = cuint<T, biw128>;
     template <typename T, bitwidth Bits = biw0> concept csint = (!rsint<T> && trait::sint<T>::value) && (Bits == biw0 || bitsof<T> == Bits);
-    template <typename T> concept csint8  = csint<T, biw8>;
-    template <typename T> concept csint16 = csint<T, biw16>;
-    template <typename T> concept csint32 = csint<T, biw32>;
-    template <typename T> concept csint64 = csint<T, biw64>;
+    template <typename T> concept csint8   = csint<T, biw8>;
+    template <typename T> concept csint16  = csint<T, biw16>;
+    template <typename T> concept csint32  = csint<T, biw32>;
+    template <typename T> concept csint64  = csint<T, biw64>;
+    template <typename T> concept csint128 = csint<T, biw128>;
     template <typename T, bitwidth Bits = biw0> concept caint = cuint<T, Bits> || csint<T, Bits>;
-    template <typename T> concept caint8  = caint<T, biw8>;
-    template <typename T> concept caint16 = caint<T, biw16>;
-    template <typename T> concept caint32 = caint<T, biw32>;
-    template <typename T> concept caint64 = caint<T, biw64>;
+    template <typename T> concept caint8   = caint<T, biw8>;
+    template <typename T> concept caint16  = caint<T, biw16>;
+    template <typename T> concept caint32  = caint<T, biw32>;
+    template <typename T> concept caint64  = caint<T, biw64>;
+    template <typename T> concept caint128 = caint<T, biw128>;
 
     template <aint T>
     constexpr T aint_max = sint<T>
@@ -144,8 +163,16 @@ RAWR_EXPORT namespace rawr::inline lib::inline integer::inline base
         ? static_cast<T>(detail::sint_min(bitsof<T>))
         : T{0};
 
-    template <bitwidth Bits>     using ruint_exact   = detail::select_type_by_size<Bits, unsigned char, unsigned short, unsigned int, unsigned long, unsigned long long>::type;
-    template <bitwidth Bits>     using rsint_exact   = detail::select_type_by_size<Bits,   signed char,   signed short,   signed int,   signed long,   signed long long>::type;
+    template <bitwidth Bits>     using ruint_exact   = detail::select_type_by_size<Bits, unsigned char, unsigned short, unsigned int, unsigned long, unsigned long long
+        #if RAWR_HAS_INT128
+            , unsigned __int128
+        #endif
+        >::type;
+    template <bitwidth Bits>     using rsint_exact   = detail::select_type_by_size<Bits,   signed char,   signed short,   signed int,   signed long,   signed long long
+        #if RAWR_HAS_INT128
+            , __int128
+        #endif
+        >::type;
     template <bitwidth Bits>     using rfloat_exact  = detail::select_type_by_size<Bits,         float,         double,  long double>::type;
     template <unsigned long Num> using ruint_capable = decltype(detail::ruint_capable<Num>());
 }

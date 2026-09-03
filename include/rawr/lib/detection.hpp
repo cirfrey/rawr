@@ -240,4 +240,5 @@ RAWR_EXPORT namespace rawr::inline lib::inline detection
     constexpr bool this_is_32bit       = RAWR_IS_32BIT;
     constexpr bool this_has_exceptions = RAWR_HAS_EXCEPTIONS;
     constexpr bool this_has_rtti       = RAWR_HAS_RTTI;
+    constexpr bool this_has_int128     = RAWR_HAS_INT128;
 }

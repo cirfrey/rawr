@@ -1,5 +1,6 @@
 
 # Short term - 27/08/26 - 06/09/26
+
 [ ] meson sanitizer integration
     - [ ] clang tidy the code
     - [ ] clang tidy workflow
@@ -16,23 +17,12 @@
     - [ ] guard<>
     - [ ] More complex primitives ?
 [ ] Refactor rawr.lib.integer.strong into generated header -> better debug messages.
-[ ] Refactor rawr.lib.intrin into "if constexpr" based dispatch (gnu:: and msvc:: always declared)
-[ ] Refactor most dispatch code around the same pattern as intrin, eliminate #if as much as possible.
 [ ] README.md
 [ ] LICENSE.md
+[ ] detection.pp: optional error on unknown arch/bin/etc
 [ ] Distribution
-    - [X] Amalgam script.
-    - [X] Amalgam target.
-    - [ ] Amalgam on every commit.
-    - [X] Eliminate .cppm (inject -DRAWR_MODULE via command line)
-    - [X] scan-deps working with folders
-    - [X] scan-deps not choking on .pp and .hpp
     - [ ] Meson project version from rawr/lib/dist/version.(h)pp
-    - [X] pp_transitives.pp -> dist/pp.pp
-    - [X] module.pp         -> dist/cppm.pp + dist/hpp.pp
-    - [X] module.manifest in the source tree.
-    - [X] module.manifest on every build.
-    - [ ] module.manifest on every commit.
+[ ] Review linux syscall code for platform/compiler/arch correctness and gating.
 
 # Longer term
 

@@ -13,16 +13,21 @@
 
     #include "rawr/lib/dist/header.pp"
 #endif
+#include "rawr/lib/detection.pp"
 
 // Just in case you need the actual underlying type aliases. Prefer the strong
 // wrapped versions instead.
 RAWR_EXPORT namespace rawr::inline lib::inline integer::inline raw
 {
-    using ru8  = ruint_exact<biw8>;   using rs8  = rsint_exact<biw8>;
-    using ru16 = ruint_exact<biw16>;  using rs16 = rsint_exact<biw16>;
-    using ru32 = ruint_exact<biw32>;  using rs32 = rsint_exact<biw32>;
-    using ru64 = ruint_exact<biw64>;  using rs64 = rsint_exact<biw64>;
-    using rf32 = rfloat_exact<biw32>; using rf64 = rfloat_exact<biw64>;
+    using ru8   = ruint_exact<biw8>;   using rs8   = rsint_exact<biw8>;
+    using ru16  = ruint_exact<biw16>;  using rs16  = rsint_exact<biw16>;
+    using ru32  = ruint_exact<biw32>;  using rs32  = rsint_exact<biw32>;
+    using ru64  = ruint_exact<biw64>;  using rs64  = rsint_exact<biw64>;
+    using rf32  = rfloat_exact<biw32>; using rf64  = rfloat_exact<biw64>;
+
+    #if RAWR_HAS_INT128
+        using ru128 = ruint_exact<biw128>; using rs128 = ruint_exact<biw128>;
+    #endif
 
     // Our very own free-range std::size_t.
     using rst  = decltype(sizeof(0));

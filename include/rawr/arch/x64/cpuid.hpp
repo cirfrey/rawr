@@ -6,6 +6,7 @@
     import rawr.lib.integer.base;
     import rawr.lib.integer.raw;
     import rawr.lib.bits;
+    import rawr.lib.detection;
 
     #include "rawr/lib/dist/module.pp"
 #else
@@ -14,42 +15,51 @@
     #include "rawr/lib/integer/base.hpp"
     #include "rawr/lib/integer/raw.hpp"
     #include "rawr/lib/bits.hpp"
+    #include "rawr/lib/detection.hpp"
 
     #include "rawr/lib/dist/header.pp"
 #endif
-#include "rawr/lib/detection.pp"
 #include "rawr/lib/attributes.pp"
+#include "rawr/lib/detection.pp"
+#include "rawr/lib/compiler.pp"
 #include "rawr/lib/bitfield.pp"
 
-#if RAWR_COMPILER_MSVC
-    namespace rawr::arch::x64::msvc
-    {
-        extern "C" void __cpuidex(int cpuInfo[4], int function_id, int subfunction_id);
-        #pragma intrinsic(__cpuidex)
-    }
-#endif
+RAWR_EXPORT namespace rawr::arch::x64::msvc
+{
+    RAWR_MSVC_INTRIN(RAWR_ARCH_X64, __cpuidex, (int[4], int, int) -> void);
+}
+
+RAWR_EXPORT namespace rawr::arch::x64::gnu
+{
+    RAWR_ALWAYS_INLINE auto ia32_cpuidext(int regs[4], int leaf, int subleaf) -> void
+    RAWR_GNU_COND(RAWR_ARCH_X64, {
+        // TODO: This feels like a copout.
+        __asm__ __volatile__(
+            "cpuid"
+            : "=a"(regs[0]), "=b"(regs[1]), "=c"(regs[2]), "=d"(regs[3])
+            : "a"(leaf), "c"(subleaf)
+        );
+    });
+}
 
 RAWR_EXPORT namespace rawr::arch::x64
 {
     // TODO: this needs review for potential accidental overhead.
     struct cpuid_args { ru32 leaf, subleaf; };
     struct cpuid_ret { ru32 regs[4]; };
+
+    template <typename = void>
     RAWR_ALWAYS_INLINE auto cpuid(cpuid_args args) -> cpuid_ret
     {
         cpuid_ret ret;
 
-        #if RAWR_COMPILER_MSVC
+        if constexpr(!this_arch.is_x64()) {
+            static_assert(this_arch.is_x64());
+        } else if constexpr(this_compiler.is_msvc()) {
             msvc::__cpuidex(reinterpret_cast<int*>(ret.regs), static_cast<int>(args.leaf), static_cast<int>(args.subleaf));
-        #elif RAWR_COMPILER_FAMILY_GNU
-            // TODO: use __builtin_ia32_cpuidext instead.
-            asm volatile (
-                "cpuid"
-                : "=a"(ret.regs[0]), "=b"(ret.regs[1]), "=c"(ret.regs[2]), "=d"(ret.regs[3])
-                : "a"(args.leaf), "c"(args.subleaf)
-            );
-        #else
-            static_assert(false);
-        #endif
+        } else if constexpr(this_compiler.is_family_gnu()) {
+            gnu::ia32_cpuidext(reinterpret_cast<int*>(ret.regs), static_cast<int>(args.leaf), static_cast<int>(args.subleaf));
+        }
 
         return ret;
     }

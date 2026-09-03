@@ -45,8 +45,14 @@ module_manifest = run_command(
     dir_include/'rawr.hpp',
     dir_include/'rawr',
 
-    check: true,
-).stdout().strip()
+    check: false
+)
+
+if module_manifest.returncode() != 0
+    error(module_manifest.stderr())
+endif
+
+module_manifest = module_manifest.stdout().strip()
 
 #
 # BMI output directory.
@@ -105,18 +111,41 @@ foreach o : module_manifest.split('\n')
         usage_args += ['-fmodules-ts']
     endif
 
-    lib = library(
-        mod,
-        configure_file(
-            input: file,
-            output: mod + '.cppm',
-            copy: true,
-        ),
-        include_directories: dir_include_name,
-        implicit_include_directories: false,
-        dependencies: current_deps,
-        cpp_args: target_args,
-    )
+
+    lib = ''
+    if get_option('cppm-source-mapping')
+        lib = library(
+            mod,
+            configure_file(
+                input: file,
+                output: mod + '.cppm',
+                command: [
+                    python, '-c',
+                    'import sys; open(sys.argv[2], "w", encoding="utf-8").write(sys.argv[3] + "\\n" + open(sys.argv[1], "r", encoding="utf-8").read())',
+                    '@INPUT@',
+                    '@OUTPUT@',
+                    '#line 1 "' + file + '"'
+                ]
+            ),
+            include_directories: dir_include_name,
+            implicit_include_directories: false,
+            dependencies: current_deps,
+            cpp_args: target_args,
+        )
+    else
+        lib = library(
+            mod,
+            configure_file(
+                input: file,
+                output: mod + '.cppm',
+                copy: true,
+            ),
+            include_directories: dir_include_name,
+            implicit_include_directories: false,
+            dependencies: current_deps,
+            cpp_args: target_args,
+        )
+    endif
 
     #
     # Bridge target:

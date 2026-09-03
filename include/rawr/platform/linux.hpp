@@ -250,10 +250,9 @@ RAWR_EXPORT namespace rawr::platform::linux
 
 RAWR_EXPORT namespace rawr::platform::linux::x64::syscall
 {
-    #if RAWR_COMPILER_FAMILY_GNU
+    #if RAWR_PLATFORM_LINUX && RAWR_ARCH_X64 && RAWR_COMPILER_FAMILY_GNU
         #define RAWR_PLATFORM_LINUX_X64_SYSCALL_GATED_BODY(...) \
-            if constexpr(A.is_x64()) { __VA_ARGS__; }  \
-            else static_assert(false, "Unsupported architecture for x64 syscalls, implement the override yourself.");
+            __VA_ARGS__;
     #else
         #define RAWR_PLATFORM_LINUX_X64_SYSCALL_GATED_BODY(...) \
             static_assert(false, "Unsupported compiler for x64 syscalls, implement the override yourself.");

@@ -6,6 +6,7 @@
     import rawr.lib.integer.base;
     import rawr.lib.integer.raw;
     import rawr.lib.bits;
+    import rawr.lib.detection;
 
     #include "rawr/lib/dist/module.pp"
 #else
@@ -15,52 +16,92 @@
     #include "rawr/lib/integer/base.hpp"
     #include "rawr/lib/integer/raw.hpp"
     #include "rawr/lib/bits.hpp"
+    #include "rawr/lib/detection.hpp"
 
     #include "rawr/lib/dist/header.pp"
 #endif
-#include "rawr/lib/detection.pp"
+#include "rawr/lib/compiler.pp"
 #include "rawr/lib/attributes.pp"
 
 #define RAWR_ASSERTION(...) // Dummy for now.
 
-// TODO: this might also need an arch guard.
-#if RAWR_COMPILER_MSVC
-    namespace rawr::inline lib::intrin::inline math::msvc
-    {
-        extern "C" unsigned short   __popcnt16(unsigned short);
-        extern "C" unsigned int     __popcnt(unsigned int);
-        extern "C" unsigned __int64 __popcnt64(unsigned __int64);
-        #pragma intrinsic(__popcnt16, __popcnt, __popcnt64)
+RAWR_EXPORT namespace rawr::inline lib::intrin::inline math::msvc
+{
+    using rulong = RAWR_MSVC_OR(unsigned long, ru32);
 
-        extern "C" unsigned char _BitScanReverse(unsigned long*, unsigned long);
-        extern "C" unsigned char _BitScanReverse64(unsigned long*, unsigned __int64);
-        extern "C" unsigned char _BitScanForward(unsigned long*, unsigned long);
-        extern "C" unsigned char _BitScanForward64(unsigned long*, unsigned __int64);
-        #pragma intrinsic(_BitScanReverse, _BitScanReverse64, _BitScanForward, _BitScanForward64)
+    RAWR_MSVC_INTRIN(1,             __popcnt16, (ru16) -> ru16);
+    RAWR_MSVC_INTRIN(1,             __popcnt,   (ru32) -> ru32);
+    RAWR_MSVC_INTRIN(RAWR_IS_64BIT, __popcnt64, (ru64) -> ru64);
 
-        extern "C" unsigned short   _byteswap_ushort(unsigned short);
-        extern "C" unsigned long    _byteswap_ulong(unsigned long);
-        extern "C" unsigned __int64 _byteswap_uint64(unsigned __int64);
-        #pragma intrinsic(_byteswap_ushort, _byteswap_ulong, _byteswap_uint64)
+    RAWR_MSVC_INTRIN(1,             _BitScanReverse,   (rulong*, rulong) -> ru8);
+    RAWR_MSVC_INTRIN(RAWR_IS_64BIT, _BitScanReverse64, (rulong*, ru64)   -> ru8);
+    RAWR_MSVC_INTRIN(1,             _BitScanForward,   (rulong*, rulong) -> ru8);
+    RAWR_MSVC_INTRIN(RAWR_IS_64BIT, _BitScanForward64, (rulong*, ru64)   -> ru8);
 
-        extern "C" unsigned int     _rotl  (unsigned int,      int);
-        extern "C" unsigned __int64 _rotl64(unsigned __int64,  int);
-        extern "C" unsigned int     _rotr  (unsigned int,      int);
-        extern "C" unsigned __int64 _rotr64(unsigned __int64,  int);
-        #pragma intrinsic(_rotl,_rotl64, _rotr, _rotr64)
+    RAWR_MSVC_INTRIN(1, _byteswap_ushort, (ru16)   -> ru16);
+    RAWR_MSVC_INTRIN(1, _byteswap_ulong,  (rulong) -> rulong);
+    RAWR_MSVC_INTRIN(1, _byteswap_uint64, (ru64)   -> ru64);
 
-        extern "C" unsigned __int64 _umul128(unsigned __int64, unsigned __int64, unsigned __int64*);
-        extern "C"          __int64 _mul128(__int64, __int64, __int64*);
-        extern "C" unsigned __int64 _udiv128(unsigned __int64, unsigned __int64, unsigned __int64, unsigned __int64*);
-        #pragma intrinsic(_umul128, _mul128, _udiv128)
+    RAWR_MSVC_INTRIN(1, _rotl,   (ru32, rs32) -> ru32);
+    RAWR_MSVC_INTRIN(1, _rotl64, (ru64, rs32) -> ru64);
+    RAWR_MSVC_INTRIN(1, _rotr,   (ru32, rs32) -> ru32);
+    RAWR_MSVC_INTRIN(1, _rotr64, (ru64, rs32) -> ru64);
 
-        extern "C" unsigned char _addcarry_u32(unsigned char, unsigned int, unsigned int, unsigned int*);
-        extern "C" unsigned char _addcarry_u64(unsigned char, unsigned __int64, unsigned __int64, unsigned __int64*);
-        extern "C" unsigned char _subborrow_u32(unsigned char, unsigned int, unsigned int, unsigned int*);
-        extern "C" unsigned char _subborrow_u64(unsigned char, unsigned __int64, unsigned __int64, unsigned __int64*);
-        #pragma intrinsic(_addcarry_u32, _addcarry_u64, _subborrow_u32, _subborrow_u64)
-    }
-#endif
+    RAWR_MSVC_INTRIN(RAWR_ARCH_X64, _umul128, (ru64, ru64, ru64*)       -> ru64);
+    RAWR_MSVC_INTRIN(RAWR_ARCH_X64, _mul128,  (rs64, rs64, rs64*)       -> rs64);
+    RAWR_MSVC_INTRIN(RAWR_ARCH_X64, _udiv128, (ru64, ru64, ru64, ru64*) -> ru64);
+
+    RAWR_MSVC_INTRIN(RAWR_ARCH_X86, _addcarry_u32,  (ru8, ru32, ru32, ru32*) -> ru8);
+    RAWR_MSVC_INTRIN(RAWR_ARCH_X64, _addcarry_u64,  (ru8, ru64, ru64, ru64*) -> ru8);
+    RAWR_MSVC_INTRIN(RAWR_ARCH_X86, _subborrow_u32, (ru8, ru32, ru32, ru32*) -> ru8);
+    RAWR_MSVC_INTRIN(RAWR_ARCH_X64, _subborrow_u64, (ru8, ru64, ru64, ru64*) -> ru8);
+}
+
+// GNU builtin wrappers for popcount, clz, ctz, bswap.
+RAWR_EXPORT namespace rawr::inline lib::intrin::inline math::gnu
+{
+    template <raint Raw>
+    RAWR_ALWAYS_INLINE constexpr auto popcount(Raw val) noexcept -> Raw
+    RAWR_GNU({
+        auto const uval = static_cast<ruint_of<Raw>>(val);
+             if constexpr (sizeof(Raw) <= sizeof(unsigned int))  { return static_cast<Raw>(__builtin_popcount (static_cast<unsigned int>      (uval))); }
+        else if constexpr (sizeof(Raw) == sizeof(unsigned long)) { return static_cast<Raw>(__builtin_popcountl(static_cast<unsigned long>     (uval))); }
+        else                                                     { return static_cast<Raw>(__builtin_popcountll(static_cast<unsigned long long>(uval))); }
+    });
+
+    template <raint Raw>
+    RAWR_ALWAYS_INLINE constexpr auto leading_zeros(Raw val) noexcept -> Raw
+    RAWR_GNU({
+        using URaw = ruint_of<Raw>;
+        constexpr auto bits  = static_cast<Raw>(bitsof<Raw>.val);
+        auto const     uval  = static_cast<URaw>(val);
+        if (uval == URaw{0}) { return bits; }
+             if constexpr (sizeof(Raw) <= sizeof(unsigned int))  { return static_cast<Raw>(__builtin_clz  (static_cast<unsigned int>      (uval)) - (static_cast<unsigned int>(bitsof<unsigned int>.val) - static_cast<unsigned int>(bits))); }
+        else if constexpr (sizeof(Raw) == sizeof(unsigned long)) { return static_cast<Raw>(__builtin_clzl (static_cast<unsigned long>     (uval))); }
+        else                                                     { return static_cast<Raw>(__builtin_clzll(static_cast<unsigned long long>(uval))); }
+    });
+
+    template <raint Raw>
+    RAWR_ALWAYS_INLINE constexpr auto trailing_zeros(Raw val) noexcept -> Raw
+    RAWR_GNU({
+        using URaw = ruint_of<Raw>;
+        constexpr auto bits = static_cast<Raw>(bitsof<Raw>.val);
+        URaw const     uval = static_cast<URaw>(val);
+        if (uval == URaw{0}) { return bits; }
+             if constexpr (sizeof(Raw) <= sizeof(unsigned int))  { return static_cast<Raw>(__builtin_ctz  (static_cast<unsigned int>      (uval))); }
+        else if constexpr (sizeof(Raw) == sizeof(unsigned long)) { return static_cast<Raw>(__builtin_ctzl (static_cast<unsigned long>     (uval))); }
+        else                                                     { return static_cast<Raw>(__builtin_ctzll(static_cast<unsigned long long>(uval))); }
+    });
+
+    template <ruint Raw>
+    RAWR_ALWAYS_INLINE constexpr auto bswap(Raw val) noexcept -> Raw
+    RAWR_GNU({
+             if constexpr (sizeof(Raw) == 1) { return val; }
+        else if constexpr (sizeof(Raw) == 2) { return static_cast<Raw>(__builtin_bswap16(static_cast<unsigned short>    (val))); }
+        else if constexpr (sizeof(Raw) == 4) { return static_cast<Raw>(__builtin_bswap32(static_cast<unsigned int>      (val))); }
+        else                                 { return static_cast<Raw>(__builtin_bswap64(static_cast<unsigned long long>(val))); }
+    });
+}
 
 // popcount and family.
 RAWR_EXPORT namespace rawr::inline lib::intrin::inline math
@@ -98,78 +139,92 @@ RAWR_EXPORT namespace rawr::inline lib::intrin::inline math
     template <raint Raw>
     [[nodiscard]] constexpr auto popcount(Raw val) noexcept -> Raw
     {
-        auto const uval = static_cast< ruint_of<Raw> >(val);
-
-        #if RAWR_COMPILER_FAMILY_GNU
-                 if constexpr (sizeof(Raw) <= sizeof(unsigned int))  { return static_cast<Raw>(__builtin_popcount(static_cast<unsigned int>(uval))); }
-            else if constexpr (sizeof(Raw) == sizeof(unsigned long)) { return static_cast<Raw>(__builtin_popcountl(uval)); }
-            else                                                     { return static_cast<Raw>(__builtin_popcountll(uval)); }
-        #elif RAWR_COMPILER_MSVC
+        if constexpr(this_compiler.is_family_gnu()) {
+            return gnu::popcount(val);
+        } else if constexpr(this_compiler.is_msvc()) {
             if (intrin::is_consteval()) return soft::popcount(val);
-                 if constexpr (sizeof(Raw) <= 2) { return static_cast<Raw>(msvc::__popcnt16(static_cast<unsigned short>(uval))); }
-            else if constexpr (sizeof(Raw) == 4) { return static_cast<Raw>(msvc::__popcnt(uval)); }
-            else                                 { return static_cast<Raw>(msvc::__popcnt64(uval)); }
-        #else
+            auto const uval = static_cast<ruint_of<Raw>>(val);
+                 if constexpr (sizeof(Raw) <= 2) { return static_cast<Raw>(msvc::__popcnt16(static_cast<ru16>(uval))); }
+            else if constexpr (sizeof(Raw) == 4) { return static_cast<Raw>(msvc::__popcnt  (static_cast<ru32>(uval))); }
+            else {
+                // __popcnt64 is not available on 32-bit x86; split into two 32-bit calls.
+                if constexpr(this_is_64bit) { return static_cast<Raw>(msvc::__popcnt64(static_cast<ru64>(uval))); }
+                else {
+                    return static_cast<Raw>(
+                        msvc::__popcnt(static_cast<ru32>(uval)) +
+                        msvc::__popcnt(static_cast<ru32>(static_cast<ru64>(uval) >> 32))
+                    );
+                }
+            }
+        } else {
             return soft::popcount(val);
-        #endif
+        }
     }
 
     template <raint Raw>
     [[nodiscard]] constexpr auto leading_zeros(Raw val) noexcept -> Raw
     {
-        using URaw = ruint_of<Raw>;
-        constexpr auto bits = static_cast<Raw>(bitsof<Raw>.val);
-        auto const uval = static_cast<URaw>(val);
-
-        #if RAWR_COMPILER_FAMILY_GNU
-            if (uval == URaw{0}) { return bits; }
-
-                 if constexpr (sizeof(Raw) <= sizeof(unsigned int))  { return static_cast<Raw>(__builtin_clz(static_cast<unsigned int>(uval)) - (static_cast<unsigned int>(bitsof<unsigned int>.val) - static_cast<unsigned int>(bits))); }
-            else if constexpr (sizeof(Raw) == sizeof(unsigned long)) { return static_cast<Raw>(__builtin_clzl(uval)); }
-            else                                                     { return static_cast<Raw>(__builtin_clzll(uval)); }
-        #elif RAWR_COMPILER_MSVC
+        if constexpr(this_compiler.is_family_gnu()) {
+            return gnu::leading_zeros(val);
+        } else if constexpr(this_compiler.is_msvc()) {
+            using URaw = ruint_of<Raw>;
+            constexpr auto bits = static_cast<Raw>(bitsof<Raw>.val);
+            auto const     uval = static_cast<URaw>(val);
             if (intrin::is_consteval()) { return soft::leading_zeros(val); }
             if (uval == URaw{0}) { return bits; }
-            unsigned long index;
+            msvc::rulong index;
             if constexpr (sizeof(Raw) <= 4) {
-                msvc::_BitScanReverse(&index, static_cast<unsigned long>(uval));
+                msvc::_BitScanReverse(&index, static_cast<msvc::rulong>(uval));
                 return static_cast<Raw>(31u - index - (32u - static_cast<unsigned int>(bits)));
+            } else {
+                // _BitScanReverse64 not available on 32-bit x86; split into two halves.
+                if constexpr(this_is_64bit) {
+                    msvc::_BitScanReverse64(&index, static_cast<ru64>(uval));
+                    return static_cast<Raw>(63u - index);
+                } else {
+                    auto const hi = static_cast<msvc::rulong>(static_cast<ru64>(uval) >> 32);
+                    auto const lo = static_cast<msvc::rulong>(uval);
+                    if (hi != 0u) { msvc::_BitScanReverse(&index, hi); return static_cast<Raw>(31u - index); }
+                    else          { msvc::_BitScanReverse(&index, lo); return static_cast<Raw>(63u - index); }
+                }
             }
-            else {
-                msvc::_BitScanReverse64(&index, uval);
-                return static_cast<Raw>(63u - index);
-            }
-        #else
+        } else {
             return soft::leading_zeros(val);
-        #endif
+        }
     }
 
     template <raint Raw>
     [[nodiscard]] constexpr auto trailing_zeros(Raw val) noexcept -> Raw
     {
-        using URaw = ruint_of<Raw>;
-        constexpr auto bits = static_cast<Raw>(bitsof<Raw>.val);
-        URaw const uval = static_cast<URaw>(val);
-
-        #if RAWR_COMPILER_FAMILY_GNU
-            if (uval == URaw{0}) { return bits; }
-
-                 if constexpr (sizeof(Raw) <= sizeof(unsigned int))  { return static_cast<Raw>(__builtin_ctz(static_cast<unsigned int>(uval))); }
-            else if constexpr (sizeof(Raw) == sizeof(unsigned long)) { return static_cast<Raw>(__builtin_ctzl(uval)); }
-            else                                                     { return static_cast<Raw>(__builtin_ctzll(uval)); }
-        #elif RAWR_COMPILER_MSVC
+        if constexpr(this_compiler.is_family_gnu()) {
+            return gnu::trailing_zeros(val);
+        } else if constexpr(this_compiler.is_msvc()) {
+            using URaw = ruint_of<Raw>;
+            constexpr auto bits = static_cast<Raw>(bitsof<Raw>.val);
+            URaw const     uval = static_cast<URaw>(val);
             if (intrin::is_consteval()) { return soft::trailing_zeros(val); }
-
             if (uval == URaw{0}) { return bits; }
-
-            unsigned long index;
-            if constexpr (sizeof(Raw) <= 4) { msvc::_BitScanForward(&index, static_cast<unsigned long>(uval)); }
-            else                            { msvc::_BitScanForward64(&index, uval); }
-
+            msvc::rulong index;
+            if constexpr (sizeof(Raw) <= 4) {
+                msvc::_BitScanForward(&index, static_cast<msvc::rulong>(uval));
+            } else {
+                // _BitScanForward64 not available on 32-bit x86; split into two halves.
+                if constexpr(this_is_64bit) {
+                    msvc::_BitScanForward64(&index, static_cast<ru64>(uval));
+                } else {
+                    auto const lo = static_cast<msvc::rulong>(uval);
+                    if (lo != 0u) {
+                        msvc::_BitScanForward(&index, lo);
+                    } else {
+                        msvc::_BitScanForward(&index, static_cast<msvc::rulong>(static_cast<ru64>(uval) >> 32));
+                        index += 32u;
+                    }
+                }
+            }
             return static_cast<Raw>(index);
-        #else
+        } else {
             return soft::trailing_zeros(val);
-        #endif
+        }
     }
 
     template <raint Raw> [[nodiscard]] constexpr auto leading_ones(Raw val)  noexcept -> Raw { return leading_zeros(static_cast<Raw>(~val)); }
@@ -232,20 +287,17 @@ RAWR_EXPORT namespace rawr::inline lib::intrin::inline math
     template <ruint Raw>
     [[nodiscard]] RAWR_ALWAYS_INLINE constexpr auto bswap(Raw val) noexcept -> Raw
     {
-        #if RAWR_COMPILER_FAMILY_GNU
-                 if constexpr (sizeof(Raw) == 1) { return val; }
-            else if constexpr (sizeof(Raw) == 2) { return static_cast<Raw>(__builtin_bswap16(static_cast<unsigned short>(val)));         }
-            else if constexpr (sizeof(Raw) == 4) { return static_cast<Raw>(__builtin_bswap32(static_cast<unsigned int>(val)));           }
-            else                                 { return static_cast<Raw>(__builtin_bswap64(static_cast<unsigned long long>(val)));     }
-        #elif RAWR_COMPILER_MSVC
+        if constexpr(this_compiler.is_family_gnu()) {
+            return gnu::bswap(val);
+        } else if constexpr(this_compiler.is_msvc()) {
             if (intrin::is_consteval()) { return soft::bswap(val); }
                  if constexpr (sizeof(Raw) == 1) { return val; }
-            else if constexpr (sizeof(Raw) == 2) { return static_cast<Raw>(msvc::_byteswap_ushort(static_cast<unsigned short>(val)));    }
-            else if constexpr (sizeof(Raw) == 4) { return static_cast<Raw>(msvc::_byteswap_ulong(static_cast<unsigned long>(val)));      }
-            else                                 { return static_cast<Raw>(msvc::_byteswap_uint64(static_cast<unsigned __int64>(val)));  }
-        #else
+            else if constexpr (sizeof(Raw) == 2) { return static_cast<Raw>(msvc::_byteswap_ushort(static_cast<ru16>         (val))); }
+            else if constexpr (sizeof(Raw) == 4) { return static_cast<Raw>(msvc::_byteswap_ulong (static_cast<msvc::rulong> (val))); }
+            else                                 { return static_cast<Raw>(msvc::_byteswap_uint64(static_cast<ru64>         (val))); }
+        } else {
             return soft::bswap(val);
-        #endif
+        }
     }
 
     // TODO: fix rotation on gcc to the builtin when it exists -> check compiler version.
@@ -256,41 +308,43 @@ RAWR_EXPORT namespace rawr::inline lib::intrin::inline math
     template <ruint Raw>
     [[nodiscard]] RAWR_ALWAYS_INLINE constexpr auto rotl(Raw val, int n) noexcept -> Raw
     {
-        #if RAWR_COMPILER_FAMILY_GNU
+        if constexpr(this_compiler.is_family_gnu()) {
             return soft::rotl(val, n);
-        #elif RAWR_COMPILER_MSVC
+        } else if constexpr(this_compiler.is_msvc()) {
             if (intrin::is_consteval()) { return soft::rotl(val, n); }
-            constexpr int bits = static_cast<int>(bitsof<Raw>.val);
-            int const norm = ((n % bits) + bits) % bits;
+            constexpr int bits  = static_cast<int>(bitsof<Raw>.val);
+            int const     norm  = ((n % bits) + bits) % bits;
             if (norm == 0) { return val; }
-                 if constexpr (sizeof(Raw) == 4) { return static_cast<Raw>(msvc::_rotl  (static_cast<unsigned int>      (val), norm)); }
-            else if constexpr (sizeof(Raw) == 8) { return static_cast<Raw>(msvc::_rotl64(static_cast<unsigned __int64>  (val), norm)); }
+                 if constexpr (sizeof(Raw) == 4) { return static_cast<Raw>(msvc::_rotl  (static_cast<ru32>(val), norm)); }
+            else if constexpr (sizeof(Raw) == 8) { return static_cast<Raw>(msvc::_rotl64(static_cast<ru64>(val), norm)); }
             else { return static_cast<Raw>((val << static_cast<unsigned>(norm)) | (val >> static_cast<unsigned>(bits - norm))); }
-        #else
+        } else {
             return soft::rotl(val, n);
-        #endif
+        }
     }
 
     template <ruint Raw>
     [[nodiscard]] RAWR_ALWAYS_INLINE constexpr auto rotr(Raw val, int n) noexcept -> Raw
     {
-        #if RAWR_COMPILER_FAMILY_GNU
+        if constexpr(this_compiler.is_family_gnu()) {
             return soft::rotr(val, n);
-        #elif RAWR_COMPILER_MSVC
+        } else if constexpr(this_compiler.is_msvc()) {
             if (intrin::is_consteval()) { return soft::rotr(val, n); }
-            constexpr int bits = static_cast<int>(bitsof<Raw>.val);
-            int const norm = ((n % bits) + bits) % bits;
+            constexpr int bits  = static_cast<int>(bitsof<Raw>.val);
+            int const     norm  = ((n % bits) + bits) % bits;
             if (norm == 0) { return val; }
-                 if constexpr (sizeof(Raw) == 4) { return static_cast<Raw>(msvc::_rotr  (static_cast<unsigned int>      (val), norm)); }
-            else if constexpr (sizeof(Raw) == 8) { return static_cast<Raw>(msvc::_rotr64(static_cast<unsigned __int64>  (val), norm)); }
+                 if constexpr (sizeof(Raw) == 4) { return static_cast<Raw>(msvc::_rotr  (static_cast<ru32>(val), norm)); }
+            else if constexpr (sizeof(Raw) == 8) { return static_cast<Raw>(msvc::_rotr64(static_cast<ru64>(val), norm)); }
             else { return static_cast<Raw>((val << static_cast<unsigned>(bits - norm)) | (val >> static_cast<unsigned>(norm))); }
-        #else
+        } else {
             return soft::rotr(val, n);
-        #endif
+        }
     }
 }
 
-// umul64 and udiv128_64.
+// umul64 and udiv128_64 — types and soft:: only.
+// gnu:: wrappers follow, then public functions, to respect the ordering constraint
+// (gnu:: return types must be defined before the wrapper declarations).
 RAWR_EXPORT namespace rawr::inline lib::intrin::inline math
 {
     struct ru64_pair {
@@ -304,26 +358,21 @@ RAWR_EXPORT namespace rawr::inline lib::intrin::inline math
             constexpr ru64 LOW_MASK  = 0xffffffffULL;
             constexpr int  HALF_BITS = 32;
 
-            // Split operands into low and high 32‑bit halves
             ru64 lhs_lo = lhs & LOW_MASK;
             ru64 lhs_hi = lhs >> HALF_BITS;
             ru64 rhs_lo = rhs & LOW_MASK;
             ru64 rhs_hi = rhs >> HALF_BITS;
 
-            // Four 32‑bit multiplications (each yields a 64‑bit product)
             ru64 prod_lo_lo = lhs_lo * rhs_lo;
             ru64 prod_lo_hi = lhs_lo * rhs_hi;
             ru64 prod_hi_lo = lhs_hi * rhs_lo;
             ru64 prod_hi_hi = lhs_hi * rhs_hi;
 
-            // Middle column: sum of the low parts of cross‑products and the carry
-            // from the low‑low product's high half.
             ru64 middle_carry =
                 (prod_lo_lo >> HALF_BITS) +
                 (prod_lo_hi & LOW_MASK) +
                 (prod_hi_lo & LOW_MASK);
 
-            // Assemble the final 128‑bit result
             return {
                 .hi = prod_hi_hi
                     + (prod_lo_hi >> HALF_BITS)
@@ -333,39 +382,21 @@ RAWR_EXPORT namespace rawr::inline lib::intrin::inline math
             };
         }
     }
-    // Full unsigned 64 x 64 -> 128 product
-    constexpr auto umul64(ru64 lhs, ru64 rhs) noexcept -> ru64_pair
-    {
-        #if RAWR_COMPILER_MSVC
-            if (intrin::is_consteval()) { return soft::umul64(lhs, rhs); }
-            ru64_pair ret;
-            ret.lo = msvc::_umul128(lhs, rhs, &ret.hi);
-            return ret;
-        #else
-            unsigned __int128 ret = static_cast<unsigned __int128>(lhs) * rhs;
-            return {
-                .hi = static_cast<ru64>(ret >> bitsof<ru64>.val),
-                .lo = static_cast<ru64>(ret)
-            };
-        #endif
-    }
 
     struct u128_div_result {
         ru64 quot = 0;
         ru64 rem  = 0;
     };
-    namespace soft{
+    namespace soft {
         constexpr auto udiv128_64(ru64_pair ru64s, ru64 divisor) noexcept -> u128_div_result
         {
-            RAWR_ASSERTION(divisor_is_zero_tag,   divisor != 0);
-            RAWR_ASSERTION(div128_overflow_tag,   ru64s.hi < divisor);
+            RAWR_ASSERTION(divisor_is_zero_tag, divisor != 0);
+            RAWR_ASSERTION(div128_overflow_tag, ru64s.hi < divisor);
 
             if (ru64s.hi == 0) { return { .quot = ru64s.lo / divisor, .rem = ru64s.lo % divisor }; }
 
-            // Under precondition hi < divisor, no subtract fires while accumulating
-            // the 64 hi-bits — net effect is r = hi.  Skip those 64 iterations.
             ru64 quot = 0;
-            ru64 rem = ru64s.hi;
+            ru64 rem  = ru64s.hi;
 
             for (int i = bitsof<ru64>.val - 1; i >= 0; --i) {
                 ru64 const bit      = (ru64s.lo >> i) & 1ULL;
@@ -373,36 +404,72 @@ RAWR_EXPORT namespace rawr::inline lib::intrin::inline math
                 rem = (rem << 1) | bit;
                 if (overflow || rem >= divisor) {
                     rem -= divisor;
-                    // Note: when overflow=true, r_before < divisor (proved by invariant),
-                    // so borrow=1 always.  Unsigned wrap of (r -= divisor) is correct:
-                    // the 65th-bit carry and the borrow cancel, leaving r in [0, divisor).
-                    quot |= (1ULL << i);  // i ∈ [0, 63] — no UB
+                    quot |= (1ULL << i);
                 }
             }
             return { .quot = quot, .rem = rem };
         }
     }
+}
+
+RAWR_EXPORT namespace rawr::inline lib::intrin::inline math::gnu
+{
+    RAWR_ALWAYS_INLINE constexpr auto umul64(ru64 lhs, ru64 rhs) noexcept -> ru64_pair
+    RAWR_GNU_COND(RAWR_HAS_INT128, {
+        ru128 ret = static_cast<ru128>(lhs) * rhs;
+        return {
+            .hi = static_cast<ru64>(ret >> bitsof<ru64>.val),
+            .lo = static_cast<ru64>(ret)
+        };
+    });
+
+    RAWR_ALWAYS_INLINE constexpr auto udiv128_64(ru64_pair ru64s, ru64 divisor) noexcept -> u128_div_result
+    RAWR_GNU_COND(RAWR_HAS_INT128, {
+        ru128 num = (static_cast<ru128>(ru64s.hi) << bitsof<ru64>.val) | ru64s.lo;
+        return {
+            .quot = static_cast<ru64>(num / divisor),
+            .rem  = static_cast<ru64>(num % divisor)
+        };
+    });
+}
+
+RAWR_EXPORT namespace rawr::inline lib::intrin::inline math
+{
+    // Full unsigned 64 x 64 -> 128 product.
+    constexpr auto umul64(ru64 lhs, ru64 rhs) noexcept -> ru64_pair
+    {
+        if constexpr(this_compiler.is_family_gnu() && this_has_int128) {
+            return gnu::umul64(lhs, rhs);
+        } else if constexpr(this_compiler.is_msvc() && this_arch.is_x64()) {
+            if (intrin::is_consteval()) { return soft::umul64(lhs, rhs); }
+            ru64_pair ret;
+            ret.lo = msvc::_umul128(lhs, rhs, &ret.hi);
+            return ret;
+        } else {
+            return soft::umul64(lhs, rhs);
+        }
+    }
+
     constexpr auto udiv128_64(ru64_pair ru64s, ru64 divisor) noexcept -> u128_div_result
     {
-        RAWR_ASSERTION(divisor_is_zero,   divisor != 0);
-        RAWR_ASSERTION(div128_overflow,   ru64s.hi < divisor);
+        RAWR_ASSERTION(divisor_is_zero, divisor != 0);
+        RAWR_ASSERTION(div128_overflow, ru64s.hi < divisor);
 
-        #if RAWR_COMPILER_MSVC
-            if (intrin::is_consteval())  { return soft::udiv128_64(ru64s, divisor); }
+        if constexpr(this_compiler.is_family_gnu() && this_has_int128) {
+            return gnu::udiv128_64(ru64s, divisor);
+        } else if constexpr(this_compiler.is_msvc() && this_arch.is_x64()) {
+            if (intrin::is_consteval()) { return soft::udiv128_64(ru64s, divisor); }
             ru64 rem  = 0;
             ru64 quot = msvc::_udiv128(ru64s.hi, ru64s.lo, divisor, &rem);
             return { quot, rem };
-        #else
-            unsigned __int128 num = (static_cast<unsigned __int128>(ru64s.hi) << bitsof<ru64>.val) | ru64s.lo;
-            return {
-                .quot = static_cast<ru64>(num / divisor),
-                .rem  = static_cast<ru64>(num % divisor)
-            };
-        #endif
+        } else {
+            return soft::udiv128_64(ru64s, divisor);
+        }
     }
 }
 
-// Overflow arithmethic.
+// Overflow arithmetic — ov_result and soft:: only.
+// gnu:: wrappers follow, then public functions.
 RAWR_EXPORT namespace rawr::inline lib::intrin::inline math
 {
     // Unconstrained deliberately — see note above. It's a passive holder;
@@ -421,9 +488,9 @@ RAWR_EXPORT namespace rawr::inline lib::intrin::inline math
         template <raint Raw>
         [[nodiscard]] constexpr auto ov_add(Raw lhs_, Raw rhs_) noexcept -> ov_result<Raw>
         {
-            auto const lhs = static_cast<ruint_of<Raw>>(lhs_);
-            auto const rhs = static_cast<ruint_of<Raw>>(rhs_);
-            Raw const result = static_cast<Raw>( lhs + rhs );
+            auto const lhs    = static_cast<ruint_of<Raw>>(lhs_);
+            auto const rhs    = static_cast<ruint_of<Raw>>(rhs_);
+            Raw const  result = static_cast<Raw>( lhs + rhs );
             if constexpr (uint<Raw>) { return { result, static_cast<ruint_of<Raw>>(lhs + rhs) < lhs }; }
             else                     { return { result, did_add_overflow(lhs_, rhs_, result) }; }
         }
@@ -431,9 +498,9 @@ RAWR_EXPORT namespace rawr::inline lib::intrin::inline math
         template <raint Raw>
         [[nodiscard]] constexpr auto ov_sub(Raw lhs_, Raw rhs_) noexcept -> ov_result<Raw>
         {
-            auto const lhs = static_cast<ruint_of<Raw>>(lhs_);
-            auto const rhs = static_cast<ruint_of<Raw>>(rhs_);
-            Raw const result = static_cast<Raw>( lhs - rhs );
+            auto const lhs    = static_cast<ruint_of<Raw>>(lhs_);
+            auto const rhs    = static_cast<ruint_of<Raw>>(rhs_);
+            Raw const  result = static_cast<Raw>( lhs - rhs );
             if constexpr (uint<Raw>) { return { result, lhs < rhs }; }
             else                     { return { result, did_sub_underflow(lhs_, rhs_, result) }; }
         }
@@ -476,100 +543,128 @@ RAWR_EXPORT namespace rawr::inline lib::intrin::inline math
                 return { static_cast<Raw>(ret.lo), overflowed };
             }
 
-            ru64 const min_mag = static_cast<ru64>(aint_max<Raw>) + 1ULL;
+            ru64 const min_mag   = static_cast<ru64>(aint_max<Raw>) + 1ULL;
             bool const overflowed = ret.hi != 0 || ret.lo > min_mag;
             return { static_cast<Raw>(ru64{0} - ret.lo), overflowed };
         }
     }
+}
 
+RAWR_EXPORT namespace rawr::inline lib::intrin::inline math::gnu
+{
+    template <raint Raw>
+    RAWR_ALWAYS_INLINE constexpr auto ov_add(Raw lhs, Raw rhs) noexcept -> ov_result<Raw>
+    RAWR_GNU({
+        Raw result;
+        bool const overflowed = __builtin_add_overflow(lhs, rhs, &result);
+        return { result, overflowed };
+    });
+
+    template <raint Raw>
+    RAWR_ALWAYS_INLINE constexpr auto ov_sub(Raw lhs, Raw rhs) noexcept -> ov_result<Raw>
+    RAWR_GNU({
+        Raw result;
+        bool const overflowed = __builtin_sub_overflow(lhs, rhs, &result);
+        return { result, overflowed };
+    });
+
+    template <raint Raw>
+    RAWR_ALWAYS_INLINE constexpr auto ov_mul(Raw lhs, Raw rhs) noexcept -> ov_result<Raw>
+    RAWR_GNU({
+        Raw result;
+        bool const overflowed = __builtin_mul_overflow(lhs, rhs, &result);
+        return { result, overflowed };
+    });
+}
+
+RAWR_EXPORT namespace rawr::inline lib::intrin::inline math
+{
     template <raint Raw>
     [[nodiscard]] constexpr auto ov_add(Raw lhs, Raw rhs) noexcept -> ov_result<Raw>
     {
-        #if RAWR_COMPILER_FAMILY_GNU
-            Raw result;
-            bool const overflowed = __builtin_add_overflow(lhs, rhs, &result);
-            return { result, overflowed };
-        #elif RAWR_COMPILER_MSVC
+        if constexpr(this_compiler.is_family_gnu()) {
+            return gnu::ov_add(lhs, rhs);
+        } else if constexpr(this_compiler.is_msvc()) {
             if (intrin::is_consteval()) return soft::ov_add(lhs, rhs);
-            if constexpr (sizeof(Raw) == 4)
-            {
-                unsigned int result_;
-                unsigned char carry = msvc::_addcarry_u32(0, static_cast<unsigned int>(lhs), static_cast<unsigned int>(rhs), &result_);
-                Raw const result = static_cast<Raw>(result_);
-                if constexpr (uint<Raw>) return { result, carry != 0 };
-                else return { result, soft::did_add_overflow(lhs, rhs, result) };
-            }
-            else if constexpr (sizeof(Raw) == 8)
-            {
-                unsigned __int64 result_;
-                unsigned char carry = msvc::_addcarry_u64(0, static_cast<unsigned __int64>(lhs), static_cast<unsigned __int64>(rhs), &result_);
-                Raw const result = static_cast<Raw>(result_);
-                if constexpr (uint<Raw>) return { result, carry != 0 };
-                else return { result, soft::did_add_overflow(lhs, rhs, result) };
-            }
-            else return soft::ov_add(lhs, rhs);
-        #else
+            if constexpr (sizeof(Raw) == 4) {
+                // _addcarry_u32 is x86-only (32-bit); on x64 the soft path is taken.
+                if constexpr(this_arch.is_x86()) {
+                    ru32 result_;
+                    ru8 const carry = msvc::_addcarry_u32(0, static_cast<ru32>(lhs), static_cast<ru32>(rhs), &result_);
+                    Raw const result = static_cast<Raw>(result_);
+                    if constexpr (uint<Raw>) return { result, carry != 0 };
+                    else                    return { result, soft::did_add_overflow(lhs, rhs, result) };
+                } else { return soft::ov_add(lhs, rhs); }
+            } else if constexpr (sizeof(Raw) == 8) {
+                // _addcarry_u64 is x64-only.
+                if constexpr(this_arch.is_x64()) {
+                    ru64 result_;
+                    ru8 const carry = msvc::_addcarry_u64(0, static_cast<ru64>(lhs), static_cast<ru64>(rhs), &result_);
+                    Raw const result = static_cast<Raw>(result_);
+                    if constexpr (uint<Raw>) return { result, carry != 0 };
+                    else                    return { result, soft::did_add_overflow(lhs, rhs, result) };
+                } else { return soft::ov_add(lhs, rhs); }
+            } else { return soft::ov_add(lhs, rhs); }
+        } else {
             return soft::ov_add(lhs, rhs);
-        #endif
+        }
     }
 
     template <raint Raw>
     [[nodiscard]] constexpr auto ov_sub(Raw lhs, Raw rhs) noexcept -> ov_result<Raw>
     {
-        #if RAWR_COMPILER_FAMILY_GNU
-            Raw result;
-            bool const overflowed = __builtin_sub_overflow(lhs, rhs, &result);
-            return { result, overflowed };
-        #elif RAWR_COMPILER_MSVC
+        if constexpr(this_compiler.is_family_gnu()) {
+            return gnu::ov_sub(lhs, rhs);
+        } else if constexpr(this_compiler.is_msvc()) {
             if (intrin::is_consteval()) return soft::ov_sub(lhs, rhs);
-                if constexpr (sizeof(Raw) == 4)
-                {
-                    unsigned int result_;
-                    unsigned char carry = msvc::_subborrow_u32(0, static_cast<unsigned int>(lhs), static_cast<unsigned int>(rhs), &result_);
+            if constexpr (sizeof(Raw) == 4) {
+                // _subborrow_u32 is x86-only (32-bit); on x64 the soft path is taken.
+                if constexpr(this_arch.is_x86()) {
+                    ru32 result_;
+                    ru8 const carry = msvc::_subborrow_u32(0, static_cast<ru32>(lhs), static_cast<ru32>(rhs), &result_);
                     Raw const result = static_cast<Raw>(result_);
                     if constexpr (uint<Raw>) return { result, carry != 0 };
-                    else return { result, soft::did_sub_underflow(lhs, rhs, result) };
-                    }
-            else if constexpr (sizeof(Raw) == 8)
-            {
-                unsigned __int64 result_;
-                unsigned char carry = msvc::_subborrow_u64(0, static_cast<unsigned __int64>(lhs), static_cast<unsigned __int64>(rhs), &result_);
-                Raw const result = static_cast<Raw>(result_);
-                if constexpr (uint<Raw>) return { result, carry != 0 };
-                else return { result, soft::did_sub_underflow(lhs, rhs, result) };
-            }
-            else return soft::ov_sub(lhs, rhs);
-        #else
+                    else                    return { result, soft::did_sub_underflow(lhs, rhs, result) };
+                } else { return soft::ov_sub(lhs, rhs); }
+            } else if constexpr (sizeof(Raw) == 8) {
+                // _subborrow_u64 is x64-only.
+                if constexpr(this_arch.is_x64()) {
+                    ru64 result_;
+                    ru8 const carry = msvc::_subborrow_u64(0, static_cast<ru64>(lhs), static_cast<ru64>(rhs), &result_);
+                    Raw const result = static_cast<Raw>(result_);
+                    if constexpr (uint<Raw>) return { result, carry != 0 };
+                    else                    return { result, soft::did_sub_underflow(lhs, rhs, result) };
+                } else { return soft::ov_sub(lhs, rhs); }
+            } else { return soft::ov_sub(lhs, rhs); }
+        } else {
             return soft::ov_sub(lhs, rhs);
-        #endif
+        }
     }
 
     template <raint Raw>
     [[nodiscard]] constexpr auto ov_mul(Raw lhs, Raw rhs) noexcept -> ov_result<Raw>
     {
-        #if RAWR_COMPILER_FAMILY_GNU
-            Raw result;
-            bool const overflowed = __builtin_mul_overflow(lhs, rhs, &result);
-            return { result, overflowed };
-        #elif RAWR_COMPILER_MSVC
-            if constexpr (sizeof(Raw) <= 4) return soft::ov_mul(lhs, rhs);
+        if constexpr(this_compiler.is_family_gnu()) {
+            return gnu::ov_mul(lhs, rhs);
+        } else if constexpr(this_compiler.is_msvc()) {
+            if constexpr (sizeof(Raw) <= 4) { return soft::ov_mul(lhs, rhs); }
             else {
-                if (intrin::is_consteval()) return soft::ov_mul(lhs, rhs);
-                if constexpr (uint<Raw>)
-                {
-                    unsigned __int64 high;
-                    unsigned __int64 low = msvc::_umul128(static_cast<unsigned __int64>(lhs), static_cast<unsigned __int64>(rhs), &high);
-                    return { static_cast<Raw>(low), high != 0 };
-                }
-                else
-                {
-                    __int64 high;
-                    __int64 low = msvc::_mul128(static_cast<__int64>(lhs), static_cast<__int64>(rhs), &high);
-                    return { static_cast<Raw>(low), high != (low >> 63) };
-                }
+                // _umul128/_mul128 are x64-only; arm64 and x86 MSVC fall back to soft.
+                if constexpr(this_arch.is_x64()) {
+                    if (intrin::is_consteval()) return soft::ov_mul(lhs, rhs);
+                    if constexpr (uint<Raw>) {
+                        ru64 high;
+                        ru64 low = msvc::_umul128(static_cast<ru64>(lhs), static_cast<ru64>(rhs), &high);
+                        return { static_cast<Raw>(low), high != 0 };
+                    } else {
+                        rs64 high;
+                        rs64 low = msvc::_mul128(static_cast<rs64>(lhs), static_cast<rs64>(rhs), &high);
+                        return { static_cast<Raw>(low), high != (low >> 63) };
+                    }
+                } else { return soft::ov_mul(lhs, rhs); }
             }
-        #else
+        } else {
             return soft::ov_mul(lhs, rhs);
-        #endif
+        }
     }
 }
