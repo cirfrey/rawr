@@ -15,40 +15,74 @@ dir_scripts = meson.current_source_dir()/'scripts'
 dir_build   = meson.current_build_dir()
 dir_include_name = 'include'
 
-scan_deps = dir_scripts/'scan_deps.py'
+manifest_script = dir_scripts/'manifest.py'
 
-module_manifest = run_command(python, scan_deps,
+#
+# module.manifest in the source tree is the checked-in cache.
+#
+# The build gets its own generated copy so a normal build never dirties the
+# working tree.
+#
+module_manifest_path = dir_build/'module.manifest'
+module_cache_path    = meson.current_source_dir()/'module.manifest'
+
+module_manifest = run_command(
+    python,
+    manifest_script,
+
     cpp_id,
+
     cpp_id == 'msvc' ? '/std=c++20' : '-std=c++20',
-    cpp_id == 'msvc' ? '/I' : '-I',
-    dir_include,
+    cpp_id == 'msvc' ? '/I' : '-I', dir_include,
+
     '-D', 'RAWR_MODULE',
-    '--modules--', dir_include/'rawr.hpp', dir_include/'rawr',
-    check: true
+
+    '--root', meson.current_source_dir(),
+    '--cache', module_cache_path,
+    '--manifest', module_manifest_path,
+
+    '--modules--',
+    dir_include/'rawr.hpp',
+    dir_include/'rawr',
+
+    check: true,
 ).stdout().strip()
 
-run_command(python, '-c', 'with open("module.manifest", "w") as f: f.write("' + module_manifest.replace('\n', '\\n') + '")', check: true)
-run_command(python, '-c', 'import os; os.makedirs("' + (dir_build/'bmi') + '", exist_ok=True)', check: true)
+#
+# BMI output directory.
+#
+run_command(
+    python,
+    '-c',
+    'import os; os.makedirs("' + (dir_build/'bmi') + '", exist_ok=True)',
+    check: true,
+)
 
-# Dictionary to hold the declare_dependency() for each module
+#
+# Dictionary to hold the declare_dependency() for each module.
+#
 mod_deps = {}
+
 foreach o : module_manifest.split('\n')
     if o.strip() == '' or o.startswith('#')
         continue
     endif
 
     parts = o.split('|')
+
     file = parts[0]
     mod  = parts[1]
     deps_str = parts[2]
 
     if mod == ''
-        # message('Ignoring file with no module exports: ' + file)
         continue
     endif
 
-    # Resolve dependencies for this module
+    #
+    # Resolve dependencies for this module.
+    #
     current_deps = []
+
     if deps_str != ''
         foreach d : deps_str.split(',')
             current_deps += mod_deps[d]
@@ -61,54 +95,67 @@ foreach o : module_manifest.split('\n')
     if cpp_id == 'clang'
         bmi_file = dir_build/'bmi'/(mod + '.pcm')
         target_args += ['-fmodule-output=' + bmi_file]
-        usage_args  += ['-fmodule-file=' + mod + '=' + bmi_file]
-
+        usage_args += ['-fmodule-file=' + mod + '=' + bmi_file]
     elif cpp_id == 'msvc'
         bmi_file = dir_build/'bmi'/(mod + '.ifc')
         target_args += ['/ifcOutput', bmi_file]
-        usage_args  += ['/reference', mod + '=' + bmi_file]
-
+        usage_args += ['/reference', mod + '=' + bmi_file]
     elif cpp_id == 'gcc'
         target_args += ['-fmodules-ts']
-        usage_args  += ['-fmodules-ts']
+        usage_args += ['-fmodules-ts']
     endif
 
     lib = library(
         mod,
-        configure_file(input: file, output: mod + '.cppm', copy: true), # Silence meson, as it thinks the .hpp is not a source file,
-                                                                        # when in our specific case it is.
+        configure_file(
+            input: file,
+            output: mod + '.cppm',
+            copy: true,
+        ),
         include_directories: dir_include_name,
-        implicit_include_directories : false,
+        implicit_include_directories: false,
         dependencies: current_deps,
-        cpp_args: target_args
+        cpp_args: target_args,
     )
 
-    # Bridge target: forces Ninja to sequence object compilation.
-    # It takes the extracted object as input, meaning it runs instantly
-    # AFTER the compiler writes the .pcm and .o files.
+    #
+    # Bridge target:
+    #
+    # Forces dependent modules to wait until this module's object compilation
+    # has completed, which also means its BMI has been produced.
+    #
     bridge = custom_target(
         mod + '.stamp',
-        input: lib.extract_all_objects(recursive: false),
+        input: lib.extract_all_objects(recursive: false,),
         output: mod + '.stamp',
-        command: [python, '-c', 'import sys; open(sys.argv[1], "w").close()', '@OUTPUT@']
+        command: [
+            python,
+            '-c',
+            'import sys; open(sys.argv[1], "w").close()',
+            '@OUTPUT@',
+        ],
     )
 
     mod_deps += {mod + '.stamp': bridge}
 
-    # By passing `bridge` into `sources:`, any library that depends on this
-    # module is forced by Meson to wait for the bridge (and thus the underlying
-    # object compilation) to finish before its own compilation begins.
+    #
+    # By passing bridge through sources:, dependents are sequenced after the
+    # module compilation.
+    #
     mod_deps += {
         mod: declare_dependency(
             link_with: lib,
             compile_args: usage_args,
             sources: bridge,
-            dependencies: current_deps # Propagate transitive module dependencies:
-                                       # e.g: depending on rawr.lib.integer.raw makes you depend on rawr.lib.integer.base.
+            dependencies: current_deps,
         )
     }
 endforeach
 
+
+#
+# Amalgamation.
+#
 run_target(
     'amalgam',
     command: [
@@ -118,8 +165,9 @@ run_target(
         dir_include/'rawr.hpp',
         dir_include/'rawr.amalgam.hpp',
     ],
-    depends: mod_deps['rawr.stamp']
+    depends: mod_deps['rawr.stamp'],
 )
+
 
 clang_tidy = find_program('clang-tidy', required: false)
 if clang_tidy.found()

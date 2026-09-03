@@ -2716,7 +2716,7 @@
 #pragma endregion "rawr/abi/sysv.pp"
 
 /* required by:
-	- rawr.hpp
+	- /workspace/include/rawr.hpp
 */
 #pragma region "rawr/abi.hpp"
 #if RAWR_AMALGAM_SOURCE_MAPPING
@@ -4605,7 +4605,7 @@
 #pragma endregion "rawr/arch/x64.hpp"
 
 /* required by:
-	- rawr.hpp
+	- /workspace/include/rawr.hpp
 */
 #pragma region "rawr/arch.hpp"
 #if RAWR_AMALGAM_SOURCE_MAPPING
@@ -4702,7 +4702,7 @@
 #pragma endregion "rawr/bin/elf.hpp"
 
 /* required by:
-	- rawr.hpp
+	- /workspace/include/rawr.hpp
 */
 #pragma region "rawr/bin.hpp"
 #if RAWR_AMALGAM_SOURCE_MAPPING
@@ -4754,7 +4754,7 @@
 #pragma endregion "rawr/cxx_abi/itanium.hpp"
 
 /* required by:
-	- rawr.hpp
+	- /workspace/include/rawr.hpp
 */
 #pragma region "rawr/cxx_abi.hpp"
 #if RAWR_AMALGAM_SOURCE_MAPPING
@@ -6672,7 +6672,7 @@
 #pragma endregion "rawr/lib/main.pp"
 
 /* required by:
-	- rawr.hpp
+	- /workspace/include/rawr.hpp
 */
 #pragma region "rawr/lib.hpp"
 #if RAWR_AMALGAM_SOURCE_MAPPING
@@ -7084,7 +7084,7 @@
 #pragma endregion "rawr/platform/linux.hpp"
 
 /* required by:
-	- rawr.hpp
+	- /workspace/include/rawr.hpp
 */
 #pragma region "rawr/platform.hpp"
 #if RAWR_AMALGAM_SOURCE_MAPPING
@@ -7375,7 +7375,7 @@
 #pragma endregion "rawr/san/attributes.pp"
 
 /* required by:
-	- rawr.hpp
+	- /workspace/include/rawr.hpp
 */
 #pragma region "rawr/san.hpp"
 #if RAWR_AMALGAM_SOURCE_MAPPING
@@ -7400,9 +7400,9 @@
 
 #pragma endregion "rawr/san.hpp"
 
-#pragma region "rawr.hpp"
+#pragma region "/workspace/include/rawr.hpp"
 #if RAWR_AMALGAM_SOURCE_MAPPING
-    #line 0 "rawr.hpp"
+    #line 0 "/workspace/include/rawr.hpp"
 #endif
 	//// rawr.hpp.
 	
@@ -7426,6 +7426,6 @@
 	    //RAWR_AMALGAM_IGNORE #include "rawr/san.hpp"
 	#endif
 
-#pragma endregion "rawr.hpp"
+#pragma endregion "/workspace/include/rawr.hpp"
 
 #pragma endregion rawr-amalgam
