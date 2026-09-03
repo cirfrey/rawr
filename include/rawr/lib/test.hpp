@@ -16,6 +16,7 @@
     #include "rawr/lib/dist/header.pp"
 #endif
 #include "rawr/lib/detection.pp"
+#include "rawr/lib/compiler.pp"
 
 #if RAWR_COMPILER_MSVC
     namespace rawr::inline lib::inline test::msvc
@@ -29,18 +30,19 @@
 
 RAWR_EXPORT namespace rawr::inline lib::inline test
 {
-    #if RAWR_COMPILER_CLANG || RAWR_COMPILER_GCC
+    RAWR_GNU(
         template<typename T>
-        [[nodiscard]] __attribute__((always_inline))
+        [[nodiscard]] RAWR_ALWAYS_INLINE
         auto no_fold(T val) -> T {
             asm volatile("" : "+r,m"(val) :: "memory");
             return val;
         }
-    #elif RAWR_COMPILER_MSVC
+    )
+    RAWR_MSVC(
         template<typename T>
         [[nodiscard]] auto no_fold(T val) -> T
         { return msvc::no_fold(val); }
-    #endif
+    )
 
     struct test_suite_check
     {
@@ -69,16 +71,12 @@ RAWR_EXPORT namespace rawr::inline lib::inline test
     struct autosized_test_suite
     {
     private:
-        #if RAWR_COMPILER_GCC
-            #pragma GCC diagnostic push
-            #pragma GCC diagnostic ignored "-Wnon-template-friend"
-            #pragma GCC diagnostic ignored "-Wsfinae-incomplete" // What's this and why is it needed?
-        #endif
+        RAWR_GCC_PRAGMA(GCC diagnostic push)
+        RAWR_GCC_PRAGMA(GCC diagnostic ignored "-Wnon-template-friend")
+        RAWR_GCC_PRAGMA(GCC diagnostic ignored "-Wsfinae-incomplete") // What's this and why is it needed?
         template<int N> struct Flag { friend constexpr auto adl_flag(Flag<N>); };
         template<int N> struct Writer { friend constexpr auto adl_flag(Flag<N>) { return true; } };
-        #if RAWR_COMPILER_GCC
-            #pragma GCC diagnostic pop
-        #endif
+        RAWR_GCC_PRAGMA(GCC diagnostic pop)
 
     protected:
         template <int N, auto U>
