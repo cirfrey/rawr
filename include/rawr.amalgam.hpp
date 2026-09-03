@@ -347,17 +347,28 @@
 	// ============================================================
 	// CPU Architecture
 	// ============================================================
-	#define RAWR_ARCH_X64      0
-	#define RAWR_ARCH_X86      0
-	#define RAWR_ARCH_ARM64    0
-	#define RAWR_ARCH_ARM32    0
-	#define RAWR_ARCH_RISCV64  0
-	#define RAWR_ARCH_RISCV32  0
-	#define RAWR_ARCH_XTENSA   0
-	#define RAWR_ARCH_AVR      0
-	#define RAWR_ARCH_WASM32   0
-	#define RAWR_ARCH_WASM64   0
-	#define RAWR_ARCH_UNKNOWN  0
+	#define RAWR_ARCH_X86     0
+	#define RAWR_ARCH_X64     0
+	#define RAWR_ARCH_ARM64   0
+	#define RAWR_ARCH_ARM32   0
+	#define RAWR_ARCH_RISCV64 0
+	#define RAWR_ARCH_RISCV32 0
+	#define RAWR_ARCH_XTENSA  0
+	#define RAWR_ARCH_AVR     0
+	#define RAWR_ARCH_WASM32  0
+	#define RAWR_ARCH_WASM64  0
+	#define RAWR_ARCH_PPC32   0
+	#define RAWR_ARCH_PPC64   0
+	#define RAWR_ARCH_LOONG64 0
+	#define RAWR_ARCH_MIPS32  0
+	#define RAWR_ARCH_MIPS64  0
+	#define RAWR_ARCH_S390    0
+	#define RAWR_ARCH_S390X   0
+	#define RAWR_ARCH_MSP430  0
+	#define RAWR_ARCH_SPARC32 0
+	#define RAWR_ARCH_SPARC64 0
+	#define RAWR_ARCH_SUPERH  0
+	#define RAWR_ARCH_UNKNOWN 0
 	// WASM first — Emscripten defines __i386 for legacy reasons
 	#if defined(__wasm64__)
 	    #undef  RAWR_ARCH_WASM64
@@ -394,15 +405,66 @@
 	#elif defined(__AVR__)
 	    #undef  RAWR_ARCH_AVR
 	    #define RAWR_ARCH_AVR 1
+	#elif defined(__powerpc__) || defined(__ppc__) || defined(_M_PPC)
+	    // Check for 64-bit PowerPC (includes ELFv1, ELFv2, and MSVC definitions)
+	    #if defined(__powerpc64__) || defined(__ppc64__) || defined(_ARCH_PPC64)
+	        #undef  RAWR_ARCH_PPC64
+	        #define RAWR_ARCH_PPC64 1
+	    #else
+	        #undef  RAWR_ARCH_PPC32
+	        #define RAWR_ARCH_PPC32 1
+	    #endif
+	#elif defined(__loongarch64) || (defined(__loongarch__) && __loongarch_grlen == 64)
+	    #undef  RAWR_ARCH_LOONG64
+	    #define RAWR_ARCH_LOONG64 1
+	#elif defined(__mips__) || defined(_M_MRX000)
+	    // __mips64 or _MIPS_SIM / __mips register width checks
+	    #if defined(__mips64) || (defined(_MIPS_SIM) && _MIPS_SIM == _ABI64) || (defined(__mips_regsize) && __mips_regsize == 64)
+	        #undef  RAWR_ARCH_MIPS64
+	        #define RAWR_ARCH_MIPS64 1
+	    #else
+	        #undef  RAWR_ARCH_MIPS32
+	        #define RAWR_ARCH_MIPS32 1
+	    #endif
+	#elif defined(__s390x__) || defined(__s390__)
+	    // s390x is the 64-bit architecture; s390 is the legacy 32-bit
+	    #if defined(__s390x__)
+	        #undef  RAWR_ARCH_S390X
+	        #define RAWR_ARCH_S390X 1
+	    #else
+	        #undef  RAWR_ARCH_S390
+	        #define RAWR_ARCH_S390 1
+	    #endif
+	#elif defined(__MSP430__)
+	    #undef  RAWR_ARCH_MSP430
+	    #define RAWR_ARCH_MSP430 1
+	#elif defined(__sparc__) || defined(__sparc)
+	    // LEON processors (space-grade SPARC V8) are covered under __sparc__.
+	    // __sparcv9 and __arch64__ dictate 64-bit.
+	    #if defined(__sparcv9) || defined(__sparc_v9__) || defined(__arch64__)
+	        #undef  RAWR_ARCH_SPARC64
+	        #define RAWR_ARCH_SPARC64 1
+	    #else
+	        #undef  RAWR_ARCH_SPARC32
+	        #define RAWR_ARCH_SPARC32 1
+	    #endif
+	#elif defined(__sh__)
+	    // Covers SH-1 through SH-4 (SuperH)
+	    #undef  RAWR_ARCH_SUPERH
+	    #define RAWR_ARCH_SUPERH 1
 	#else
 	    #undef  RAWR_ARCH_UNKNOWN
 	    #define RAWR_ARCH_UNKNOWN 1
 	#endif
 	
 	#define RAWR_ARCH_FAMILY_RISCV 0
-	#define RAWR_ARCH_FAMILY_X86 0
-	#define RAWR_ARCH_FAMILY_WASM 0
-	#define RAWR_ARCH_FAMILY_ARM 0
+	#define RAWR_ARCH_FAMILY_X86   0
+	#define RAWR_ARCH_FAMILY_WASM  0
+	#define RAWR_ARCH_FAMILY_ARM   0
+	#define RAWR_ARCH_FAMILY_PPC   0
+	#define RAWR_ARCH_FAMILY_MIPS  0
+	#define RAWR_ARCH_FAMILY_S390  0
+	#define RAWR_ARCH_FAMILY_SPARC 0
 	#if RAWR_ARCH_RISCV64 || RAWR_ARCH_RISCV32
 	    #undef  RAWR_ARCH_FAMILY_RISCV
 	    #define RAWR_ARCH_FAMILY_RISCV 1
@@ -418,6 +480,22 @@
 	#if RAWR_ARCH_ARM64 || RAWR_ARCH_ARM32
 	    #undef  RAWR_ARCH_FAMILY_ARM
 	    #define RAWR_ARCH_FAMILY_ARM 1
+	#endif
+	#if RAWR_ARCH_PPC64 || RAWR_ARCH_PPC32
+	    #undef  RAWR_ARCH_FAMILY_PPC
+	    #define RAWR_ARCH_FAMILY_PPC 1
+	#endif
+	#if RAWR_ARCH_MIPS64 || RAWR_ARCH_MIPS32
+	    #undef  RAWR_ARCH_FAMILY_MIPS
+	    #define RAWR_ARCH_FAMILY_MIPS 1
+	#endif
+	#if RAWR_ARCH_S390X || RAWR_ARCH_S390
+	    #undef  RAWR_ARCH_FAMILY_S390
+	    #define RAWR_ARCH_FAMILY_S390 1
+	#endif
+	#if RAWR_ARCH_SPARC64 || RAWR_ARCH_SPARC32
+	    #undef  RAWR_ARCH_FAMILY_SPARC
+	    #define RAWR_ARCH_FAMILY_SPARC 1
 	#endif
 	
 	// Defaults
@@ -844,12 +922,20 @@
 	        #undef  RAWR_ENDIAN_UNKNOWN
 	        #define RAWR_ENDIAN_UNKNOWN 1
 	    #endif
-	// Fallback for toolchains without __BYTE_ORDER__:
-	// all of rawr's current targets are little-endian in their standard configurations.
-	// Big-endian ARM and MIPS exist but are rare and require explicit toolchain configuration.
-	#elif RAWR_ARCH_X64    || RAWR_ARCH_X86    || RAWR_ARCH_ARM64  || \
-	      RAWR_ARCH_ARM32  || RAWR_ARCH_RISCV64|| RAWR_ARCH_RISCV32|| \
-	      RAWR_ARCH_XTENSA || RAWR_ARCH_AVR    || RAWR_ARCH_WASM
+	#elif defined(__MIPSEL__) || defined(__MIPSEL) || defined(_MIPSEL)
+	    #undef  RAWR_ENDIAN_LITTLE
+	    #define RAWR_ENDIAN_LITTLE 1
+	#elif defined(__MIPSEB__) || defined(__MIPSEB) || defined(_MIPSEB)
+	    #undef  RAWR_ENDIAN_BIG
+	    #define RAWR_ENDIAN_BIG 1
+	// Fallback for toolchains without __BYTE_ORDER__ or not otherwise detectable:
+	#elif RAWR_ARCH_S390X || RAWR_ARCH_S390 || RAWR_ARCH_SPARC64 || RAWR_ARCH_SPARC32
+	    #undef  RAWR_ENDIAN_BIG
+	    #define RAWR_ENDIAN_BIG 1
+	#elif RAWR_ARCH_X64    || RAWR_ARCH_X86       || RAWR_ARCH_ARM64  || \
+	      RAWR_ARCH_ARM32  || RAWR_ARCH_RISCV64   || RAWR_ARCH_RISCV32|| \
+	      RAWR_ARCH_XTENSA || RAWR_ARCH_LOONG64   || RAWR_ARCH_AVR    || \
+	      RAWR_ARCH_WASM   || RAWR_ARCH_MSP430
 	    #undef  RAWR_ENDIAN_LITTLE
 	    #define RAWR_ENDIAN_LITTLE 1
 	#else
@@ -1271,6 +1357,7 @@
 /* required by:
 	- rawr/abi/sysv.hpp
 	- rawr/abi/win64.hpp
+	- rawr/arch/x64/atomic.hpp
 	- rawr/arch/x64/cpuid.hpp
 	- rawr/arch/x64/simd.hpp
 	- rawr/lib/detection.hpp
@@ -1926,6 +2013,7 @@
 /* required by:
 	- rawr/abi/sysv.hpp
 	- rawr/abi/sysv.pp
+	- rawr/arch/x64/atomic.hpp
 	- rawr/arch/x64/cpuid.hpp
 	- rawr/arch/x64/simd.hpp
 	- rawr/lib.hpp
@@ -2015,7 +2103,7 @@
 	    // NOLINTEND(readability-identifier-length)
 	
 	
-	    RAWR_RICH_ENUM(platforms,    ru8, (
+	    RAWR_RICH_ENUM(platforms, ru8, (
 	        unknown,
 	        linux, windows, macos, ios, android, wasm,
 	        esp32, esp8266, stm32, nordic, pico, teensy, avr
@@ -2039,21 +2127,42 @@
 	
 	    RAWR_RICH_ENUM(archs, ru8, (
 	        unknown,
-	        x86, x64, arm32, arm64,
+	        x86, x64,
+	        arm32, arm64,
 	        riscv32, riscv64,
-	        xtensa, avr, wasm32, wasm64
+	        xtensa,
+	        avr,
+	        wasm32, wasm64,
+	        ppc32, ppc64,
+	        loong64,
+	        mips32, mips64,
+	        s390, s390x,
+	        msp430,
+	        sparc32, sparc64,
+	        superh
 	    ), ());
 	    constexpr archs this_arch =
-	        RAWR_ARCH_WASM32  ? archs::wasm32 :
-	        RAWR_ARCH_WASM64  ? archs::wasm64 :
-	        RAWR_ARCH_X64     ? archs::x64 :
 	        RAWR_ARCH_X86     ? archs::x86 :
-	        RAWR_ARCH_ARM64   ? archs::arm64 :
+	        RAWR_ARCH_X64     ? archs::x64 :
 	        RAWR_ARCH_ARM32   ? archs::arm32 :
-	        RAWR_ARCH_RISCV64 ? archs::riscv64 :
+	        RAWR_ARCH_ARM64   ? archs::arm64 :
 	        RAWR_ARCH_RISCV32 ? archs::riscv32 :
+	        RAWR_ARCH_RISCV64 ? archs::riscv64 :
 	        RAWR_ARCH_XTENSA  ? archs::xtensa :
 	        RAWR_ARCH_AVR     ? archs::avr :
+	        RAWR_ARCH_WASM32  ? archs::wasm32 :
+	        RAWR_ARCH_WASM64  ? archs::wasm64 :
+	        RAWR_ARCH_PPC32   ? archs::ppc32 :
+	        RAWR_ARCH_PPC64   ? archs::ppc64 :
+	        RAWR_ARCH_LOONG64 ? archs::loong64 :
+	        RAWR_ARCH_MIPS32  ? archs::mips32 :
+	        RAWR_ARCH_MIPS64  ? archs::mips64 :
+	        RAWR_ARCH_S390    ? archs::s390 :
+	        RAWR_ARCH_S390X   ? archs::s390x :
+	        RAWR_ARCH_MSP430  ? archs::msp430 :
+	        RAWR_ARCH_SPARC32 ? archs::sparc32 :
+	        RAWR_ARCH_SPARC64 ? archs::sparc64 :
+	        RAWR_ARCH_SUPERH  ? archs::superh :
 	                            archs::unknown;
 	    RAWR_RICH_FLAGS(x86_family_features, ru16, (
 	        (sse,       1 << 0),
@@ -2938,13 +3047,17 @@
 	#ifdef RAWR_MODULE
 	    //RAWR_AMALGAM_IGNORE export module rawr.arch.x64.atomic;
 	    import rawr.lib.integer.base;
+	    import rawr.lib.integer.raw;
 	    import rawr.lib.sync.base;
+	    import rawr.lib.detection;
 	
 	    //RAWR_AMALGAM_IGNORE #include "rawr/lib/dist/module.pp"
 	#else
 	    //RAWR_AMALGAM_IGNORE #pragma once
 	    //RAWR_AMALGAM_IGNORE #include "rawr/lib/integer/base.hpp"
+	    //RAWR_AMALGAM_IGNORE #include "rawr/lib/integer/raw.hpp"
 	    //RAWR_AMALGAM_IGNORE #include "rawr/lib/sync/base.hpp"
+	    //RAWR_AMALGAM_IGNORE #include "rawr/lib/detection.hpp"
 	
 	    //RAWR_AMALGAM_IGNORE #include "rawr/lib/dist/header.pp"
 	#endif
@@ -2955,45 +3068,84 @@
 	{
 	    // RAWR_IS_64BIT is used instead of RAWR_ARCH_X64 because those intrinsics are also supported on arm64.
 	
-	    RAWR_NOT_MSVC( using __int64 = rsint_exact<{64}>; )
+	    // MSVC intrinsics often need an exact type match, which can be a problem if you do signed char instead of
+	    // char or things like using int instead of long, even if they are the same size in that architecture.
+	    RAWR_MSVC(
+	        using rs8  = char;
+	        using rs16 = short;
+	        using rs32 = long;
+	        using rs64 = __int64;
+	    )
+	    RAWR_NOT_MSVC(
+	        using rawr::rs8;
+	        using rawr::rs16;
+	        using rawr::rs32;
+	        using rawr::rs64;
+	    )
 	
-	    RAWR_MSVC_INTRIN(1, _InterlockedCompareExchange8,  (char volatile*,    char,    char)    -> char);
-	    RAWR_MSVC_INTRIN(1, _InterlockedCompareExchange16, (short volatile*,   short,   short)   -> short);
-	    RAWR_MSVC_INTRIN(1, _InterlockedCompareExchange,   (long volatile*,    long,    long)    -> long);
-	    RAWR_MSVC_INTRIN(1, _InterlockedCompareExchange64, (__int64 volatile*, __int64, __int64) -> __int64);
+	    RAWR_MSVC_INTRIN(1, _InterlockedCompareExchange8,  (rs8 volatile*,  rs8,  rs8)  -> rs8);
+	    RAWR_MSVC_INTRIN(1, _InterlockedCompareExchange16, (rs16 volatile*, rs16, rs16) -> rs16);
+	    RAWR_MSVC_INTRIN(1, _InterlockedCompareExchange,   (rs32 volatile*, rs32, rs32) -> rs32);
+	    RAWR_MSVC_INTRIN(1, _InterlockedCompareExchange64, (rs64 volatile*, rs64, rs64) -> rs64);
 	
-	    RAWR_MSVC_INTRIN(1,             _InterlockedExchange8,  (char volatile*,    char)    -> char);
-	    RAWR_MSVC_INTRIN(1,             _InterlockedExchange16, (short volatile*,   short)   -> short);
-	    RAWR_MSVC_INTRIN(1,             _InterlockedExchange,   (long volatile*,    long)    -> long);
-	    RAWR_MSVC_INTRIN(RAWR_IS_64BIT, _InterlockedExchange64, (__int64 volatile*, __int64) -> __int64);
+	    RAWR_MSVC_INTRIN(1,             _InterlockedExchange8,  (rs8 volatile*,  rs8)  -> rs8);
+	    RAWR_MSVC_INTRIN(1,             _InterlockedExchange16, (rs16 volatile*, rs16) -> rs16);
+	    RAWR_MSVC_INTRIN(1,             _InterlockedExchange,   (rs32 volatile*, rs32) -> rs32);
+	    RAWR_MSVC_INTRIN(RAWR_IS_64BIT, _InterlockedExchange64, (rs64 volatile*, rs64) -> rs64);
 	
-	    RAWR_MSVC_INTRIN(1,             _InterlockedExchangeAdd8,  (char volatile*,    char)    -> char);
-	    RAWR_MSVC_INTRIN(1,             _InterlockedExchangeAdd16, (short volatile*,   short)   -> short);
-	    RAWR_MSVC_INTRIN(1,             _InterlockedExchangeAdd,   (long volatile*,    long)    -> long);
-	    RAWR_MSVC_INTRIN(RAWR_IS_64BIT, _InterlockedExchangeAdd64, (__int64 volatile*, __int64) -> __int64);
+	    RAWR_MSVC_INTRIN(1,             _InterlockedExchangeAdd8,  (rs8  volatile*, rs8)  -> rs8);
+	    RAWR_MSVC_INTRIN(1,             _InterlockedExchangeAdd16, (rs16 volatile*, rs16) -> rs16);
+	    RAWR_MSVC_INTRIN(1,             _InterlockedExchangeAdd,   (rs32 volatile*, rs32) -> rs32);
+	    RAWR_MSVC_INTRIN(RAWR_IS_64BIT, _InterlockedExchangeAdd64, (rs64 volatile*, rs64) -> rs64);
 	
 	    RAWR_MSVC_INTRIN(RAWR_ARCH_FAMILY_X86, _ReadWriteBarrier, () -> void);
 	}
 	
-	#if RAWR_COMPILER_FAMILY_GNU
-	    namespace rawr::arch::x64::atomic::gnu
-	    {
-	        // Explicit mapping, not a numeric cast: rawr::memory_order's
-	        // ordinal values do not line up with GCC's __ATOMIC_* constants
-	        // (which reserve a slot for the unused/deprecated `consume`), so
-	        // casting one to the other silently picks the wrong fence.
-	        RAWR_ALWAYS_INLINE constexpr auto to_gnu_order(sync::memory_order order) noexcept -> int
-	        {
-	            switch (order) {
-	                case sync::memory_order::relaxed: return __ATOMIC_RELAXED;
-	                case sync::memory_order::acquire: return __ATOMIC_ACQUIRE;
-	                case sync::memory_order::release: return __ATOMIC_RELEASE;
-	                case sync::memory_order::acq_rel: return __ATOMIC_ACQ_REL;
-	                default:                          return __ATOMIC_SEQ_CST;
-	            }
+	RAWR_EXPORT namespace rawr::arch::x64::atomic::gnu
+	{
+	    // Explicit mapping, not a numeric cast: rawr::memory_order's
+	    // ordinal values do not line up with GCC's __ATOMIC_* constants
+	    // (which reserve a slot for the unused/deprecated `consume`), so
+	    // casting one to the other silently picks the wrong fence.
+	    RAWR_ALWAYS_INLINE constexpr auto to_gnu_order(sync::memory_order order) noexcept -> int
+	    RAWR_GNU({
+	        switch (order) {
+	            case sync::memory_order::relaxed: return __ATOMIC_RELAXED;
+	            case sync::memory_order::acquire: return __ATOMIC_ACQUIRE;
+	            case sync::memory_order::release: return __ATOMIC_RELEASE;
+	            case sync::memory_order::acq_rel: return __ATOMIC_ACQ_REL;
+	            default:                          return __ATOMIC_SEQ_CST;
 	        }
-	    }
-	#endif
+	    });
+	
+	    template <raint Type>
+	    RAWR_ALWAYS_INLINE constexpr auto atomic_compare_exchange_n(
+	        Type* ptr,
+	        Type* expected,
+	        Type  desired,
+	        bool  weak,
+	        int   success,
+	        int   failure
+	    ) -> bool RAWR_GNU({
+	        return ::__atomic_compare_exchange_n(ptr, expected, desired, weak, success, failure);
+	    });
+	
+	    template <raint Type>
+	    RAWR_ALWAYS_INLINE constexpr auto atomic_load_n(Type* addr, int memorder) -> Type
+	    RAWR_GNU({ return ::__atomic_load_n(addr, memorder); });
+	
+	    template <raint Type>
+	    RAWR_ALWAYS_INLINE constexpr auto atomic_store_n(Type* addr, Type val, int memorder) -> void
+	    RAWR_GNU({ ::__atomic_store_n(addr, val, memorder); });
+	
+	    template <raint Type>
+	    RAWR_ALWAYS_INLINE constexpr auto atomic_fetch_add(Type* addr, Type delta, int memorder) -> Type
+	    RAWR_GNU({ return ::__atomic_fetch_add(addr, delta, memorder); });
+	
+	    template <raint Type>
+	    RAWR_ALWAYS_INLINE constexpr auto atomic_exchange_n(Type* addr, Type val, int memorder) -> Type
+	    RAWR_GNU({ return ::__atomic_exchange_n(addr, val, memorder); });
+	}
 	
 	RAWR_EXPORT namespace rawr::arch::x64::atomic
 	{
@@ -3004,39 +3156,42 @@
 	    >
 	    RAWR_ALWAYS_INLINE auto cas(T* addr, T& expected, T desired) noexcept -> bool
 	    {
-	        #if RAWR_COMPILER_FAMILY_GNU
-	            return __atomic_compare_exchange_n(
+	        if constexpr(!this_arch.is_x64()) {
+	            static_assert(false);
+	            return false;
+	        } else if constexpr(this_compiler.is_family_gnu()) {
+	            return gnu::atomic_compare_exchange_n(
 	                addr, &expected, desired, /*weak=*/true,
 	                gnu::to_gnu_order(Success), gnu::to_gnu_order(Failure));
-	        #elif RAWR_COMPILER_MSVC
+	        } else if constexpr(this_compiler.is_msvc()){
 	            // x64 MSVC intrinsics take no ordering argument: the LOCK-prefixed
 	            // instruction underneath is a full fence on this ISA regardless of
 	            // what was asked for (x86/x64 is TSO). Correct for every order,
 	            // including relaxed — just not as cheap as it could be for relaxed,
 	            // since these intrinsics are also full compiler barriers.
-	            using U = base::ruint_exact<sizeof(T)>;
+	            using U = ruint_of<T>;
 	            U prior;
-	                if constexpr (sizeof(T) == 1) prior = static_cast<U>(msvc::_InterlockedCompareExchange8 (reinterpret_cast<char     volatile*>(addr), static_cast<char>(desired),     static_cast<char>(expected)));
-	            else if constexpr (sizeof(T) == 2) prior = static_cast<U>(msvc::_InterlockedCompareExchange16(reinterpret_cast<short    volatile*>(addr), static_cast<short>(desired),    static_cast<short>(expected)));
-	            else if constexpr (sizeof(T) == 4) prior = static_cast<U>(msvc::_InterlockedCompareExchange  (reinterpret_cast<long     volatile*>(addr), static_cast<long>(desired),     static_cast<long>(expected)));
-	            else if constexpr (sizeof(T) == 8) prior = static_cast<U>(msvc::_InterlockedCompareExchange64(reinterpret_cast<__int64 volatile*>(addr), static_cast<__int64>(desired), static_cast<__int64>(expected)));
+	                 if constexpr (sizeof(T) == 1) prior = static_cast<U>(msvc::_InterlockedCompareExchange8 (reinterpret_cast<msvc::rs8  volatile*>(addr), static_cast<msvc::rs8>(desired),  static_cast<msvc::rs8>(expected)));
+	            else if constexpr (sizeof(T) == 2) prior = static_cast<U>(msvc::_InterlockedCompareExchange16(reinterpret_cast<msvc::rs16 volatile*>(addr), static_cast<msvc::rs16>(desired), static_cast<msvc::rs16>(expected)));
+	            else if constexpr (sizeof(T) == 4) prior = static_cast<U>(msvc::_InterlockedCompareExchange  (reinterpret_cast<msvc::rs32 volatile*>(addr), static_cast<msvc::rs32>(desired), static_cast<msvc::rs32>(expected)));
+	            else if constexpr (sizeof(T) == 8) prior = static_cast<U>(msvc::_InterlockedCompareExchange64(reinterpret_cast<msvc::rs64 volatile*>(addr), static_cast<msvc::rs64>(desired), static_cast<msvc::rs64>(expected)));
 	            else static_assert(sizeof(T) == 0, "rawr::arch::x64::cas: unsupported width");
 	
 	            bool const ok = (prior == static_cast<U>(expected));
 	            if (!ok) expected = static_cast<T>(prior);
 	            return ok;
-	        #else
-	            static_assert(sizeof(T) == 0, "rawr::arch::x64::cas: no known compiler backend");
-	            return false;
-	        #endif
+	        }
 	    }
 	
 	    template <raint T, sync::memory_order Order = sync::memory_order::seq_cst>
 	    RAWR_ALWAYS_INLINE auto load(T const* addr) noexcept -> T
 	    {
-	        #if RAWR_COMPILER_FAMILY_GNU
-	            return __atomic_load_n(addr, gnu::to_gnu_order(Order));
-	        #elif RAWR_COMPILER_MSVC
+	        if constexpr(!this_arch.is_x64()) {
+	            static_assert(false);
+	            return T{};
+	        } else if constexpr(this_compiler.is_family_gnu()) {
+	            return gnu::atomic_load_n(addr, gnu::to_gnu_order(Order));
+	        } else if constexpr(this_compiler.is_msvc()){
 	            // A naturally-aligned load/store of a machine word is already
 	            // atomic on x64 without any interlocked op — the cache-coherency
 	            // protocol guarantees a cache line can't tear mid-transfer. Only
@@ -3052,66 +3207,61 @@
 	            T v = *static_cast<T const volatile*>(addr);
 	            msvc::_ReadWriteBarrier();
 	            return v;
-	        #else
-	            static_assert(sizeof(T) == 0, "rawr::arch::x64::cas: no known compiler backend");
-	            return T{};
-	        #endif
+	        }
 	    }
 	
 	    template <raint T, sync::memory_order Order = sync::memory_order::release>
 	    RAWR_ALWAYS_INLINE auto store(T* addr, T value) noexcept -> void
 	    {
-	        #if RAWR_COMPILER_FAMILY_GNU
-	            __atomic_store_n(addr, value, gnu::to_gnu_order(Order));
-	        #elif RAWR_COMPILER_MSVC
+	        if constexpr(!this_arch.is_x64()) {
+	            static_assert(false);
+	        } else if constexpr(this_compiler.is_family_gnu()) {
+	            gnu::atomic_store_n(addr, value, gnu::to_gnu_order(Order));
+	        } else if constexpr(this_compiler.is_msvc()){
 	            // Conservative on purpose: route every order through the full-fence
 	            // exchange rather than trying to hand-tune relaxed/release on TSO.
 	            // Correct for all orders, costs a touch more than a bare relaxed
 	            // store would need — see the note on cas() above for the same tradeoff.
-	            using U = base::ruint_exact<sizeof(T)>;
-	                if constexpr (sizeof(T) == 1)  msvc::_InterlockedExchange8 (reinterpret_cast<char    volatile*>(addr), static_cast<char>(value));
-	            else if constexpr (sizeof(T) == 2) msvc::_InterlockedExchange16(reinterpret_cast<short   volatile*>(addr), static_cast<short>(value));
-	            else if constexpr (sizeof(T) == 4) msvc::_InterlockedExchange  (reinterpret_cast<long    volatile*>(addr), static_cast<long>(value));
-	            else if constexpr (sizeof(T) == 8) msvc::_InterlockedExchange64(reinterpret_cast<__int64 volatile*>(addr), static_cast<__int64>(value));
+	                 if constexpr (sizeof(T) == 1) msvc::_InterlockedExchange8 (reinterpret_cast<msvc::rs8  volatile*>(addr), static_cast<msvc::rs8>(value));
+	            else if constexpr (sizeof(T) == 2) msvc::_InterlockedExchange16(reinterpret_cast<msvc::rs16 volatile*>(addr), static_cast<msvc::rs16>(value));
+	            else if constexpr (sizeof(T) == 4) msvc::_InterlockedExchange  (reinterpret_cast<msvc::rs32 volatile*>(addr), static_cast<msvc::rs32>(value));
+	            else if constexpr (sizeof(T) == 8) msvc::_InterlockedExchange64(reinterpret_cast<msvc::rs64 volatile*>(addr), static_cast<msvc::rs64>(value));
 	            else static_assert(sizeof(T) == 0, "rawr::arch::x64::store: unsupported width");
-	        #else
-	            static_assert(sizeof(T) == 0, "rawr::arch::x64::store: no known compiler backend");
-	        #endif
+	        }
 	    }
 	
 	    template <raint T, sync::memory_order Order = sync::memory_order::seq_cst>
 	    RAWR_ALWAYS_INLINE auto fetch_add(T* addr, T delta) noexcept -> T
 	    {
-	        #if RAWR_COMPILER_FAMILY_GNU
-	            return __atomic_fetch_add(addr, delta, gnu::to_gnu_order(Order));
-	        #elif RAWR_COMPILER_MSVC
-	            using U = base::ruint_exact<sizeof(T)>;
-	                 if constexpr (sizeof(T) == 1) return static_cast<T>(msvc::_InterlockedExchangeAdd8 (reinterpret_cast<char    volatile*>(addr), static_cast<char>(delta)));
-	            else if constexpr (sizeof(T) == 2) return static_cast<T>(msvc::_InterlockedExchangeAdd16(reinterpret_cast<short   volatile*>(addr), static_cast<short>(delta)));
-	            else if constexpr (sizeof(T) == 4) return static_cast<T>(msvc::_InterlockedExchangeAdd  (reinterpret_cast<long    volatile*>(addr), static_cast<long>(delta)));
-	            else if constexpr (sizeof(T) == 8) return static_cast<T>(msvc::_InterlockedExchangeAdd64(reinterpret_cast<__int64 volatile*>(addr), static_cast<__int64>(delta)));
-	            else { static_assert(sizeof(T) == 0, "rawr::arch::x64::fetch_add: unsupported width"); return T{}; }
-	        #else
-	            static_assert(sizeof(T) == 0, "rawr::arch::x64::fetch_add: no known compiler backend");
+	        if constexpr(!this_arch.is_x64()) {
+	            static_assert(false);
 	            return T{};
-	        #endif
+	        } else if constexpr(this_compiler.is_family_gnu()) {
+	            return gnu::atomic_fetch_add(addr, delta, gnu::to_gnu_order(Order));
+	        } else if constexpr(this_compiler.is_msvc()){
+	                 if constexpr (sizeof(T) == 1) return static_cast<T>(msvc::_InterlockedExchangeAdd8 (reinterpret_cast<msvc::rs8  volatile*>(addr), static_cast<msvc::rs8>(delta)));
+	            else if constexpr (sizeof(T) == 2) return static_cast<T>(msvc::_InterlockedExchangeAdd16(reinterpret_cast<msvc::rs16 volatile*>(addr), static_cast<msvc::rs16>(delta)));
+	            else if constexpr (sizeof(T) == 4) return static_cast<T>(msvc::_InterlockedExchangeAdd  (reinterpret_cast<msvc::rs32 volatile*>(addr), static_cast<msvc::rs32>(delta)));
+	            else if constexpr (sizeof(T) == 8) return static_cast<T>(msvc::_InterlockedExchangeAdd64(reinterpret_cast<msvc::rs64 volatile*>(addr), static_cast<msvc::rs64>(delta)));
+	            else { static_assert(sizeof(T) == 0, "rawr::arch::x64::fetch_add: unsupported width"); return T{}; }
+	        }
 	    }
 	
 	    template <raint T, sync::memory_order Order = sync::memory_order::seq_cst>
 	    RAWR_ALWAYS_INLINE auto exchange(T* addr, T value) noexcept -> T
 	    {
-	        #if RAWR_COMPILER_FAMILY_GNU
-	            return __atomic_exchange_n(addr, value, gnu::to_gnu_order(Order));
-	        #elif RAWR_COMPILER_MSVC
-	                 if constexpr (sizeof(T) == 1) return static_cast<T>(msvc::_InterlockedExchange8 (reinterpret_cast<char    volatile*>(addr), static_cast<char>(value)));
-	            else if constexpr (sizeof(T) == 2) return static_cast<T>(msvc::_InterlockedExchange16(reinterpret_cast<short   volatile*>(addr), static_cast<short>(value)));
-	            else if constexpr (sizeof(T) == 4) return static_cast<T>(msvc::_InterlockedExchange  (reinterpret_cast<long    volatile*>(addr), static_cast<long>(value)));
-	            else if constexpr (sizeof(T) == 8) return static_cast<T>(msvc::_InterlockedExchange64(reinterpret_cast<__int64 volatile*>(addr), static_cast<__int64>(value)));
-	            else { static_assert(sizeof(T) == 0, "rawr::arch::x64::exchange: unsupported width"); return T{}; }
-	        #else
-	            static_assert(sizeof(T) == 0, "rawr::arch::x64::exchange: no known compiler backend");
+	        if constexpr(!this_arch.is_x64()) {
+	            static_assert(false);
 	            return T{};
-	        #endif
+	        } else if constexpr(this_compiler.is_family_gnu()) {
+	            return gnu::atomic_exchange_n(addr, value, gnu::to_gnu_order(Order));
+	        } else if constexpr(this_compiler.is_msvc()){
+	                 if constexpr (sizeof(T) == 1) return static_cast<T>(msvc::_InterlockedExchange8 (reinterpret_cast<msvc::rs8  volatile*>(addr), static_cast<msvc::rs8>(value)));
+	            else if constexpr (sizeof(T) == 2) return static_cast<T>(msvc::_InterlockedExchange16(reinterpret_cast<msvc::rs16 volatile*>(addr), static_cast<msvc::rs16>(value)));
+	            else if constexpr (sizeof(T) == 4) return static_cast<T>(msvc::_InterlockedExchange  (reinterpret_cast<msvc::rs32 volatile*>(addr), static_cast<msvc::rs32>(value)));
+	            else if constexpr (sizeof(T) == 8) return static_cast<T>(msvc::_InterlockedExchange64(reinterpret_cast<msvc::rs64 volatile*>(addr), static_cast<msvc::rs64>(value)));
+	            else { static_assert(sizeof(T) == 0, "rawr::arch::x64::exchange: unsupported width"); return T{}; }
+	        }
 	    }
 	}
 

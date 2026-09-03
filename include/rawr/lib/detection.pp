@@ -134,17 +134,28 @@
 // ============================================================
 // CPU Architecture
 // ============================================================
-#define RAWR_ARCH_X64      0
-#define RAWR_ARCH_X86      0
-#define RAWR_ARCH_ARM64    0
-#define RAWR_ARCH_ARM32    0
-#define RAWR_ARCH_RISCV64  0
-#define RAWR_ARCH_RISCV32  0
-#define RAWR_ARCH_XTENSA   0
-#define RAWR_ARCH_AVR      0
-#define RAWR_ARCH_WASM32   0
-#define RAWR_ARCH_WASM64   0
-#define RAWR_ARCH_UNKNOWN  0
+#define RAWR_ARCH_X86     0
+#define RAWR_ARCH_X64     0
+#define RAWR_ARCH_ARM64   0
+#define RAWR_ARCH_ARM32   0
+#define RAWR_ARCH_RISCV64 0
+#define RAWR_ARCH_RISCV32 0
+#define RAWR_ARCH_XTENSA  0
+#define RAWR_ARCH_AVR     0
+#define RAWR_ARCH_WASM32  0
+#define RAWR_ARCH_WASM64  0
+#define RAWR_ARCH_PPC32   0
+#define RAWR_ARCH_PPC64   0
+#define RAWR_ARCH_LOONG64 0
+#define RAWR_ARCH_MIPS32  0
+#define RAWR_ARCH_MIPS64  0
+#define RAWR_ARCH_S390    0
+#define RAWR_ARCH_S390X   0
+#define RAWR_ARCH_MSP430  0
+#define RAWR_ARCH_SPARC32 0
+#define RAWR_ARCH_SPARC64 0
+#define RAWR_ARCH_SUPERH  0
+#define RAWR_ARCH_UNKNOWN 0
 // WASM first — Emscripten defines __i386 for legacy reasons
 #if defined(__wasm64__)
     #undef  RAWR_ARCH_WASM64
@@ -181,15 +192,66 @@
 #elif defined(__AVR__)
     #undef  RAWR_ARCH_AVR
     #define RAWR_ARCH_AVR 1
+#elif defined(__powerpc__) || defined(__ppc__) || defined(_M_PPC)
+    // Check for 64-bit PowerPC (includes ELFv1, ELFv2, and MSVC definitions)
+    #if defined(__powerpc64__) || defined(__ppc64__) || defined(_ARCH_PPC64)
+        #undef  RAWR_ARCH_PPC64
+        #define RAWR_ARCH_PPC64 1
+    #else
+        #undef  RAWR_ARCH_PPC32
+        #define RAWR_ARCH_PPC32 1
+    #endif
+#elif defined(__loongarch64) || (defined(__loongarch__) && __loongarch_grlen == 64)
+    #undef  RAWR_ARCH_LOONG64
+    #define RAWR_ARCH_LOONG64 1
+#elif defined(__mips__) || defined(_M_MRX000)
+    // __mips64 or _MIPS_SIM / __mips register width checks
+    #if defined(__mips64) || (defined(_MIPS_SIM) && _MIPS_SIM == _ABI64) || (defined(__mips_regsize) && __mips_regsize == 64)
+        #undef  RAWR_ARCH_MIPS64
+        #define RAWR_ARCH_MIPS64 1
+    #else
+        #undef  RAWR_ARCH_MIPS32
+        #define RAWR_ARCH_MIPS32 1
+    #endif
+#elif defined(__s390x__) || defined(__s390__)
+    // s390x is the 64-bit architecture; s390 is the legacy 32-bit
+    #if defined(__s390x__)
+        #undef  RAWR_ARCH_S390X
+        #define RAWR_ARCH_S390X 1
+    #else
+        #undef  RAWR_ARCH_S390
+        #define RAWR_ARCH_S390 1
+    #endif
+#elif defined(__MSP430__)
+    #undef  RAWR_ARCH_MSP430
+    #define RAWR_ARCH_MSP430 1
+#elif defined(__sparc__) || defined(__sparc)
+    // LEON processors (space-grade SPARC V8) are covered under __sparc__.
+    // __sparcv9 and __arch64__ dictate 64-bit.
+    #if defined(__sparcv9) || defined(__sparc_v9__) || defined(__arch64__)
+        #undef  RAWR_ARCH_SPARC64
+        #define RAWR_ARCH_SPARC64 1
+    #else
+        #undef  RAWR_ARCH_SPARC32
+        #define RAWR_ARCH_SPARC32 1
+    #endif
+#elif defined(__sh__)
+    // Covers SH-1 through SH-4 (SuperH)
+    #undef  RAWR_ARCH_SUPERH
+    #define RAWR_ARCH_SUPERH 1
 #else
     #undef  RAWR_ARCH_UNKNOWN
     #define RAWR_ARCH_UNKNOWN 1
 #endif
 
 #define RAWR_ARCH_FAMILY_RISCV 0
-#define RAWR_ARCH_FAMILY_X86 0
-#define RAWR_ARCH_FAMILY_WASM 0
-#define RAWR_ARCH_FAMILY_ARM 0
+#define RAWR_ARCH_FAMILY_X86   0
+#define RAWR_ARCH_FAMILY_WASM  0
+#define RAWR_ARCH_FAMILY_ARM   0
+#define RAWR_ARCH_FAMILY_PPC   0
+#define RAWR_ARCH_FAMILY_MIPS  0
+#define RAWR_ARCH_FAMILY_S390  0
+#define RAWR_ARCH_FAMILY_SPARC 0
 #if RAWR_ARCH_RISCV64 || RAWR_ARCH_RISCV32
     #undef  RAWR_ARCH_FAMILY_RISCV
     #define RAWR_ARCH_FAMILY_RISCV 1
@@ -205,6 +267,22 @@
 #if RAWR_ARCH_ARM64 || RAWR_ARCH_ARM32
     #undef  RAWR_ARCH_FAMILY_ARM
     #define RAWR_ARCH_FAMILY_ARM 1
+#endif
+#if RAWR_ARCH_PPC64 || RAWR_ARCH_PPC32
+    #undef  RAWR_ARCH_FAMILY_PPC
+    #define RAWR_ARCH_FAMILY_PPC 1
+#endif
+#if RAWR_ARCH_MIPS64 || RAWR_ARCH_MIPS32
+    #undef  RAWR_ARCH_FAMILY_MIPS
+    #define RAWR_ARCH_FAMILY_MIPS 1
+#endif
+#if RAWR_ARCH_S390X || RAWR_ARCH_S390
+    #undef  RAWR_ARCH_FAMILY_S390
+    #define RAWR_ARCH_FAMILY_S390 1
+#endif
+#if RAWR_ARCH_SPARC64 || RAWR_ARCH_SPARC32
+    #undef  RAWR_ARCH_FAMILY_SPARC
+    #define RAWR_ARCH_FAMILY_SPARC 1
 #endif
 
 // Defaults
@@ -631,12 +709,20 @@
         #undef  RAWR_ENDIAN_UNKNOWN
         #define RAWR_ENDIAN_UNKNOWN 1
     #endif
-// Fallback for toolchains without __BYTE_ORDER__:
-// all of rawr's current targets are little-endian in their standard configurations.
-// Big-endian ARM and MIPS exist but are rare and require explicit toolchain configuration.
-#elif RAWR_ARCH_X64    || RAWR_ARCH_X86    || RAWR_ARCH_ARM64  || \
-      RAWR_ARCH_ARM32  || RAWR_ARCH_RISCV64|| RAWR_ARCH_RISCV32|| \
-      RAWR_ARCH_XTENSA || RAWR_ARCH_AVR    || RAWR_ARCH_WASM
+#elif defined(__MIPSEL__) || defined(__MIPSEL) || defined(_MIPSEL)
+    #undef  RAWR_ENDIAN_LITTLE
+    #define RAWR_ENDIAN_LITTLE 1
+#elif defined(__MIPSEB__) || defined(__MIPSEB) || defined(_MIPSEB)
+    #undef  RAWR_ENDIAN_BIG
+    #define RAWR_ENDIAN_BIG 1
+// Fallback for toolchains without __BYTE_ORDER__ or not otherwise detectable:
+#elif RAWR_ARCH_S390X || RAWR_ARCH_S390 || RAWR_ARCH_SPARC64 || RAWR_ARCH_SPARC32
+    #undef  RAWR_ENDIAN_BIG
+    #define RAWR_ENDIAN_BIG 1
+#elif RAWR_ARCH_X64    || RAWR_ARCH_X86       || RAWR_ARCH_ARM64  || \
+      RAWR_ARCH_ARM32  || RAWR_ARCH_RISCV64   || RAWR_ARCH_RISCV32|| \
+      RAWR_ARCH_XTENSA || RAWR_ARCH_LOONG64   || RAWR_ARCH_AVR    || \
+      RAWR_ARCH_WASM   || RAWR_ARCH_MSP430
     #undef  RAWR_ENDIAN_LITTLE
     #define RAWR_ENDIAN_LITTLE 1
 #else

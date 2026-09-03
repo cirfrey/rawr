@@ -76,7 +76,7 @@ RAWR_EXPORT namespace rawr::inline lib::inline detection
     // NOLINTEND(readability-identifier-length)
 
 
-    RAWR_RICH_ENUM(platforms,    ru8, (
+    RAWR_RICH_ENUM(platforms, ru8, (
         unknown,
         linux, windows, macos, ios, android, wasm,
         esp32, esp8266, stm32, nordic, pico, teensy, avr
@@ -100,21 +100,42 @@ RAWR_EXPORT namespace rawr::inline lib::inline detection
 
     RAWR_RICH_ENUM(archs, ru8, (
         unknown,
-        x86, x64, arm32, arm64,
+        x86, x64,
+        arm32, arm64,
         riscv32, riscv64,
-        xtensa, avr, wasm32, wasm64
+        xtensa,
+        avr,
+        wasm32, wasm64,
+        ppc32, ppc64,
+        loong64,
+        mips32, mips64,
+        s390, s390x,
+        msp430,
+        sparc32, sparc64,
+        superh
     ), ());
     constexpr archs this_arch =
-        RAWR_ARCH_WASM32  ? archs::wasm32 :
-        RAWR_ARCH_WASM64  ? archs::wasm64 :
-        RAWR_ARCH_X64     ? archs::x64 :
         RAWR_ARCH_X86     ? archs::x86 :
-        RAWR_ARCH_ARM64   ? archs::arm64 :
+        RAWR_ARCH_X64     ? archs::x64 :
         RAWR_ARCH_ARM32   ? archs::arm32 :
-        RAWR_ARCH_RISCV64 ? archs::riscv64 :
+        RAWR_ARCH_ARM64   ? archs::arm64 :
         RAWR_ARCH_RISCV32 ? archs::riscv32 :
+        RAWR_ARCH_RISCV64 ? archs::riscv64 :
         RAWR_ARCH_XTENSA  ? archs::xtensa :
         RAWR_ARCH_AVR     ? archs::avr :
+        RAWR_ARCH_WASM32  ? archs::wasm32 :
+        RAWR_ARCH_WASM64  ? archs::wasm64 :
+        RAWR_ARCH_PPC32   ? archs::ppc32 :
+        RAWR_ARCH_PPC64   ? archs::ppc64 :
+        RAWR_ARCH_LOONG64 ? archs::loong64 :
+        RAWR_ARCH_MIPS32  ? archs::mips32 :
+        RAWR_ARCH_MIPS64  ? archs::mips64 :
+        RAWR_ARCH_S390    ? archs::s390 :
+        RAWR_ARCH_S390X   ? archs::s390x :
+        RAWR_ARCH_MSP430  ? archs::msp430 :
+        RAWR_ARCH_SPARC32 ? archs::sparc32 :
+        RAWR_ARCH_SPARC64 ? archs::sparc64 :
+        RAWR_ARCH_SUPERH  ? archs::superh :
                             archs::unknown;
     RAWR_RICH_FLAGS(x86_family_features, ru16, (
         (sse,       1 << 0),

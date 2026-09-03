@@ -10,7 +10,7 @@ include/rawr/lib/integer/base.hpp|rawr.lib.integer.base|rawr.lib.bits|13198|1788
 include/rawr/lib/bitfield.hpp|rawr.lib.bitfield|rawr.lib.bits,rawr.lib.integer.base|4708|1788373145811743100|c89d798c686625f1ebf2592405356a0716c21f80c0886ce833965f7df16a8a1a
 include/rawr/lib/integer/raw.hpp|rawr.lib.integer.raw|rawr.lib.bits,rawr.lib.integer.base|2378|1788457088463426300|f368c786f5499c8c6b9a9da616a9ae4f4f7d761896e4d863aaf6a747e42d8111
 include/rawr/abi/win64.hpp|rawr.abi.win64|rawr.lib.integer.raw|2451|1788375343957616200|6d8371102e3a644d24873803ed99dc2060fa62692707835597c3b3755ad40eb8
-include/rawr/lib/detection.hpp|rawr.lib.detection|rawr.lib.integer.raw|9126|1788373134633961000|f035ade90e9ae2ba0c0b8bafffc9a2d20b2d2b75621865b8b500c092e5830244
+include/rawr/lib/detection.hpp|rawr.lib.detection|rawr.lib.integer.raw|9771|1788466510518315900|91523d992b922955b3343bd08c645267503ff84874375f78dd68f4eb80cf2a65
 include/rawr/abi/sysv.hpp|rawr.abi.sysv|rawr.lib.detection,rawr.lib.integer.raw|18971|1788373245105771200|2834ce5f9960d7c8213980c26c4f145989ec18002a404d5ceb98f177df350f8f
 include/rawr/abi.hpp|rawr.abi|rawr.abi.sysv,rawr.abi.win64|301|1788375376178546600|f3436963389f987f452d66750a7bc2695da181feed98af144ca70a2b89d22c4a
 include/rawr/arch/x64/cpuid.hpp|rawr.arch.x64.cpuid|rawr.lib.bitfield,rawr.lib.bits,rawr.lib.detection,rawr.lib.integer.base,rawr.lib.integer.raw|10783|1788457258326103500|3b55e7a0b19f60a317ac0b398f850229a388eb652070b9261b8a14b8f0b2df55
@@ -27,7 +27,7 @@ include/rawr/lib/simd/storage.hpp|rawr.lib.simd.storage|rawr.lib.integer.raw|170
 include/rawr/arch/x64/simd.hpp|rawr.arch.x64.simd|rawr.lib.detection,rawr.lib.dummy_return,rawr.lib.integer.raw,rawr.lib.intrin,rawr.lib.simd.storage|3654|1788457266054290500|dffbe7e01f7d99de944716d21ba19f73b081fa92d01a5eef6b4434cadf8800ec
 include/rawr/lib/source_location.hpp|rawr.lib.source_location||935|1788373056898267700|3a38903c0cedf5a27116009a1e28f3d939f668a7f6fae2195b78f8e9a70a6edd
 include/rawr/lib/sync/base.hpp|rawr.lib.sync.base|rawr.lib.integer.raw|460|1788373151110820900|86d9694177e7fb231c19daeb5ea908c251b03eeb11ba12175b99e25f772991f7
-include/rawr/arch/x64/atomic.hpp|rawr.arch.x64.atomic|rawr.lib.integer.base,rawr.lib.sync.base|10611|1788460326413290300|b5aa373161be9cb1209bf6535895e174d381849e806f600d03ee13931e46062d
+include/rawr/arch/x64/atomic.hpp|rawr.arch.x64.atomic|rawr.lib.detection,rawr.lib.integer.base,rawr.lib.integer.raw,rawr.lib.sync.base|12162|1788464766930707300|cc8481e796ca4e98757083f07e8e888cd95fbf5b80078662b633751a551ba289
 include/rawr/arch/x64.hpp|rawr.arch.x64|rawr.arch.x64.atomic,rawr.arch.x64.cpuid,rawr.arch.x64.simd|354|1788373221978421600|6f8067538041df849ec4cfcbf4f274d1d8de710a4a6d1a940a3a08bead3cc5cd
 include/rawr/arch.hpp|rawr.arch|rawr.arch.x64|174|1788372980549374600|f8d8a632034dc824d736fe60e3c150c72a566b6cfb82bbe65320370e57d5f155
 include/rawr/lib/sync.hpp|rawr.lib.sync|rawr.lib.sync.base|183|1788373103399738800|14fe0c7acac7403ca1993e5e3b47f1afddfc3ac5689b24af1041ae46ce3ef64c
