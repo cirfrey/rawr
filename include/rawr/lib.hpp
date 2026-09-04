@@ -31,7 +31,10 @@
 #endif
 #include "rawr/lib/attributes.pp"
 #include "rawr/lib/bitfield.pp"
+#include "rawr/lib/compiler.pp"
 #include "rawr/lib/detection.pp"
+#include "rawr/lib/linker_section.pp"
 #include "rawr/lib/main.pp"
 #include "rawr/lib/pp.pp"
 #include "rawr/lib/rich_enum.pp"
+#include "rawr/lib/test.pp"

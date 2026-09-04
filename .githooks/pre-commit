@@ -9,6 +9,8 @@ PYTHON="${PYTHON:-python3}"
 
 echo "Generating module manifest..."
 
+#git stash
+
 "$PYTHON" scripts/manifest.py \
     clang++ \
     -Iinclude \
@@ -37,3 +39,5 @@ else
     echo "warning: amalgamation failed; committing with amalgam deleted" >&2
     git add include/rawr.amalgam.hpp
 fi
+
+#git stash pop

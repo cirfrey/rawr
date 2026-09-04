@@ -1,9 +1,22 @@
 //// rawr/lib/attributes.pp.
+// The macros in this file are defined as the lower level constructs
+// directly instead of defining, say, RAWR_FLATTEN as RAWR_ATTIBUTE(flatten),
+// so that theres less expansions and more consisten and readable errors.
+// No one likes macro expansion puke.
 #pragma once
 
 #include "rawr/lib/detection.pp"
 
 #define RAWR_RAW_PRAGMA(x) _Pragma(#x)
+// Clang-cl and mingw support __declspec, if you want to use
+// it here it is. These are the escape hatches for special cases.
+// Note that:
+//     RAWR_DECLSPEC  = __declspec    -> Only defined on MSVC
+//     RAWR_ATTRIBUTE = __attribute__ -> Only defined outside of MSVC.
+// While these are always defined any may expand into invalid things
+// if you don't know what you're doing.
+#define RAWR_RAW_DECLSPEC(x)  __declspec(x)
+#define RAWR_RAW_ATTRIBUTE(x) __attribute__((X))
 
 #if RAWR_COMPILER_MSVC
     #define RAWR_DECLSPEC(x)   __declspec(x)
@@ -28,11 +41,11 @@
     #define RAWR_PRAGMA(x)     RAWR_RAW_PRAGMA(x) // Needs deffered resolution.
 
     #define RAWR_UNREACHABLE   __builtin_unreachable()
-    #define RAWR_NORETURN      RAWR_ATTRIBUTE(noreturn)
-    #define RAWR_HIDDEN        RAWR_ATTRIBUTE(visibility("hidden"))
-    #define RAWR_ALWAYS_INLINE RAWR_ATTRIBUTE(always_inline) inline
-    #define RAWR_FLATTEN       RAWR_ATTRIBUTE(flatten)
-    #define RAWR_NAKED         RAWR_ATTRIBUTE(naked)
+    #define RAWR_NORETURN      __attribute__((noreturn))
+    #define RAWR_HIDDEN        __attribute__((visibility("hidden")))
+    #define RAWR_ALWAYS_INLINE __attribute__((always_inline)) inline
+    #define RAWR_FLATTEN       __attribute__((flatten))
+    #define RAWR_NAKED         __attribute__((naked))
 
     #define RAWR_ASM_ALIAS(sym) asm(sym)
     #define RAWR_SYMBOL_ALIAS_PRAGMA(from, to)
