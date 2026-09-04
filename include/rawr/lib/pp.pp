@@ -1,4 +1,6 @@
-//// rawr/lib/pp.hpp.
+#ifndef RAWR_NO_SOURCE_MAPPING
+    #line 3 "rawr/lib/pp.pp"
+#endif
 // Preprocessor utility macros (FOR_EACH, NARG, CAT, ...):
 // This header provides reusable low‑level preprocessor iteration and counting
 // macros that are shared by rawr::restruct, rawr::fmt, rawr::serialize, and

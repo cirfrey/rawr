@@ -1,4 +1,6 @@
-//// rawr/abi/win64.pp.
+#ifndef RAWR_NO_SOURCE_MAPPING
+    #line 3 "rawr/abi/win64.pp"
+#endif
 #pragma once
 
 #include "rawr/lib/attributes.pp"

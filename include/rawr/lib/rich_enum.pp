@@ -1,4 +1,6 @@
-//// rawr/data/rich_enum.pp.
+#ifndef RAWR_NO_SOURCE_MAPPING
+    #line 3 "rawr/data/rich_enum.pp"
+#endif
 // Rawr's strong enumeration abstraction:
 // Provides RAWR_RICH_ENUM and RAWR_RICH_FLAGS.
 // MSVC: /Zc:preprocessor required.

@@ -112,40 +112,18 @@ foreach o : module_manifest.split('\n')
     endif
 
 
-    lib = ''
-    if get_option('cppm-source-mapping')
-        lib = library(
-            mod,
-            configure_file(
-                input: file,
-                output: mod + '.cppm',
-                command: [
-                    python, '-c',
-                    'import sys; open(sys.argv[2], "w", encoding="utf-8").write(sys.argv[3] + "\\n" + open(sys.argv[1], "r", encoding="utf-8").read())',
-                    '@INPUT@',
-                    '@OUTPUT@',
-                    '#line 1 "' + file + '"'
-                ]
-            ),
-            include_directories: dir_include_name,
-            implicit_include_directories: false,
-            dependencies: current_deps,
-            cpp_args: target_args,
-        )
-    else
-        lib = library(
-            mod,
-            configure_file(
-                input: file,
-                output: mod + '.cppm',
-                copy: true,
-            ),
-            include_directories: dir_include_name,
-            implicit_include_directories: false,
-            dependencies: current_deps,
-            cpp_args: target_args,
-        )
-    endif
+    lib = library(
+        mod,
+        configure_file(
+            input: file,
+            output: mod + '.cppm',
+            copy: true,
+        ),
+        include_directories: dir_include_name,
+        implicit_include_directories: false,
+        dependencies: current_deps,
+        cpp_args: target_args,
+    )
 
     #
     # Bridge target:

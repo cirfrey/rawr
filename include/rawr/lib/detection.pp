@@ -1,4 +1,6 @@
-//// rawr/lib/detection.pp.
+#ifndef RAWR_NO_SOURCE_MAPPING
+    #line 3 "rawr/lib/detection.pp"
+#endif
 //
 // We could cheat and ask the build system to sneak this info to us
 // ... but whats the fun in that?
@@ -17,10 +19,9 @@
 // That doesn't compile, instead we define it inside an #if block and the expansion
 // behaves as you'd expect.
 // It's a little more work on our end, but thats what we're here for, right?
-//
-// TODO: maybe allow the user to override somehow, like if one of the values is set
-//       then just skip detection?
 #pragma once
+
+#include "rawr/lib/dist/todo.pp"
 
 /// Library constants and library feature detection:
 
@@ -428,7 +429,7 @@
 // ============================================================
 // Host OS / Hardware Platform
 // ============================================================
-// TODO: detect wasi. #define RAWR_PLATFORM_WASI 0
+RAWR_TODO("detect wasi")
 #define RAWR_PLATFORM_LINUX   0
 #define RAWR_PLATFORM_WINDOWS 0
 #define RAWR_PLATFORM_FREEBSD 0
@@ -569,7 +570,7 @@
 // ============================================================
 // Calling Convention ABI
 // ============================================================
-// TODO: Wasm32 and wasm64 may need different abis.
+RAWR_TODO("Wasm32 and wasm64 may need different abis.")
 // Determined by CPU + host. Describes the register usage, stack layout,
 // and entry parameter passing convention rawr's trampolines must conform to.
 #define RAWR_ABI_SYSV          0  // x86-64 SysV AMD64 — Linux, macOS, BSD
@@ -738,6 +739,16 @@
     #define RAWR_HAS_INT128 1
 #else
     #define RAWR_HAS_INT128 0
+#endif
+
+#if defined(__CHAR_BIT__)
+    #define RAWR_BITS_IN_BYTE __CHAR_BIT__
+#elif RAWR_COMPILER_MSVC
+    #define RAWR_BITS_IN_BYTE 8
+#else
+    #ifndef RAWR_BITS_IN_BYTE
+        #error How many bits in byte?
+    #endif
 #endif
 
 // POSIX: meaningful syscall-level POSIX APIs exist.

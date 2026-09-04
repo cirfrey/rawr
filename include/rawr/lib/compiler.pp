@@ -1,4 +1,6 @@
-//// rawr/lib/compiler.pp.
+#ifndef RAWR_NO_SOURCE_MAPPING
+    #line 3 "rawr/lib/compiler.pp"
+#endif
 // Macro utilities for ergonomic compiler gating.
 #pragma once
 

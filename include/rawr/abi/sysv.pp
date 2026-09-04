@@ -1,5 +1,7 @@
 
-//// rawr/abi/sysv.pp.
+#ifndef RAWR_NO_SOURCE_MAPPING
+    #line 3 "rawr/abi/sysv.pp"
+#endif
 #pragma once
 
 #include "rawr/lib/dist/pp.pp"

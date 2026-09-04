@@ -1,4 +1,6 @@
-//// rawr/lib/dist/pp.pp.
+#ifndef RAWR_NO_SOURCE_MAPPING
+    #line 3 "rawr/lib/dist/pp.pp"
+#endif
 #pragma once
 
 #ifndef RAWR_PP_TRANSITIVE_AS_MODULE

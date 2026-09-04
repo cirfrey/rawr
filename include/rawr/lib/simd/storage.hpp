@@ -1,4 +1,6 @@
-//// rawr/lib/simd/storage.hpp.
+#ifndef RAWR_NO_SOURCE_MAPPING
+    #line 3 "rawr/lib/simd/storage.hpp"
+#endif
 
 #ifdef RAWR_MODULE
     export module rawr.lib.simd.storage;

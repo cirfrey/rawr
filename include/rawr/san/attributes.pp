@@ -1,4 +1,6 @@
-//// rawr/san/attributes.pp.
+#ifndef RAWR_NO_SOURCE_MAPPING
+    #line 3 "rawr/san/attributes.pp"
+#endif
 #pragma once
 
 #include "rawr/lib/attributes.pp"

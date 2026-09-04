@@ -1,4 +1,8 @@
-//// rawr/lib/intrin/math.hpp.
+#ifndef RAWR_NO_SOURCE_MAPPING
+    #line 3 "rawr/lib/intrin/math.hpp"
+#endif
+
+#include "rawr/lib/dist/todo.pp"
 
 #ifdef RAWR_MODULE
     export module rawr.lib.intrin.math;
@@ -300,7 +304,7 @@ RAWR_EXPORT namespace rawr::inline lib::intrin::inline math
         }
     }
 
-    // TODO: fix rotation on gcc to the builtin when it exists -> check compiler version.
+    RAWR_TODO("fix rotation on gcc to the builtin when it exists -> check compiler version.")
 
     // Rotation. Negative n rotates in the opposite direction (matching std::rotl/rotr semantics).
     // GCC ≥ 12 and Clang ≥ 8 have __builtin_rotateleft*, but GCC 11 (minimum supported) does not.

@@ -1,4 +1,8 @@
-//// rawr/lib/intrin/mem.hpp.
+#ifndef RAWR_NO_SOURCE_MAPPING
+    #line 3 "rawr/lib/intrin/mem.hpp"
+#endif
+
+#include "rawr/lib/dist/todo.pp"
 
 #ifdef RAWR_MODULE
     export module rawr.lib.intrin.mem;
@@ -58,7 +62,7 @@ RAWR_EXPORT namespace rawr::inline lib::intrin::inline mem
                 }
             }
 
-            // TODO: unimplemented.
+            RAWR_TODO("Unimplemented. Implement")
             return dst;
         }
 

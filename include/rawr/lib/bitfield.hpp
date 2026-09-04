@@ -1,15 +1,19 @@
-//// rawr/lib/bitfield.hpp.
+#ifndef RAWR_NO_SOURCE_MAPPING
+    #line 3 "rawr/lib/bitfield.hpp"
+#endif
 
 #ifdef RAWR_MODULE
     export module rawr.lib.bitfield;
     import rawr.lib.integer.base;
     import rawr.lib.bits;
+    import rawr.lib.intrin.base;
 
     #include "rawr/lib/dist/module.pp"
 #else
     #pragma once
     #include "rawr/lib/integer/base.hpp"
     #include "rawr/lib/bits.hpp"
+    #include "rawr/lib/intrin/base.hpp"
 
     #include "rawr/lib/dist/header.pp"
 #endif
@@ -103,9 +107,8 @@ RAWR_EXPORT namespace rawr::inline lib::bitfield
             mask_type raw;
             if constexpr (aint<value_type>) {
                 raw = static_cast<mask_type>(val);
-            // TODO: port to intrin.hpp.
-            } else if constexpr (__is_trivially_copyable(value_type)) {
-                raw = static_cast<mask_type>(__builtin_bit_cast(uv, val));
+            } else if constexpr (intrin::is_trivially_copyable<value_type>) {
+                raw = static_cast<mask_type>(intrin::bit_cast<uv>(val));
             } else {
                 static_assert(sizeof(value_type) == 0,
                     "accessor: value_type is neither an arithmetic integer type nor bit_cast-compatible with this field");

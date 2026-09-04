@@ -1,4 +1,6 @@
-//// rawr/lib/integer/base.hpp.
+#ifndef RAWR_NO_SOURCE_MAPPING
+    #line 3 "rawr/lib/integer/base.hpp"
+#endif
 
 #ifdef RAWR_MODULE
     export module rawr.lib.integer.base;

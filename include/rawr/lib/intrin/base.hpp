@@ -1,4 +1,6 @@
-//// rawr/lib/intrin/base.hpp.
+#ifndef RAWR_NO_SOURCE_MAPPING
+    #line 3 "rawr/lib/intrin/base.hpp"
+#endif
 
 #ifdef RAWR_MODULE
     export module rawr.lib.intrin.base;
@@ -37,7 +39,7 @@ RAWR_EXPORT namespace rawr::inline lib::intrin::inline base
     template <typename T> concept is_trivially_copyable = __is_trivially_copyable(T);
     template <typename T> concept is_standard_layout    = __is_standard_layout(T);
 
-    template <typename T> T&& declval() noexcept; // TODO: this doesnt belong here.
+    template <typename T> T&& declval() noexcept;
     #if RAWR_COMPILER_FAMILY_GNU
         template <typename From, typename To>
         concept convertible_to = __is_convertible(From, To) && requires { static_cast<To>(declval<From>()); };

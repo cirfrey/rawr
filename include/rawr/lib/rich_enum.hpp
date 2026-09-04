@@ -1,4 +1,6 @@
-//// rawr/lib/rich_enum.hpp.
+#ifndef RAWR_NO_SOURCE_MAPPING
+    #line 3 "rawr/lib/rich_enum.hpp"
+#endif
 
 #ifdef RAWR_MODULE
     export module rawr.lib.rich_enum;

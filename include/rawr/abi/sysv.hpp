@@ -1,5 +1,9 @@
 
-//// rawr/abi/sysv.hpp.
+#ifndef RAWR_NO_SOURCE_MAPPING
+    #line 3 "rawr/abi/sysv.hpp"
+#endif
+
+#include "rawr/lib/dist/todo.pp"
 
 #ifdef RAWR_MODULE
     export module rawr.abi.sysv;
@@ -166,7 +170,7 @@ namespace rawr::abi::sysv
     RAWR_ABI_SYSV_AUXV_(auxv64, auxve64);
     #undef RAWR_ABI_SYSV_AUXV_
 
-    // TODO: context32 and selecting the correct one in the MAIN macro.
+    RAWR_TODO("Implement context32 and select the correct one in the RAWR_ABI_SYSV_MAIN macro. Requires lib::ptr<>")
     struct context64 {
         void* sp    = nullptr;
         rs32  argc  = 0;

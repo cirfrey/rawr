@@ -1,4 +1,6 @@
-//// rawr/lib/simd/storage.pp.
+#ifndef RAWR_NO_SOURCE_MAPPING
+    #line 3 "rawr/lib/simd/storage.pp"
+#endif
 #pragma once
 
 #include "rawr/lib/detection.pp"

@@ -1,4 +1,6 @@
-//// rawr/lib/detection.hpp.
+#ifndef RAWR_NO_SOURCE_MAPPING
+    #line 3 "rawr/lib/detection.hpp"
+#endif
 // Flat constexpr values in rawr:: for if constexpr dispatch.
 // Enum type names are plural nouns to avoid clashing with module namespaces
 // (rawr::abi is a namespace; rawr::abis is this enum type).

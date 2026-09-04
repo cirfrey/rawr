@@ -681,12 +681,6 @@ class Amalgamator:
             path
         )
 
-        self.output.append(
-            "#if RAWR_AMALGAM_SOURCE_MAPPING\n"
-            f'    #line 0 "{display}"\n'
-            "#endif\n"
-        )
-
     def emit(
         self,
         path: str,
@@ -747,19 +741,13 @@ class Amalgamator:
             "//\n",
             "// This is a header-mode amalgamation of rawr.\n",
             "//\n",
-            "// Define RAWR_AMALGAM_SOURCE_MAPPING=0 to disable source mapping.\n",
-            "//\n",
             "// To restore amalgamated #include, #pragma once, and\n",
             "// export module directives, remove the prefix\n",
             "// //RAWR_AMALGAM_IGNORE from those lines.\n",
             "\n",
-            "#ifndef RAWR_AMALGAM_SOURCE_MAPPING\n",
-            "    #define RAWR_AMALGAM_SOURCE_MAPPING 1\n",
-            "#endif\n",
-            "\n",
             "// Amalgams are headers; never allow module mode to leak in.\n",
             "#ifdef RAWR_MODULE\n",
-            "#undef RAWR_MODULE\n",
+            "    #undef RAWR_MODULE\n",
             "#endif\n",
             "\n",
         ]

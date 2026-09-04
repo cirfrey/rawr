@@ -1,4 +1,6 @@
-//// rawr/lib/attributes.pp.
+#ifndef RAWR_NO_SOURCE_MAPPING
+    #line 3 "rawr/lib/attributes.pp"
+#endif
 // The macros in this file are defined as the lower level constructs
 // directly instead of defining, say, RAWR_FLATTEN as RAWR_ATTIBUTE(flatten),
 // so that theres less expansions and more consisten and readable errors.

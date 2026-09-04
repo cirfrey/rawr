@@ -1,15 +1,21 @@
-//// rawr/lib/fmt.hpp.
+#ifndef RAWR_NO_SOURCE_MAPPING
+    #line 3 "rawr/lib/fmt.hpp"
+#endif
 
 #ifdef RAWR_MODULE
     export module rawr.lib.fmt;
     import rawr.lib.type_name;
     import rawr.lib.intrin;
+    import rawr.lib.bits;
+    import rawr.lib.integer.base;
 
     #include "rawr/lib/dist/module.pp"
 #else
     #pragma once
     #include "rawr/lib/type_name.hpp"
     #include "rawr/lib/intrin.hpp"
+    #include "rawr/lib/bits.hpp"
+    #include "rawr/lib/integer/base.hpp"
 
     #include "rawr/lib/dist/header.pp"
 #endif
@@ -429,12 +435,12 @@ RAWR_EXPORT namespace rawr::inline lib::format
         }
     }
 
-    template<typename T>
+    template <aint T>
     struct number_formatter
     {
         using value_type = T;
-        // TODO: calculate this from T.
-        static constexpr st worst_case_buffer_size = 21;
+
+        static constexpr st worst_case_buffer_size = (bitsof<value_type>.val * 301) / 1000 + 1 + (sint<T>);
 
         static constexpr void format(
             buf& buf,
@@ -447,7 +453,7 @@ RAWR_EXPORT namespace rawr::inline lib::format
                 spec.data[0] == ':' &&
                 spec.data[1] == 'x';
 
-            if constexpr (T(-1) < T(0)) // If is signed.
+            if constexpr(sint<T>)
             {
                 auto v = static_cast<long long>(value);
                 auto magnitude = static_cast<unsigned long long>(v);
@@ -461,7 +467,7 @@ RAWR_EXPORT namespace rawr::inline lib::format
                 if (hex) number_formatter_common::format_hex(buf, magnitude);
                 else number_formatter_common::format_dec(buf, magnitude);
             }
-            else // Else if is unsigned.
+            else
             {
                 auto magnitude = static_cast<unsigned long long>(value);
 

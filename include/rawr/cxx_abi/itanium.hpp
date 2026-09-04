@@ -1,4 +1,6 @@
-//// rawr/cxx_abi/itanium.hpp.
+#ifndef RAWR_NO_SOURCE_MAPPING
+    #line 3 "rawr/cxx_abi/itanium.hpp"
+#endif
 
 #ifdef RAWR_MODULE
     export module rawr.cxx_abi.itanium;

@@ -1,4 +1,6 @@
-//// rawr/lib/bits.hpp.
+#ifndef RAWR_NO_SOURCE_MAPPING
+    #line 3 "rawr/lib/bits.hpp"
+#endif
 
 #ifdef RAWR_MODULE
     export module rawr.lib.bits;
@@ -7,10 +9,11 @@
     #pragma once
     #include "rawr/lib/dist/header.pp"
 #endif
+#include "rawr/lib/detection.pp"
 
 RAWR_EXPORT namespace rawr::inline lib::inline bits
 {
-    inline constexpr auto bits_in_byte = 8; // TODO: detect.
+    inline constexpr auto bits_in_byte = RAWR_BITS_IN_BYTE;
 
     struct bitwidth {
         unsigned long long val{};

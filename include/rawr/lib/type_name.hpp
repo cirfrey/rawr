@@ -1,4 +1,6 @@
-//// rawr/lib/type_name.hpp.
+#ifndef RAWR_NO_SOURCE_MAPPING
+    #line 3 "rawr/lib/type_name.hpp"
+#endif
 
 #ifdef RAWR_MODULE
     export module rawr.lib.type_name;

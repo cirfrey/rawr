@@ -1,4 +1,6 @@
-//// rawr/data/linker_section.pp
+#ifndef RAWR_NO_SOURCE_MAPPING
+    #line 3 "rawr/data/linker_section.pp"
+#endif
 //
 // Decentralised typed linker-section registry.
 //
@@ -9,10 +11,11 @@
 //
 // If you define a section, its best practice to also define an accompanying macro
 // for registering into that section. such as:
-//     namespace rawr::inline lib::test {
+//     namespace rawr::inline lib::test
+//     {
 //         struct section_entry { ... };
 //         RAWR_LINKER_SECTION_DEFINE(section, section_entry)
-//         #define RAWR_TEST(Test) \
+//         #define RAWR_REGISTER_TEST(Test) \
 //             RAWR_LINKER_SECTION_REGISTER(::rawr::lib::test::section, Test)
 //     }
 //

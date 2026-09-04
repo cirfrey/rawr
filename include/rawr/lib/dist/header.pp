@@ -1,4 +1,6 @@
-//// rawr/lib/dist/header.pp.
+#ifndef RAWR_NO_SOURCE_MAPPING
+    #line 3 "rawr/lib/dist/header.pp"
+#endif
 #pragma once
 
 #ifndef RAWR_MODULE

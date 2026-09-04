@@ -1,5 +1,7 @@
 
-//// rawr/lib/sync/base.hpp.
+#ifndef RAWR_NO_SOURCE_MAPPING
+    #line 3 "rawr/lib/sync/base.hpp"
+#endif
 
 #ifdef RAWR_MODULE
     export module rawr.lib.sync.base;

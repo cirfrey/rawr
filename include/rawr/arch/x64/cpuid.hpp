@@ -1,4 +1,7 @@
-//// rawr/arch/x64/cpuid.hpp.
+#ifndef RAWR_NO_SOURCE_MAPPING
+    #line 3 "rawr/arch/x64/cpuid.hpp"
+#endif
+#include "rawr/lib/dist/todo.pp"
 
 #ifdef RAWR_MODULE
     export module rawr.arch.x64.cpuid;
@@ -31,9 +34,9 @@ RAWR_EXPORT namespace rawr::arch::x64::msvc
 
 RAWR_EXPORT namespace rawr::arch::x64::gnu
 {
+    RAWR_TODO("__asm__ here feels like a copout, ideally there's a builtin we can call")
     RAWR_ALWAYS_INLINE auto ia32_cpuidext(int regs[4], int leaf, int subleaf) -> void
     RAWR_GNU_COND(RAWR_ARCH_X64, {
-        // TODO: This feels like a copout.
         __asm__ __volatile__(
             "cpuid"
             : "=a"(regs[0]), "=b"(regs[1]), "=c"(regs[2]), "=d"(regs[3])
@@ -44,7 +47,7 @@ RAWR_EXPORT namespace rawr::arch::x64::gnu
 
 RAWR_EXPORT namespace rawr::arch::x64
 {
-    // TODO: this needs review for potential accidental overhead.
+    RAWR_TODO("This needs review for potential accidental overhead.")
     struct cpuid_args { ru32 leaf, subleaf; };
     struct cpuid_ret { ru32 regs[4]; };
 

@@ -1,4 +1,6 @@
-//// rawr/lib/bitfield.pp.
+#ifndef RAWR_NO_SOURCE_MAPPING
+    #line 3 "rawr/lib/bitfield.pp"
+#endif
 #pragma once
 
 #include "rawr/lib/dist/pp.pp"

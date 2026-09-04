@@ -1,4 +1,6 @@
-//// rawr/lib/test.pp.
+#ifndef RAWR_NO_SOURCE_MAPPING
+    #line 3 "rawr/lib/test.pp"
+#endif
 #pragma once
 
 // TODO: import/include linker section once thats done.

@@ -1,4 +1,6 @@
-//// rawr/lib/dummy_return.hpp.
+#ifndef RAWR_NO_SOURCE_MAPPING
+    #line 3 "rawr/lib/dummy_return.hpp"
+#endif
 
 #ifdef RAWR_MODULE
     export module rawr.lib.dummy_return;

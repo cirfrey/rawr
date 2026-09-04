@@ -3,20 +3,56 @@
 //
 // This is a header-mode amalgamation of rawr.
 //
-// Define RAWR_AMALGAM_SOURCE_MAPPING=0 to disable source mapping.
-//
 // To restore amalgamated #include, #pragma once, and
 // export module directives, remove the prefix
 // //RAWR_AMALGAM_IGNORE from those lines.
 
-#ifndef RAWR_AMALGAM_SOURCE_MAPPING
-    #define RAWR_AMALGAM_SOURCE_MAPPING 1
-#endif
-
 // Amalgams are headers; never allow module mode to leak in.
 #ifdef RAWR_MODULE
-#undef RAWR_MODULE
+    #undef RAWR_MODULE
 #endif
+
+/* required by:
+	- rawr/abi/sysv.hpp
+	- rawr/abi/win64.hpp
+	- rawr/arch/x64/cpuid.hpp
+	- rawr/lib/detection.pp
+	- rawr/lib/diag/dwarf.hpp
+	- rawr/lib/integer/strong.hpp
+	- rawr/lib/intrin/math.hpp
+	- rawr/lib/intrin/mem.hpp
+*/
+#pragma region "rawr/lib/dist/todo.pp"
+	#ifndef RAWR_NO_SOURCE_MAPPING
+	    #line 3 "rawr/lib/dist/todo.pp"
+	#endif
+	// Goal: Make it so annoying that you have no choice but to tackle the TODO.
+	// Usage: RAWR_TODO("Some todo here")
+	//RAWR_AMALGAM_IGNORE #pragma once
+	
+	#define RAWR_TODO_STRINGIFY_(x) #x
+	#define RAWR_TODO_STRINGIFY(x) RAWR_TODO_STRINGIFY_(x)
+	
+	// Since RAWR_COMPILER_MSVC is the only thing we need to check,
+	// we might as well make this header standalone with defined(_MSC_VER) instead.
+	#if defined(_MSC_VER)
+	    #define RAWR_TODO(msg) \
+	        __pragma(message(__FILE__ "(" RAWR_TODO_STRINGIFY(__LINE__) "): [TODO] " msg))
+	#else
+	    // Only emit warnings for the current file, sadly msvc doesnt support this.
+	    #if __INCLUDE_LEVEL__ == 1
+	        #define RAWR_TODO(msg) _Pragma(RAWR_TODO_STRINGIFY(GCC warning "[TODO] " msg))
+	    #else
+	        #define RAWR_TODO(x)
+	    #endif
+	#endif
+	
+	#ifdef RAWR_NO_TODO
+	    #undef RAWR_TODO
+	    #define RAWR_TODO(x)
+	#endif
+
+#pragma endregion "rawr/lib/dist/todo.pp"
 
 /* required by:
 	- rawr/abi/sysv.hpp
@@ -51,10 +87,9 @@
 	- rawr/san/tsan.hpp
 */
 #pragma region "rawr/lib/dist/module.pp"
-#if RAWR_AMALGAM_SOURCE_MAPPING
-    #line 0 "rawr/lib/dist/module.pp"
-#endif
-	//// rawr/lib/dist/module.pp.
+	#ifndef RAWR_NO_SOURCE_MAPPING
+	    #line 3 "rawr/lib/dist/module.pp"
+	#endif
 	//RAWR_AMALGAM_IGNORE #pragma once
 	
 	#ifdef RAWR_MODULE
@@ -96,10 +131,9 @@
 	- rawr/san/tsan.hpp
 */
 #pragma region "rawr/lib/dist/header.pp"
-#if RAWR_AMALGAM_SOURCE_MAPPING
-    #line 0 "rawr/lib/dist/header.pp"
-#endif
-	//// rawr/lib/dist/header.pp.
+	#ifndef RAWR_NO_SOURCE_MAPPING
+	    #line 3 "rawr/lib/dist/header.pp"
+	#endif
 	//RAWR_AMALGAM_IGNORE #pragma once
 	
 	#ifndef RAWR_MODULE
@@ -109,89 +143,13 @@
 #pragma endregion "rawr/lib/dist/header.pp"
 
 /* required by:
-	- rawr/arch/x64/cpuid.hpp
-	- rawr/lib.hpp
-	- rawr/lib/bitfield.hpp
-	- rawr/lib/bitfield.pp
-	- rawr/lib/integer/base.hpp
-	- rawr/lib/integer/raw.hpp
-	- rawr/lib/integer/strong.hpp
-	- rawr/lib/intrin/base.hpp
-	- rawr/lib/intrin/math.hpp
-	- rawr/lib/intrin/mem.hpp
-*/
-#pragma region "rawr/lib/bits.hpp"
-#if RAWR_AMALGAM_SOURCE_MAPPING
-    #line 0 "rawr/lib/bits.hpp"
-#endif
-	//// rawr/lib/bits.hpp.
-	
-	#ifdef RAWR_MODULE
-	    //RAWR_AMALGAM_IGNORE export module rawr.lib.bits;
-	    //RAWR_AMALGAM_IGNORE #include "rawr/lib/dist/module.pp"
-	#else
-	    //RAWR_AMALGAM_IGNORE #pragma once
-	    //RAWR_AMALGAM_IGNORE #include "rawr/lib/dist/header.pp"
-	#endif
-	
-	RAWR_EXPORT namespace rawr::inline lib::inline bits
-	{
-	    inline constexpr auto bits_in_byte = 8; // TODO: detect.
-	
-	    struct bitwidth {
-	        unsigned long long val{};
-	        [[nodiscard]] constexpr auto is_zero() const noexcept -> bool { return val == 0; }
-	    };
-	
-	    struct bytewidth {
-	        unsigned long long val{};
-	        [[nodiscard]] constexpr auto is_zero() const noexcept -> bool { return val == 0; }
-	
-	        constexpr operator bitwidth() const noexcept { return bitwidth{val * bits_in_byte}; }
-	    };
-	
-	    constexpr auto operator>(bitwidth  const lhs, bitwidth const rhs) -> bool { return lhs.val > rhs.val; }
-	    constexpr auto operator<(bitwidth  const lhs, bitwidth const rhs) -> bool { return lhs.val < rhs.val; }
-	    constexpr auto operator==(bitwidth const lhs, bitwidth const rhs) -> bool { return lhs.val == rhs.val; }
-	
-	    inline namespace literals
-	    {
-	        constexpr auto operator""_biw(unsigned long long val) noexcept { return bitwidth{val}; }
-	        constexpr auto operator""_byw(unsigned long long val) noexcept { return bytewidth{val}; }
-	    }
-	
-	    inline constexpr auto biw0   = 0_biw;
-	    inline constexpr auto biw8   = 8_biw;
-	    inline constexpr auto biw16  = 16_biw;
-	    inline constexpr auto biw32  = 32_biw;
-	    inline constexpr auto biw64  = 64_biw;
-	    inline constexpr auto biw128 = 128_biw;
-	    inline constexpr auto byw0   = 0_byw;
-	    inline constexpr auto byw1   = 1_byw;
-	    inline constexpr auto byw2   = 2_byw;
-	    inline constexpr auto byw4   = 4_byw;
-	    inline constexpr auto byw8   = 8_byw;
-	    inline constexpr auto byw16  = 16_byw;
-	
-	    template <typename T> inline constexpr auto bitsof = bitwidth{ sizeof(T) * bits_in_byte };
-	    template <typename T>        constexpr auto bitsofe([[maybe_unused]] T&& expr) noexcept { return bitsof<T>; }
-	
-	    template <typename T> inline constexpr auto bytesof = bytewidth{ sizeof(T) };
-	    template <typename T>        constexpr auto bytesofe([[maybe_unused]] T&& expr) noexcept { return bytesof<T>; }
-	
-	    enum class byte : unsigned char {};
-	    template <unsigned long long N> struct byte_array { byte data[N]{}; };
-	}
-
-#pragma endregion "rawr/lib/bits.hpp"
-
-/* required by:
 	- rawr/abi/sysv.pp
 	- rawr/arch/x64/atomic.hpp
 	- rawr/arch/x64/cpuid.hpp
 	- rawr/arch/x64/simd.hpp
 	- rawr/lib.hpp
 	- rawr/lib/attributes.pp
+	- rawr/lib/bits.hpp
 	- rawr/lib/compiler.pp
 	- rawr/lib/detection.hpp
 	- rawr/lib/diag/dwarf.hpp
@@ -211,10 +169,9 @@
 	- rawr/san/tsan.hpp
 */
 #pragma region "rawr/lib/detection.pp"
-#if RAWR_AMALGAM_SOURCE_MAPPING
-    #line 0 "rawr/lib/detection.pp"
-#endif
-	//// rawr/lib/detection.pp.
+	#ifndef RAWR_NO_SOURCE_MAPPING
+	    #line 3 "rawr/lib/detection.pp"
+	#endif
 	//
 	// We could cheat and ask the build system to sneak this info to us
 	// ... but whats the fun in that?
@@ -233,10 +190,9 @@
 	// That doesn't compile, instead we define it inside an #if block and the expansion
 	// behaves as you'd expect.
 	// It's a little more work on our end, but thats what we're here for, right?
-	//
-	// TODO: maybe allow the user to override somehow, like if one of the values is set
-	//       then just skip detection?
 	//RAWR_AMALGAM_IGNORE #pragma once
+	
+	//RAWR_AMALGAM_IGNORE #include "rawr/lib/dist/todo.pp"
 	
 	/// Library constants and library feature detection:
 	
@@ -644,7 +600,7 @@
 	// ============================================================
 	// Host OS / Hardware Platform
 	// ============================================================
-	// TODO: detect wasi. #define RAWR_PLATFORM_WASI 0
+	RAWR_TODO("detect wasi")
 	#define RAWR_PLATFORM_LINUX   0
 	#define RAWR_PLATFORM_WINDOWS 0
 	#define RAWR_PLATFORM_FREEBSD 0
@@ -785,7 +741,7 @@
 	// ============================================================
 	// Calling Convention ABI
 	// ============================================================
-	// TODO: Wasm32 and wasm64 may need different abis.
+	RAWR_TODO("Wasm32 and wasm64 may need different abis.")
 	// Determined by CPU + host. Describes the register usage, stack layout,
 	// and entry parameter passing convention rawr's trampolines must conform to.
 	#define RAWR_ABI_SYSV          0  // x86-64 SysV AMD64 — Linux, macOS, BSD
@@ -956,6 +912,16 @@
 	    #define RAWR_HAS_INT128 0
 	#endif
 	
+	#if defined(__CHAR_BIT__)
+	    #define RAWR_BITS_IN_BYTE __CHAR_BIT__
+	#elif RAWR_COMPILER_MSVC
+	    #define RAWR_BITS_IN_BYTE 8
+	#else
+	    #ifndef RAWR_BITS_IN_BYTE
+	        #error How many bits in byte?
+	    #endif
+	#endif
+	
 	// POSIX: meaningful syscall-level POSIX APIs exist.
 	// WASM deliberately excluded — Emscripten emulates POSIX in userspace,
 	// standalone WASM/WASI has a completely different interface.
@@ -1123,10 +1089,89 @@
 #pragma endregion "rawr/lib/detection.pp"
 
 /* required by:
+	- rawr/arch/x64/cpuid.hpp
+	- rawr/lib.hpp
+	- rawr/lib/bitfield.hpp
+	- rawr/lib/bitfield.pp
+	- rawr/lib/fmt.hpp
+	- rawr/lib/integer/base.hpp
+	- rawr/lib/integer/raw.hpp
+	- rawr/lib/integer/strong.hpp
+	- rawr/lib/intrin/base.hpp
+	- rawr/lib/intrin/math.hpp
+	- rawr/lib/intrin/mem.hpp
+*/
+#pragma region "rawr/lib/bits.hpp"
+	#ifndef RAWR_NO_SOURCE_MAPPING
+	    #line 3 "rawr/lib/bits.hpp"
+	#endif
+	
+	#ifdef RAWR_MODULE
+	    //RAWR_AMALGAM_IGNORE export module rawr.lib.bits;
+	    //RAWR_AMALGAM_IGNORE #include "rawr/lib/dist/module.pp"
+	#else
+	    //RAWR_AMALGAM_IGNORE #pragma once
+	    //RAWR_AMALGAM_IGNORE #include "rawr/lib/dist/header.pp"
+	#endif
+	//RAWR_AMALGAM_IGNORE #include "rawr/lib/detection.pp"
+	
+	RAWR_EXPORT namespace rawr::inline lib::inline bits
+	{
+	    inline constexpr auto bits_in_byte = RAWR_BITS_IN_BYTE;
+	
+	    struct bitwidth {
+	        unsigned long long val{};
+	        [[nodiscard]] constexpr auto is_zero() const noexcept -> bool { return val == 0; }
+	    };
+	
+	    struct bytewidth {
+	        unsigned long long val{};
+	        [[nodiscard]] constexpr auto is_zero() const noexcept -> bool { return val == 0; }
+	
+	        constexpr operator bitwidth() const noexcept { return bitwidth{val * bits_in_byte}; }
+	    };
+	
+	    constexpr auto operator>(bitwidth  const lhs, bitwidth const rhs) -> bool { return lhs.val > rhs.val; }
+	    constexpr auto operator<(bitwidth  const lhs, bitwidth const rhs) -> bool { return lhs.val < rhs.val; }
+	    constexpr auto operator==(bitwidth const lhs, bitwidth const rhs) -> bool { return lhs.val == rhs.val; }
+	
+	    inline namespace literals
+	    {
+	        constexpr auto operator""_biw(unsigned long long val) noexcept { return bitwidth{val}; }
+	        constexpr auto operator""_byw(unsigned long long val) noexcept { return bytewidth{val}; }
+	    }
+	
+	    inline constexpr auto biw0   = 0_biw;
+	    inline constexpr auto biw8   = 8_biw;
+	    inline constexpr auto biw16  = 16_biw;
+	    inline constexpr auto biw32  = 32_biw;
+	    inline constexpr auto biw64  = 64_biw;
+	    inline constexpr auto biw128 = 128_biw;
+	    inline constexpr auto byw0   = 0_byw;
+	    inline constexpr auto byw1   = 1_byw;
+	    inline constexpr auto byw2   = 2_byw;
+	    inline constexpr auto byw4   = 4_byw;
+	    inline constexpr auto byw8   = 8_byw;
+	    inline constexpr auto byw16  = 16_byw;
+	
+	    template <typename T> inline constexpr auto bitsof = bitwidth{ sizeof(T) * bits_in_byte };
+	    template <typename T>        constexpr auto bitsofe([[maybe_unused]] T&& expr) noexcept { return bitsof<T>; }
+	
+	    template <typename T> inline constexpr auto bytesof = bytewidth{ sizeof(T) };
+	    template <typename T>        constexpr auto bytesofe([[maybe_unused]] T&& expr) noexcept { return bytesof<T>; }
+	
+	    enum class byte : unsigned char {};
+	    template <unsigned long long N> struct byte_array { byte data[N]{}; };
+	}
+
+#pragma endregion "rawr/lib/bits.hpp"
+
+/* required by:
 	- rawr/arch/x64/atomic.hpp
 	- rawr/arch/x64/cpuid.hpp
 	- rawr/lib/bitfield.hpp
 	- rawr/lib/bitfield.pp
+	- rawr/lib/fmt.hpp
 	- rawr/lib/integer.hpp
 	- rawr/lib/integer/raw.hpp
 	- rawr/lib/integer/strong.hpp
@@ -1135,10 +1180,9 @@
 	- rawr/platform/linux.hpp
 */
 #pragma region "rawr/lib/integer/base.hpp"
-#if RAWR_AMALGAM_SOURCE_MAPPING
-    #line 0 "rawr/lib/integer/base.hpp"
-#endif
-	//// rawr/lib/integer/base.hpp.
+	#ifndef RAWR_NO_SOURCE_MAPPING
+	    #line 3 "rawr/lib/integer/base.hpp"
+	#endif
 	
 	#ifdef RAWR_MODULE
 	    //RAWR_AMALGAM_IGNORE export module rawr.lib.integer.base;
@@ -1409,10 +1453,9 @@
 	- rawr/san/msan.hpp
 */
 #pragma region "rawr/lib/integer/raw.hpp"
-#if RAWR_AMALGAM_SOURCE_MAPPING
-    #line 0 "rawr/lib/integer/raw.hpp"
-#endif
-	//// rawr/lib/integer/raw.hpp.
+	#ifndef RAWR_NO_SOURCE_MAPPING
+	    #line 3 "rawr/lib/integer/raw.hpp"
+	#endif
 	
 	#ifdef RAWR_MODULE
 	    //RAWR_AMALGAM_IGNORE export module rawr.lib.integer.raw;
@@ -1476,10 +1519,9 @@
 	- rawr/platform/linux.hpp
 */
 #pragma region "rawr/lib/pp.pp"
-#if RAWR_AMALGAM_SOURCE_MAPPING
-    #line 0 "rawr/lib/pp.pp"
-#endif
-	//// rawr/lib/pp.hpp.
+	#ifndef RAWR_NO_SOURCE_MAPPING
+	    #line 3 "rawr/lib/pp.pp"
+	#endif
 	// Preprocessor utility macros (FOR_EACH, NARG, CAT, ...):
 	// This header provides reusable low‑level preprocessor iteration and counting
 	// macros that are shared by rawr::restruct, rawr::fmt, rawr::serialize, and
@@ -1850,10 +1892,9 @@
 	- rawr/platform/linux.hpp
 */
 #pragma region "rawr/lib/rich_enum.pp"
-#if RAWR_AMALGAM_SOURCE_MAPPING
-    #line 0 "rawr/lib/rich_enum.pp"
-#endif
-	//// rawr/data/rich_enum.pp.
+	#ifndef RAWR_NO_SOURCE_MAPPING
+	    #line 3 "rawr/data/rich_enum.pp"
+	#endif
 	// Rawr's strong enumeration abstraction:
 	// Provides RAWR_RICH_ENUM and RAWR_RICH_FLAGS.
 	// MSVC: /Zc:preprocessor required.
@@ -2064,10 +2105,9 @@
 	- rawr/platform/linux.hpp
 */
 #pragma region "rawr/lib/detection.hpp"
-#if RAWR_AMALGAM_SOURCE_MAPPING
-    #line 0 "rawr/lib/detection.hpp"
-#endif
-	//// rawr/lib/detection.hpp.
+	#ifndef RAWR_NO_SOURCE_MAPPING
+	    #line 3 "rawr/lib/detection.hpp"
+	#endif
 	// Flat constexpr values in rawr:: for if constexpr dispatch.
 	// Enum type names are plural nouns to avoid clashing with module namespaces
 	// (rawr::abi is a namespace; rawr::abis is this enum type).
@@ -2334,10 +2374,9 @@
 	- rawr/san/attributes.pp
 */
 #pragma region "rawr/lib/attributes.pp"
-#if RAWR_AMALGAM_SOURCE_MAPPING
-    #line 0 "rawr/lib/attributes.pp"
-#endif
-	//// rawr/lib/attributes.pp.
+	#ifndef RAWR_NO_SOURCE_MAPPING
+	    #line 3 "rawr/lib/attributes.pp"
+	#endif
 	// The macros in this file are defined as the lower level constructs
 	// directly instead of defining, say, RAWR_FLATTEN as RAWR_ATTIBUTE(flatten),
 	// so that theres less expansions and more consisten and readable errors.
@@ -2405,11 +2444,12 @@
 	- rawr/abi/sysv.pp
 */
 #pragma region "rawr/abi/sysv.hpp"
-#if RAWR_AMALGAM_SOURCE_MAPPING
-    #line 0 "rawr/abi/sysv.hpp"
-#endif
 	
-	//// rawr/abi/sysv.hpp.
+	#ifndef RAWR_NO_SOURCE_MAPPING
+	    #line 3 "rawr/abi/sysv.hpp"
+	#endif
+	
+	//RAWR_AMALGAM_IGNORE #include "rawr/lib/dist/todo.pp"
 	
 	#ifdef RAWR_MODULE
 	    //RAWR_AMALGAM_IGNORE export module rawr.abi.sysv;
@@ -2576,7 +2616,7 @@
 	    RAWR_ABI_SYSV_AUXV_(auxv64, auxve64);
 	    #undef RAWR_ABI_SYSV_AUXV_
 	
-	    // TODO: context32 and selecting the correct one in the MAIN macro.
+	    RAWR_TODO("Implement context32 and select the correct one in the RAWR_ABI_SYSV_MAIN macro. Requires lib::ptr<>")
 	    struct context64 {
 	        void* sp    = nullptr;
 	        rs32  argc  = 0;
@@ -2656,12 +2696,12 @@
 	- rawr/abi.hpp
 */
 #pragma region "rawr/abi/win64.hpp"
-#if RAWR_AMALGAM_SOURCE_MAPPING
-    #line 0 "rawr/abi/win64.hpp"
-#endif
-	//// rawr/abi/win64.hpp.
-	// TODO: needs a onceover.
-	// TODO: requires lib::ptr<type, size> for cross-compiling things.
+	#ifndef RAWR_NO_SOURCE_MAPPING
+	    #line 3 "rawr/abi/win64.hpp"
+	#endif
+	//RAWR_AMALGAM_IGNORE #include "rawr/lib/dist/todo.pp"
+	
+	RAWR_TODO("Needs a onceover. Requires lib::ptr<type, size> before can be considered done.")
 	
 	#ifdef RAWR_MODULE
 	    //RAWR_AMALGAM_IGNORE export module rawr.abi.win64;
@@ -2742,10 +2782,9 @@
 	- rawr/lib/main.pp
 */
 #pragma region "rawr/abi/win64.pp"
-#if RAWR_AMALGAM_SOURCE_MAPPING
-    #line 0 "rawr/abi/win64.pp"
-#endif
-	//// rawr/abi/win64.pp.
+	#ifndef RAWR_NO_SOURCE_MAPPING
+	    #line 3 "rawr/abi/win64.pp"
+	#endif
 	//RAWR_AMALGAM_IGNORE #pragma once
 	
 	//RAWR_AMALGAM_IGNORE #include "rawr/lib/attributes.pp"
@@ -2769,10 +2808,9 @@
 	- rawr/lib/test.pp
 */
 #pragma region "rawr/lib/dist/pp.pp"
-#if RAWR_AMALGAM_SOURCE_MAPPING
-    #line 0 "rawr/lib/dist/pp.pp"
-#endif
-	//// rawr/lib/dist/pp.pp.
+	#ifndef RAWR_NO_SOURCE_MAPPING
+	    #line 3 "rawr/lib/dist/pp.pp"
+	#endif
 	//RAWR_AMALGAM_IGNORE #pragma once
 	
 	#ifndef RAWR_PP_TRANSITIVE_AS_MODULE
@@ -2789,10 +2827,11 @@
 	- rawr/lib/diag.hpp
 */
 #pragma region "rawr/lib/diag/dwarf.hpp"
-#if RAWR_AMALGAM_SOURCE_MAPPING
-    #line 0 "rawr/lib/diag/dwarf.hpp"
-#endif
-	//// rawr/lib/diag/dwarf.hpp.
+	#ifndef RAWR_NO_SOURCE_MAPPING
+	    #line 3 "rawr/lib/diag/dwarf.hpp"
+	#endif
+	
+	//RAWR_AMALGAM_IGNORE #include "rawr/lib/dist/todo.pp"
 	
 	#ifdef RAWR_MODULE
 	    //RAWR_AMALGAM_IGNORE export module rawr.lib.diag.dwarf;
@@ -2815,8 +2854,10 @@
 	        rbp = 6,  rsp = 7,  r8  = 8,  r9  = 9,  r10 = 10, r11 = 11,
 	        r12 = 12, r13 = 13, r14 = 14, r15 = 15,
 	        rip = 16, // return address (RA)
-	        // x87/MMX/SSE registers omitted; rarely needed for unwind.
-	        // TODO: un-omit them, this should be a complete representation.
+	        RAWR_TODO(
+	            "x87/MMX/SSE registers omitted; rarely needed for unwind."
+	            "un-omit them, this should be a complete representation."
+	        )
 	    };
 	
 	    enum class arm64_reg : unsigned char {
@@ -2862,11 +2903,10 @@
 	- rawr/lib/main.pp
 */
 #pragma region "rawr/abi/sysv.pp"
-#if RAWR_AMALGAM_SOURCE_MAPPING
-    #line 0 "rawr/abi/sysv.pp"
-#endif
 	
-	//// rawr/abi/sysv.pp.
+	#ifndef RAWR_NO_SOURCE_MAPPING
+	    #line 3 "rawr/abi/sysv.pp"
+	#endif
 	//RAWR_AMALGAM_IGNORE #pragma once
 	
 	//RAWR_AMALGAM_IGNORE #include "rawr/lib/dist/pp.pp"
@@ -2940,13 +2980,12 @@
 #pragma endregion "rawr/abi/sysv.pp"
 
 /* required by:
-	- /workspace/include/rawr.hpp
+	- rawr.hpp
 */
 #pragma region "rawr/abi.hpp"
-#if RAWR_AMALGAM_SOURCE_MAPPING
-    #line 0 "rawr/abi.hpp"
-#endif
-	//// rawr/abi.hpp.
+	#ifndef RAWR_NO_SOURCE_MAPPING
+	    #line 3 "rawr/abi.hpp"
+	#endif
 	
 	#ifdef RAWR_MODULE
 	    //RAWR_AMALGAM_IGNORE export module rawr.abi;
@@ -2967,11 +3006,10 @@
 	- rawr/lib/sync.hpp
 */
 #pragma region "rawr/lib/sync/base.hpp"
-#if RAWR_AMALGAM_SOURCE_MAPPING
-    #line 0 "rawr/lib/sync/base.hpp"
-#endif
 	
-	//// rawr/lib/sync/base.hpp.
+	#ifndef RAWR_NO_SOURCE_MAPPING
+	    #line 3 "rawr/lib/sync/base.hpp"
+	#endif
 	
 	#ifdef RAWR_MODULE
 	    //RAWR_AMALGAM_IGNORE export module rawr.lib.sync.base;
@@ -3009,10 +3047,9 @@
 	- rawr/lib/test.hpp
 */
 #pragma region "rawr/lib/compiler.pp"
-#if RAWR_AMALGAM_SOURCE_MAPPING
-    #line 0 "rawr/lib/compiler.pp"
-#endif
-	//// rawr/lib/compiler.pp.
+	#ifndef RAWR_NO_SOURCE_MAPPING
+	    #line 3 "rawr/lib/compiler.pp"
+	#endif
 	// Macro utilities for ergonomic compiler gating.
 	//RAWR_AMALGAM_IGNORE #pragma once
 	
@@ -3115,10 +3152,9 @@
 	- rawr/arch/x64.hpp
 */
 #pragma region "rawr/arch/x64/atomic.hpp"
-#if RAWR_AMALGAM_SOURCE_MAPPING
-    #line 0 "rawr/arch/x64/atomic.hpp"
-#endif
-	//// rawr/arch/x64/atomic.hpp.
+	#ifndef RAWR_NO_SOURCE_MAPPING
+	    #line 3 "rawr/arch/x64/atomic.hpp"
+	#endif
 	
 	#ifdef RAWR_MODULE
 	    //RAWR_AMALGAM_IGNORE export module rawr.arch.x64.atomic;
@@ -3324,26 +3360,109 @@
 #pragma endregion "rawr/arch/x64/atomic.hpp"
 
 /* required by:
+	- rawr/lib/bitfield.hpp
+	- rawr/lib/intrin.hpp
+	- rawr/lib/intrin/math.hpp
+	- rawr/lib/intrin/mem.hpp
+*/
+#pragma region "rawr/lib/intrin/base.hpp"
+	#ifndef RAWR_NO_SOURCE_MAPPING
+	    #line 3 "rawr/lib/intrin/base.hpp"
+	#endif
+	
+	#ifdef RAWR_MODULE
+	    //RAWR_AMALGAM_IGNORE export module rawr.lib.intrin.base;
+	    import rawr.lib.bits;
+	
+	    //RAWR_AMALGAM_IGNORE #include "rawr/lib/dist/module.pp"
+	#else
+	    //RAWR_AMALGAM_IGNORE #pragma once
+	    //RAWR_AMALGAM_IGNORE #include "rawr/lib/bits.hpp"
+	
+	    //RAWR_AMALGAM_IGNORE #include "rawr/lib/dist/header.pp"
+	#endif
+	//RAWR_AMALGAM_IGNORE #include "rawr/lib/detection.pp"
+	//RAWR_AMALGAM_IGNORE #include "rawr/lib/attributes.pp"
+	
+	// MSVC is quite picky with __is_same.
+	#if RAWR_COMPILER_MSVC
+	    namespace rawr::inline lib::intrin::inline base::msvc
+	    {
+	        template <typename T, typename U> struct is_same       { static constexpr auto value = false; };
+	        template <typename T>             struct is_same<T, T> { static constexpr auto value = true; };
+	    }
+	#endif
+	
+	RAWR_EXPORT namespace rawr::inline lib::intrin::inline base
+	{
+	    [[nodiscard]] RAWR_ALWAYS_INLINE constexpr auto is_consteval() noexcept -> bool
+	    { return __builtin_is_constant_evaluated(); }
+	
+	    #if RAWR_COMPILER_MSVC
+	        template<typename T, typename... Us> concept is = (msvc::is_same<T, Us>::value || ...);
+	    #else
+	        template<typename T, typename... Us> concept is = (__is_same(T, Us) || ...);
+	    #endif
+	
+	    template <typename T> concept is_trivially_copyable = __is_trivially_copyable(T);
+	    template <typename T> concept is_standard_layout    = __is_standard_layout(T);
+	
+	    template <typename T> T&& declval() noexcept;
+	    #if RAWR_COMPILER_FAMILY_GNU
+	        template <typename From, typename To>
+	        concept convertible_to = __is_convertible(From, To) && requires { static_cast<To>(declval<From>()); };
+	    #elif RAWR_COMPILER_MSVC
+	        template <typename From, typename To>
+	        concept convertible_to = __is_convertible_to(From, To) && requires { static_cast<To>(declval<From>()); };
+	    #endif
+	
+	    template <is_trivially_copyable To, is_trivially_copyable From>
+	    requires (sizeof(To) == sizeof(From))
+	    [[nodiscard]] RAWR_ALWAYS_INLINE constexpr auto bit_cast(From const& from) noexcept -> To
+	    { return __builtin_bit_cast(To, from); }
+	
+	    template <is_trivially_copyable To, is_trivially_copyable From>
+	    requires (sizeof(To) < sizeof(From))
+	    [[nodiscard]] RAWR_ALWAYS_INLINE constexpr auto bit_cast(From const& from, unsigned char ByteOffset = 0) noexcept -> To
+	    {
+	        using src_bytes = byte_array<sizeof(From)>;
+	        using dst_bytes = byte_array<sizeof(To)>;
+	
+	        auto const src = __builtin_bit_cast(src_bytes, from);
+	        dst_bytes dst{};
+	
+	        for (decltype(sizeof(0)) i = 0; i < sizeof(To); ++i) {
+	            dst.data[i] = src.data[ByteOffset + i];
+	        }
+	
+	        return __builtin_bit_cast(To, dst);
+	    }
+	}
+
+#pragma endregion "rawr/lib/intrin/base.hpp"
+
+/* required by:
 	- rawr/arch/x64/cpuid.hpp
 	- rawr/lib.hpp
 	- rawr/lib/bitfield.pp
 */
 #pragma region "rawr/lib/bitfield.hpp"
-#if RAWR_AMALGAM_SOURCE_MAPPING
-    #line 0 "rawr/lib/bitfield.hpp"
-#endif
-	//// rawr/lib/bitfield.hpp.
+	#ifndef RAWR_NO_SOURCE_MAPPING
+	    #line 3 "rawr/lib/bitfield.hpp"
+	#endif
 	
 	#ifdef RAWR_MODULE
 	    //RAWR_AMALGAM_IGNORE export module rawr.lib.bitfield;
 	    import rawr.lib.integer.base;
 	    import rawr.lib.bits;
+	    import rawr.lib.intrin.base;
 	
 	    //RAWR_AMALGAM_IGNORE #include "rawr/lib/dist/module.pp"
 	#else
 	    //RAWR_AMALGAM_IGNORE #pragma once
 	    //RAWR_AMALGAM_IGNORE #include "rawr/lib/integer/base.hpp"
 	    //RAWR_AMALGAM_IGNORE #include "rawr/lib/bits.hpp"
+	    //RAWR_AMALGAM_IGNORE #include "rawr/lib/intrin/base.hpp"
 	
 	    //RAWR_AMALGAM_IGNORE #include "rawr/lib/dist/header.pp"
 	#endif
@@ -3437,9 +3556,8 @@
 	            mask_type raw;
 	            if constexpr (aint<value_type>) {
 	                raw = static_cast<mask_type>(val);
-	            // TODO: port to intrin.hpp.
-	            } else if constexpr (__is_trivially_copyable(value_type)) {
-	                raw = static_cast<mask_type>(__builtin_bit_cast(uv, val));
+	            } else if constexpr (intrin::is_trivially_copyable<value_type>) {
+	                raw = static_cast<mask_type>(intrin::bit_cast<uv>(val));
 	            } else {
 	                static_assert(sizeof(value_type) == 0,
 	                    "accessor: value_type is neither an arithmetic integer type nor bit_cast-compatible with this field");
@@ -3458,10 +3576,9 @@
 	- rawr/lib.hpp
 */
 #pragma region "rawr/lib/bitfield.pp"
-#if RAWR_AMALGAM_SOURCE_MAPPING
-    #line 0 "rawr/lib/bitfield.pp"
-#endif
-	//// rawr/lib/bitfield.pp.
+	#ifndef RAWR_NO_SOURCE_MAPPING
+	    #line 3 "rawr/lib/bitfield.pp"
+	#endif
 	//RAWR_AMALGAM_IGNORE #pragma once
 	
 	//RAWR_AMALGAM_IGNORE #include "rawr/lib/dist/pp.pp"
@@ -3553,10 +3670,10 @@
 	- rawr/arch/x64.hpp
 */
 #pragma region "rawr/arch/x64/cpuid.hpp"
-#if RAWR_AMALGAM_SOURCE_MAPPING
-    #line 0 "rawr/arch/x64/cpuid.hpp"
-#endif
-	//// rawr/arch/x64/cpuid.hpp.
+	#ifndef RAWR_NO_SOURCE_MAPPING
+	    #line 3 "rawr/arch/x64/cpuid.hpp"
+	#endif
+	//RAWR_AMALGAM_IGNORE #include "rawr/lib/dist/todo.pp"
 	
 	#ifdef RAWR_MODULE
 	    //RAWR_AMALGAM_IGNORE export module rawr.arch.x64.cpuid;
@@ -3589,9 +3706,9 @@
 	
 	RAWR_EXPORT namespace rawr::arch::x64::gnu
 	{
+	    RAWR_TODO("__asm__ here feels like a copout, ideally there's a builtin we can call")
 	    RAWR_ALWAYS_INLINE auto ia32_cpuidext(int regs[4], int leaf, int subleaf) -> void
 	    RAWR_GNU_COND(RAWR_ARCH_X64, {
-	        // TODO: This feels like a copout.
 	        __asm__ __volatile__(
 	            "cpuid"
 	            : "=a"(regs[0]), "=b"(regs[1]), "=c"(regs[2]), "=d"(regs[3])
@@ -3602,7 +3719,7 @@
 	
 	RAWR_EXPORT namespace rawr::arch::x64
 	{
-	    // TODO: this needs review for potential accidental overhead.
+	    RAWR_TODO("This needs review for potential accidental overhead.")
 	    struct cpuid_args { ru32 leaf, subleaf; };
 	    struct cpuid_ret { ru32 regs[4]; };
 	
@@ -3831,10 +3948,9 @@
 	- rawr/lib/simd/storage.hpp
 */
 #pragma region "rawr/lib/simd/storage.pp"
-#if RAWR_AMALGAM_SOURCE_MAPPING
-    #line 0 "rawr/lib/simd/storage.pp"
-#endif
-	//// rawr/lib/simd/storage.pp.
+	#ifndef RAWR_NO_SOURCE_MAPPING
+	    #line 3 "rawr/lib/simd/storage.pp"
+	#endif
 	//RAWR_AMALGAM_IGNORE #pragma once
 	
 	//RAWR_AMALGAM_IGNORE #include "rawr/lib/detection.pp"
@@ -3870,10 +3986,9 @@
 	- rawr/arch/x64/simd.hpp
 */
 #pragma region "rawr/lib/simd/storage.hpp"
-#if RAWR_AMALGAM_SOURCE_MAPPING
-    #line 0 "rawr/lib/simd/storage.hpp"
-#endif
-	//// rawr/lib/simd/storage.hpp.
+	#ifndef RAWR_NO_SOURCE_MAPPING
+	    #line 3 "rawr/lib/simd/storage.hpp"
+	#endif
 	
 	#ifdef RAWR_MODULE
 	    //RAWR_AMALGAM_IGNORE export module rawr.lib.simd.storage;
@@ -3940,10 +4055,9 @@
 	- rawr/lib.hpp
 */
 #pragma region "rawr/lib/dummy_return.hpp"
-#if RAWR_AMALGAM_SOURCE_MAPPING
-    #line 0 "rawr/lib/dummy_return.hpp"
-#endif
-	//// rawr/lib/dummy_return.hpp.
+	#ifndef RAWR_NO_SOURCE_MAPPING
+	    #line 3 "rawr/lib/dummy_return.hpp"
+	#endif
 	
 	#ifdef RAWR_MODULE
 	    //RAWR_AMALGAM_IGNORE export module rawr.lib.dummy_return;
@@ -3964,94 +4078,13 @@
 
 /* required by:
 	- rawr/lib/intrin.hpp
-	- rawr/lib/intrin/math.hpp
-	- rawr/lib/intrin/mem.hpp
-*/
-#pragma region "rawr/lib/intrin/base.hpp"
-#if RAWR_AMALGAM_SOURCE_MAPPING
-    #line 0 "rawr/lib/intrin/base.hpp"
-#endif
-	//// rawr/lib/intrin/base.hpp.
-	
-	#ifdef RAWR_MODULE
-	    //RAWR_AMALGAM_IGNORE export module rawr.lib.intrin.base;
-	    import rawr.lib.bits;
-	
-	    //RAWR_AMALGAM_IGNORE #include "rawr/lib/dist/module.pp"
-	#else
-	    //RAWR_AMALGAM_IGNORE #pragma once
-	    //RAWR_AMALGAM_IGNORE #include "rawr/lib/bits.hpp"
-	
-	    //RAWR_AMALGAM_IGNORE #include "rawr/lib/dist/header.pp"
-	#endif
-	//RAWR_AMALGAM_IGNORE #include "rawr/lib/detection.pp"
-	//RAWR_AMALGAM_IGNORE #include "rawr/lib/attributes.pp"
-	
-	// MSVC is quite picky with __is_same.
-	#if RAWR_COMPILER_MSVC
-	    namespace rawr::inline lib::intrin::inline base::msvc
-	    {
-	        template <typename T, typename U> struct is_same       { static constexpr auto value = false; };
-	        template <typename T>             struct is_same<T, T> { static constexpr auto value = true; };
-	    }
-	#endif
-	
-	RAWR_EXPORT namespace rawr::inline lib::intrin::inline base
-	{
-	    [[nodiscard]] RAWR_ALWAYS_INLINE constexpr auto is_consteval() noexcept -> bool
-	    { return __builtin_is_constant_evaluated(); }
-	
-	    #if RAWR_COMPILER_MSVC
-	        template<typename T, typename... Us> concept is = (msvc::is_same<T, Us>::value || ...);
-	    #else
-	        template<typename T, typename... Us> concept is = (__is_same(T, Us) || ...);
-	    #endif
-	
-	    template <typename T> concept is_trivially_copyable = __is_trivially_copyable(T);
-	    template <typename T> concept is_standard_layout    = __is_standard_layout(T);
-	
-	    template <typename T> T&& declval() noexcept; // TODO: this doesnt belong here.
-	    #if RAWR_COMPILER_FAMILY_GNU
-	        template <typename From, typename To>
-	        concept convertible_to = __is_convertible(From, To) && requires { static_cast<To>(declval<From>()); };
-	    #elif RAWR_COMPILER_MSVC
-	        template <typename From, typename To>
-	        concept convertible_to = __is_convertible_to(From, To) && requires { static_cast<To>(declval<From>()); };
-	    #endif
-	
-	    template <is_trivially_copyable To, is_trivially_copyable From>
-	    requires (sizeof(To) == sizeof(From))
-	    [[nodiscard]] RAWR_ALWAYS_INLINE constexpr auto bit_cast(From const& from) noexcept -> To
-	    { return __builtin_bit_cast(To, from); }
-	
-	    template <is_trivially_copyable To, is_trivially_copyable From>
-	    requires (sizeof(To) < sizeof(From))
-	    [[nodiscard]] RAWR_ALWAYS_INLINE constexpr auto bit_cast(From const& from, unsigned char ByteOffset = 0) noexcept -> To
-	    {
-	        using src_bytes = byte_array<sizeof(From)>;
-	        using dst_bytes = byte_array<sizeof(To)>;
-	
-	        auto const src = __builtin_bit_cast(src_bytes, from);
-	        dst_bytes dst{};
-	
-	        for (decltype(sizeof(0)) i = 0; i < sizeof(To); ++i) {
-	            dst.data[i] = src.data[ByteOffset + i];
-	        }
-	
-	        return __builtin_bit_cast(To, dst);
-	    }
-	}
-
-#pragma endregion "rawr/lib/intrin/base.hpp"
-
-/* required by:
-	- rawr/lib/intrin.hpp
 */
 #pragma region "rawr/lib/intrin/math.hpp"
-#if RAWR_AMALGAM_SOURCE_MAPPING
-    #line 0 "rawr/lib/intrin/math.hpp"
-#endif
-	//// rawr/lib/intrin/math.hpp.
+	#ifndef RAWR_NO_SOURCE_MAPPING
+	    #line 3 "rawr/lib/intrin/math.hpp"
+	#endif
+	
+	//RAWR_AMALGAM_IGNORE #include "rawr/lib/dist/todo.pp"
 	
 	#ifdef RAWR_MODULE
 	    //RAWR_AMALGAM_IGNORE export module rawr.lib.intrin.math;
@@ -4353,7 +4386,7 @@
 	        }
 	    }
 	
-	    // TODO: fix rotation on gcc to the builtin when it exists -> check compiler version.
+	    RAWR_TODO("fix rotation on gcc to the builtin when it exists -> check compiler version.")
 	
 	    // Rotation. Negative n rotates in the opposite direction (matching std::rotl/rotr semantics).
 	    // GCC ≥ 12 and Clang ≥ 8 have __builtin_rotateleft*, but GCC 11 (minimum supported) does not.
@@ -4728,10 +4761,11 @@
 	- rawr/lib/intrin.hpp
 */
 #pragma region "rawr/lib/intrin/mem.hpp"
-#if RAWR_AMALGAM_SOURCE_MAPPING
-    #line 0 "rawr/lib/intrin/mem.hpp"
-#endif
-	//// rawr/lib/intrin/mem.hpp.
+	#ifndef RAWR_NO_SOURCE_MAPPING
+	    #line 3 "rawr/lib/intrin/mem.hpp"
+	#endif
+	
+	//RAWR_AMALGAM_IGNORE #include "rawr/lib/dist/todo.pp"
 	
 	#ifdef RAWR_MODULE
 	    //RAWR_AMALGAM_IGNORE export module rawr.lib.intrin.mem;
@@ -4791,7 +4825,7 @@
 	                }
 	            }
 	
-	            // TODO: unimplemented.
+	            RAWR_TODO("Unimplemented. Implement")
 	            return dst;
 	        }
 	
@@ -4866,10 +4900,9 @@
 	- rawr/lib/test.hpp
 */
 #pragma region "rawr/lib/intrin.hpp"
-#if RAWR_AMALGAM_SOURCE_MAPPING
-    #line 0 "rawr/lib/intrin.hpp"
-#endif
-	//// rawr/lib/intrin.hpp.
+	#ifndef RAWR_NO_SOURCE_MAPPING
+	    #line 3 "rawr/lib/intrin.hpp"
+	#endif
 	
 	#ifdef RAWR_MODULE
 	    //RAWR_AMALGAM_IGNORE export module rawr.lib.intrin;
@@ -4889,10 +4922,9 @@
 	- rawr/arch/x64.hpp
 */
 #pragma region "rawr/arch/x64/simd.hpp"
-#if RAWR_AMALGAM_SOURCE_MAPPING
-    #line 0 "rawr/arch/x64/simd.hpp"
-#endif
-	//// rawr/arch/x64/simd.hpp.
+	#ifndef RAWR_NO_SOURCE_MAPPING
+	    #line 3 "rawr/arch/x64/simd.hpp"
+	#endif
 	
 	#ifdef RAWR_MODULE
 	    //RAWR_AMALGAM_IGNORE export module rawr.arch.x64.simd;
@@ -5013,10 +5045,9 @@
 	- rawr/arch.hpp
 */
 #pragma region "rawr/arch/x64.hpp"
-#if RAWR_AMALGAM_SOURCE_MAPPING
-    #line 0 "rawr/arch/x64.hpp"
-#endif
-	//// rawr/arch/x64.hpp.
+	#ifndef RAWR_NO_SOURCE_MAPPING
+	    #line 3 "rawr/arch/x64.hpp"
+	#endif
 	
 	#ifdef RAWR_MODULE
 	    //RAWR_AMALGAM_IGNORE export module rawr.arch.x64;
@@ -5033,13 +5064,12 @@
 #pragma endregion "rawr/arch/x64.hpp"
 
 /* required by:
-	- /workspace/include/rawr.hpp
+	- rawr.hpp
 */
 #pragma region "rawr/arch.hpp"
-#if RAWR_AMALGAM_SOURCE_MAPPING
-    #line 0 "rawr/arch.hpp"
-#endif
-	//// rawr/arch.hpp.
+	#ifndef RAWR_NO_SOURCE_MAPPING
+	    #line 3 "rawr/arch.hpp"
+	#endif
 	
 	#ifdef RAWR_MODULE
 	    //RAWR_AMALGAM_IGNORE export module rawr.arch;
@@ -5055,10 +5085,9 @@
 	- rawr/bin.hpp
 */
 #pragma region "rawr/bin/elf.hpp"
-#if RAWR_AMALGAM_SOURCE_MAPPING
-    #line 0 "rawr/bin/elf.hpp"
-#endif
-	//// rawr/bin/elf.hpp.
+	#ifndef RAWR_NO_SOURCE_MAPPING
+	    #line 3 "rawr/bin/elf.hpp"
+	#endif
 	
 	#ifdef RAWR_MODULE
 	    //RAWR_AMALGAM_IGNORE export module rawr.bin.elf;
@@ -5130,13 +5159,12 @@
 #pragma endregion "rawr/bin/elf.hpp"
 
 /* required by:
-	- /workspace/include/rawr.hpp
+	- rawr.hpp
 */
 #pragma region "rawr/bin.hpp"
-#if RAWR_AMALGAM_SOURCE_MAPPING
-    #line 0 "rawr/bin.hpp"
-#endif
-	//// rawr/bin.hpp.
+	#ifndef RAWR_NO_SOURCE_MAPPING
+	    #line 3 "rawr/bin.hpp"
+	#endif
 	
 	#ifdef RAWR_MODULE
 	    //RAWR_AMALGAM_IGNORE export module rawr.bin;
@@ -5152,10 +5180,9 @@
 	- rawr/cxx_abi.hpp
 */
 #pragma region "rawr/cxx_abi/itanium.hpp"
-#if RAWR_AMALGAM_SOURCE_MAPPING
-    #line 0 "rawr/cxx_abi/itanium.hpp"
-#endif
-	//// rawr/cxx_abi/itanium.hpp.
+	#ifndef RAWR_NO_SOURCE_MAPPING
+	    #line 3 "rawr/cxx_abi/itanium.hpp"
+	#endif
 	
 	#ifdef RAWR_MODULE
 	    //RAWR_AMALGAM_IGNORE export module rawr.cxx_abi.itanium;
@@ -5182,13 +5209,12 @@
 #pragma endregion "rawr/cxx_abi/itanium.hpp"
 
 /* required by:
-	- /workspace/include/rawr.hpp
+	- rawr.hpp
 */
 #pragma region "rawr/cxx_abi.hpp"
-#if RAWR_AMALGAM_SOURCE_MAPPING
-    #line 0 "rawr/cxx_abi.hpp"
-#endif
-	//// rawr/cxx_abi.hpp.
+	#ifndef RAWR_NO_SOURCE_MAPPING
+	    #line 3 "rawr/cxx_abi.hpp"
+	#endif
 	
 	#ifdef RAWR_MODULE
 	    //RAWR_AMALGAM_IGNORE export module rawr.cxx_abi;
@@ -5204,10 +5230,9 @@
 	- rawr/lib.hpp
 */
 #pragma region "rawr/lib/diag.hpp"
-#if RAWR_AMALGAM_SOURCE_MAPPING
-    #line 0 "rawr/lib/diag.hpp"
-#endif
-	//// rawr/lib/diag.hpp.
+	#ifndef RAWR_NO_SOURCE_MAPPING
+	    #line 3 "rawr/lib/diag.hpp"
+	#endif
 	
 	#ifdef RAWR_MODULE
 	    //RAWR_AMALGAM_IGNORE export module rawr.lib.diag;
@@ -5224,10 +5249,9 @@
 	- rawr/lib/fmt.hpp
 */
 #pragma region "rawr/lib/type_name.hpp"
-#if RAWR_AMALGAM_SOURCE_MAPPING
-    #line 0 "rawr/lib/type_name.hpp"
-#endif
-	//// rawr/lib/type_name.hpp.
+	#ifndef RAWR_NO_SOURCE_MAPPING
+	    #line 3 "rawr/lib/type_name.hpp"
+	#endif
 	
 	#ifdef RAWR_MODULE
 	    //RAWR_AMALGAM_IGNORE export module rawr.lib.type_name;
@@ -5316,21 +5340,24 @@
 	- rawr/lib.hpp
 */
 #pragma region "rawr/lib/fmt.hpp"
-#if RAWR_AMALGAM_SOURCE_MAPPING
-    #line 0 "rawr/lib/fmt.hpp"
-#endif
-	//// rawr/lib/fmt.hpp.
+	#ifndef RAWR_NO_SOURCE_MAPPING
+	    #line 3 "rawr/lib/fmt.hpp"
+	#endif
 	
 	#ifdef RAWR_MODULE
 	    //RAWR_AMALGAM_IGNORE export module rawr.lib.fmt;
 	    import rawr.lib.type_name;
 	    import rawr.lib.intrin;
+	    import rawr.lib.bits;
+	    import rawr.lib.integer.base;
 	
 	    //RAWR_AMALGAM_IGNORE #include "rawr/lib/dist/module.pp"
 	#else
 	    //RAWR_AMALGAM_IGNORE #pragma once
 	    //RAWR_AMALGAM_IGNORE #include "rawr/lib/type_name.hpp"
 	    //RAWR_AMALGAM_IGNORE #include "rawr/lib/intrin.hpp"
+	    //RAWR_AMALGAM_IGNORE #include "rawr/lib/bits.hpp"
+	    //RAWR_AMALGAM_IGNORE #include "rawr/lib/integer/base.hpp"
 	
 	    //RAWR_AMALGAM_IGNORE #include "rawr/lib/dist/header.pp"
 	#endif
@@ -5750,12 +5777,12 @@
 	        }
 	    }
 	
-	    template<typename T>
+	    template <aint T>
 	    struct number_formatter
 	    {
 	        using value_type = T;
-	        // TODO: calculate this from T.
-	        static constexpr st worst_case_buffer_size = 21;
+	
+	        static constexpr st worst_case_buffer_size = (bitsof<value_type>.val * 301) / 1000 + 1 + (sint<T>);
 	
 	        static constexpr void format(
 	            buf& buf,
@@ -5768,7 +5795,7 @@
 	                spec.data[0] == ':' &&
 	                spec.data[1] == 'x';
 	
-	            if constexpr (T(-1) < T(0)) // If is signed.
+	            if constexpr(sint<T>)
 	            {
 	                auto v = static_cast<long long>(value);
 	                auto magnitude = static_cast<unsigned long long>(v);
@@ -5782,7 +5809,7 @@
 	                if (hex) number_formatter_common::format_hex(buf, magnitude);
 	                else number_formatter_common::format_dec(buf, magnitude);
 	            }
-	            else // Else if is unsigned.
+	            else
 	            {
 	                auto magnitude = static_cast<unsigned long long>(value);
 	
@@ -5892,10 +5919,11 @@
 	- rawr/lib/integer.hpp
 */
 #pragma region "rawr/lib/integer/strong.hpp"
-#if RAWR_AMALGAM_SOURCE_MAPPING
-    #line 0 "rawr/lib/integer/strong.hpp"
-#endif
-	//// rawr/lib/integer/strong.hpp.
+	#ifndef RAWR_NO_SOURCE_MAPPING
+	    #line 3 "rawr/lib/integer/strong.hpp"
+	#endif
+	
+	//RAWR_AMALGAM_IGNORE #include "rawr/lib/dist/todo.pp"
 	
 	#ifdef RAWR_MODULE
 	    //RAWR_AMALGAM_IGNORE export module rawr.lib.integer.strong;
@@ -5931,7 +5959,7 @@
 	
 	RAWR_EXPORT namespace rawr::inline lib::inline integer::inline strong
 	{
-	    // TODO: Dummy for now.
+	    RAWR_TODO("Assetion is a dummy for now. Crucial for correcness, need implementation")
 	    #define RAWR_ASSERTION(...)
 	
 	    enum class integer_policy : ru8 { checked, wrapping, saturating };
@@ -6115,7 +6143,7 @@
 	        constexpr auto operator%=(Derived rhs) noexcept -> Derived& { *this = self() % rhs; return self(); }
 	
 	        /* --- Bitwise Ops --- */
-	        // TODO: review the shifts.
+	        RAWR_TODO("Review the shifts. Needs care for the type of the shifter, like loom.a.ne")
 	        [[nodiscard]] constexpr auto operator~() const noexcept -> Derived { return Derived{ static_cast<raw_type>(~raw) }; }
 	        [[nodiscard]] friend constexpr auto operator&(Derived lhs, Derived rhs)  noexcept -> Derived { return Derived{ static_cast<raw_type>(lhs.raw & rhs.raw) }; }
 	        [[nodiscard]] friend constexpr auto operator|(Derived lhs, Derived rhs)  noexcept -> Derived { return Derived{ static_cast<raw_type>(lhs.raw | rhs.raw) }; }
@@ -6797,10 +6825,9 @@
 	- rawr/lib.hpp
 */
 #pragma region "rawr/lib/integer.hpp"
-#if RAWR_AMALGAM_SOURCE_MAPPING
-    #line 0 "rawr/lib/integer.hpp"
-#endif
-	//// rawr/lib/integer.hpp.
+	#ifndef RAWR_NO_SOURCE_MAPPING
+	    #line 3 "rawr/lib/integer.hpp"
+	#endif
 	
 	#ifdef RAWR_MODULE
 	    //RAWR_AMALGAM_IGNORE export module rawr.lib.integer;
@@ -6820,10 +6847,9 @@
 	- rawr/lib.hpp
 */
 #pragma region "rawr/lib/rich_enum.hpp"
-#if RAWR_AMALGAM_SOURCE_MAPPING
-    #line 0 "rawr/lib/rich_enum.hpp"
-#endif
-	//// rawr/lib/rich_enum.hpp.
+	#ifndef RAWR_NO_SOURCE_MAPPING
+	    #line 3 "rawr/lib/rich_enum.hpp"
+	#endif
 	
 	#ifdef RAWR_MODULE
 	    //RAWR_AMALGAM_IGNORE export module rawr.lib.rich_enum;
@@ -6855,10 +6881,9 @@
 	- rawr/lib.hpp
 */
 #pragma region "rawr/lib/sync.hpp"
-#if RAWR_AMALGAM_SOURCE_MAPPING
-    #line 0 "rawr/lib/sync.hpp"
-#endif
-	//// rawr/lib/sync.hpp.
+	#ifndef RAWR_NO_SOURCE_MAPPING
+	    #line 3 "rawr/lib/sync.hpp"
+	#endif
 	
 	#ifdef RAWR_MODULE
 	    //RAWR_AMALGAM_IGNORE export module rawr.lib.sync;
@@ -6874,10 +6899,9 @@
 	- rawr/lib/test.hpp
 */
 #pragma region "rawr/lib/source_location.hpp"
-#if RAWR_AMALGAM_SOURCE_MAPPING
-    #line 0 "rawr/lib/source_location.hpp"
-#endif
-	//// rawr/lib/source_location.hpp.
+	#ifndef RAWR_NO_SOURCE_MAPPING
+	    #line 3 "rawr/lib/source_location.hpp"
+	#endif
 	
 	#ifdef RAWR_MODULE
 	    //RAWR_AMALGAM_IGNORE export module rawr.lib.source_location;
@@ -6918,10 +6942,9 @@
 	- rawr/lib/test.pp
 */
 #pragma region "rawr/lib/test.hpp"
-#if RAWR_AMALGAM_SOURCE_MAPPING
-    #line 0 "rawr/lib/test.hpp"
-#endif
-	//// rawr/lib/test.hpp.
+	#ifndef RAWR_NO_SOURCE_MAPPING
+	    #line 3 "rawr/lib/test.hpp"
+	#endif
 	
 	#ifdef RAWR_MODULE
 	    //RAWR_AMALGAM_IGNORE export module rawr.lib.test;
@@ -7079,10 +7102,9 @@
 	- rawr/lib.hpp
 */
 #pragma region "rawr/lib/linker_section.pp"
-#if RAWR_AMALGAM_SOURCE_MAPPING
-    #line 0 "rawr/lib/linker_section.pp"
-#endif
-	//// rawr/data/linker_section.pp
+	#ifndef RAWR_NO_SOURCE_MAPPING
+	    #line 3 "rawr/data/linker_section.pp"
+	#endif
 	//
 	// Decentralised typed linker-section registry.
 	//
@@ -7093,10 +7115,11 @@
 	//
 	// If you define a section, its best practice to also define an accompanying macro
 	// for registering into that section. such as:
-	//     namespace rawr::inline lib::test {
+	//     namespace rawr::inline lib::test
+	//     {
 	//         struct section_entry { ... };
 	//         RAWR_LINKER_SECTION_DEFINE(section, section_entry)
-	//         #define RAWR_TEST(Test) \
+	//         #define RAWR_REGISTER_TEST(Test) \
 	//             RAWR_LINKER_SECTION_REGISTER(::rawr::lib::test::section, Test)
 	//     }
 	//
@@ -7401,9 +7424,6 @@
 	- rawr/lib.hpp
 */
 #pragma region "rawr/lib/main.pp"
-#if RAWR_AMALGAM_SOURCE_MAPPING
-    #line 0 "rawr/lib/main.pp"
-#endif
 	//RAWR_AMALGAM_IGNORE #pragma once
 	
 	//RAWR_AMALGAM_IGNORE #include "rawr/lib/detection.pp"
@@ -7424,10 +7444,9 @@
 	- rawr/lib.hpp
 */
 #pragma region "rawr/lib/test.pp"
-#if RAWR_AMALGAM_SOURCE_MAPPING
-    #line 0 "rawr/lib/test.pp"
-#endif
-	//// rawr/lib/test.pp.
+	#ifndef RAWR_NO_SOURCE_MAPPING
+	    #line 3 "rawr/lib/test.pp"
+	#endif
 	//RAWR_AMALGAM_IGNORE #pragma once
 	
 	// TODO: import/include linker section once thats done.
@@ -7461,13 +7480,12 @@
 #pragma endregion "rawr/lib/test.pp"
 
 /* required by:
-	- /workspace/include/rawr.hpp
+	- rawr.hpp
 */
 #pragma region "rawr/lib.hpp"
-#if RAWR_AMALGAM_SOURCE_MAPPING
-    #line 0 "rawr/lib.hpp"
-#endif
-	//// rawr/lib.hpp.
+	#ifndef RAWR_NO_SOURCE_MAPPING
+	    #line 3 "rawr/lib.hpp"
+	#endif
 	
 	#ifdef RAWR_MODULE
 	    //RAWR_AMALGAM_IGNORE export module rawr.lib;
@@ -7514,10 +7532,9 @@
 	- rawr/platform.hpp
 */
 #pragma region "rawr/platform/linux.hpp"
-#if RAWR_AMALGAM_SOURCE_MAPPING
-    #line 0 "rawr/platform/linux.hpp"
-#endif
-	//// rawr/platform/linux.hpp.
+	#ifndef RAWR_NO_SOURCE_MAPPING
+	    #line 3 "rawr/platform/linux.hpp"
+	#endif
 	
 	#ifdef RAWR_MODULE
 	    //RAWR_AMALGAM_IGNORE export module rawr.platform.linux;
@@ -7875,13 +7892,12 @@
 #pragma endregion "rawr/platform/linux.hpp"
 
 /* required by:
-	- /workspace/include/rawr.hpp
+	- rawr.hpp
 */
 #pragma region "rawr/platform.hpp"
-#if RAWR_AMALGAM_SOURCE_MAPPING
-    #line 0 "rawr/platform.hpp"
-#endif
-	//// rawr/platform.hpp.
+	#ifndef RAWR_NO_SOURCE_MAPPING
+	    #line 3 "rawr/platform.hpp"
+	#endif
 	
 	#ifdef RAWR_MODULE
 	    //RAWR_AMALGAM_IGNORE export module rawr.platform;
@@ -7897,10 +7913,9 @@
 	- rawr/san.hpp
 */
 #pragma region "rawr/san/asan.hpp"
-#if RAWR_AMALGAM_SOURCE_MAPPING
-    #line 0 "rawr/san/asan.hpp"
-#endif
-	//// rawr/san/asan.hpp.
+	#ifndef RAWR_NO_SOURCE_MAPPING
+	    #line 3 "rawr/san/asan.hpp"
+	#endif
 	
 	#ifdef RAWR_MODULE
 	    //RAWR_AMALGAM_IGNORE export module rawr.san.asan;
@@ -7973,10 +7988,9 @@
 	- rawr/san.hpp
 */
 #pragma region "rawr/san/lsan.hpp"
-#if RAWR_AMALGAM_SOURCE_MAPPING
-    #line 0 "rawr/san/lsan.hpp"
-#endif
-	//// rawr/san/lsan.hpp.
+	#ifndef RAWR_NO_SOURCE_MAPPING
+	    #line 3 "rawr/san/lsan.hpp"
+	#endif
 	
 	#ifdef RAWR_MODULE
 	    //RAWR_AMALGAM_IGNORE export module rawr.san.lsan;
@@ -8020,10 +8034,9 @@
 	- rawr/san.hpp
 */
 #pragma region "rawr/san/msan.hpp"
-#if RAWR_AMALGAM_SOURCE_MAPPING
-    #line 0 "rawr/san/msan.hpp"
-#endif
-	//// rawr/san/msan.hpp.
+	#ifndef RAWR_NO_SOURCE_MAPPING
+	    #line 3 "rawr/san/msan.hpp"
+	#endif
 	
 	#ifdef RAWR_MODULE
 	    //RAWR_AMALGAM_IGNORE export module rawr.san.msan;
@@ -8076,10 +8089,9 @@
 	- rawr/san.hpp
 */
 #pragma region "rawr/san/tsan.hpp"
-#if RAWR_AMALGAM_SOURCE_MAPPING
-    #line 0 "rawr/san/tsan.hpp"
-#endif
-	//// rawr/san/tsan.hpp.
+	#ifndef RAWR_NO_SOURCE_MAPPING
+	    #line 3 "rawr/san/tsan.hpp"
+	#endif
 	
 	#ifdef RAWR_MODULE
 	    //RAWR_AMALGAM_IGNORE export module rawr.san.tsan;
@@ -8133,10 +8145,9 @@
 	- rawr/san.hpp
 */
 #pragma region "rawr/san/attributes.pp"
-#if RAWR_AMALGAM_SOURCE_MAPPING
-    #line 0 "rawr/san/attributes.pp"
-#endif
-	//// rawr/san/attributes.pp.
+	#ifndef RAWR_NO_SOURCE_MAPPING
+	    #line 3 "rawr/san/attributes.pp"
+	#endif
 	//RAWR_AMALGAM_IGNORE #pragma once
 	
 	//RAWR_AMALGAM_IGNORE #include "rawr/lib/attributes.pp"
@@ -8151,13 +8162,12 @@
 #pragma endregion "rawr/san/attributes.pp"
 
 /* required by:
-	- /workspace/include/rawr.hpp
+	- rawr.hpp
 */
 #pragma region "rawr/san.hpp"
-#if RAWR_AMALGAM_SOURCE_MAPPING
-    #line 0 "rawr/san.hpp"
-#endif
-	//// rawr/san.hpp.
+	#ifndef RAWR_NO_SOURCE_MAPPING
+	    #line 3 "rawr/san.hpp"
+	#endif
 	
 	#ifdef RAWR_MODULE
 	    //RAWR_AMALGAM_IGNORE export module rawr.san;
@@ -8176,11 +8186,10 @@
 
 #pragma endregion "rawr/san.hpp"
 
-#pragma region "/workspace/include/rawr.hpp"
-#if RAWR_AMALGAM_SOURCE_MAPPING
-    #line 0 "/workspace/include/rawr.hpp"
-#endif
-	//// rawr.hpp.
+#pragma region "rawr.hpp"
+	#ifndef RAWR_NO_SOURCE_MAPPING
+	    #line 3 "rawr.hpp"
+	#endif
 	
 	#ifdef RAWR_MODULE
 	    //RAWR_AMALGAM_IGNORE export module rawr;
@@ -8202,6 +8211,6 @@
 	    //RAWR_AMALGAM_IGNORE #include "rawr/san.hpp"
 	#endif
 
-#pragma endregion "/workspace/include/rawr.hpp"
+#pragma endregion "rawr.hpp"
 
 #pragma endregion rawr-amalgam

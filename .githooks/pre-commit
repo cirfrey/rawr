@@ -24,20 +24,20 @@ echo "Generating module manifest..."
 
 git add module.manifest
 
-echo "Generating amalgam..."
+# echo "Generating amalgam..."
 
-rm -f include/rawr.amalgam.hpp
-git add include/rawr.amalgam.hpp
+# rm -f include/rawr.amalgam.hpp
+# git add include/rawr.amalgam.hpp
 
-if "$PYTHON" scripts/amalgam.py \
-    -I include \
-    include/rawr.hpp \
-    include/rawr.amalgam.hpp
-then
-    git add include/rawr.amalgam.hpp
-else
-    echo "warning: amalgamation failed; committing with amalgam deleted" >&2
-    git add include/rawr.amalgam.hpp
-fi
+# if "$PYTHON" scripts/amalgam.py \
+#     -I include \
+#     include/rawr.hpp \
+#     include/rawr.amalgam.hpp
+# then
+#     git add include/rawr.amalgam.hpp
+# else
+#     echo "warning: amalgamation failed; committing with amalgam deleted" >&2
+#     git add include/rawr.amalgam.hpp
+# fi
 
 #git stash pop

@@ -1,4 +1,8 @@
-//// rawr/lib/integer/strong.hpp.
+#ifndef RAWR_NO_SOURCE_MAPPING
+    #line 3 "rawr/lib/integer/strong.hpp"
+#endif
+
+#include "rawr/lib/dist/todo.pp"
 
 #ifdef RAWR_MODULE
     export module rawr.lib.integer.strong;
@@ -34,7 +38,7 @@ namespace rawr::inline lib::inline integer::inline strong::detail
 
 RAWR_EXPORT namespace rawr::inline lib::inline integer::inline strong
 {
-    // TODO: Dummy for now.
+    RAWR_TODO("Assetion is a dummy for now. Crucial for correcness, need implementation")
     #define RAWR_ASSERTION(...)
 
     enum class integer_policy : ru8 { checked, wrapping, saturating };
@@ -218,7 +222,7 @@ RAWR_EXPORT namespace rawr::inline lib::inline integer::inline strong
         constexpr auto operator%=(Derived rhs) noexcept -> Derived& { *this = self() % rhs; return self(); }
 
         /* --- Bitwise Ops --- */
-        // TODO: review the shifts.
+        RAWR_TODO("Review the shifts. Needs care for the type of the shifter, like loom.a.ne")
         [[nodiscard]] constexpr auto operator~() const noexcept -> Derived { return Derived{ static_cast<raw_type>(~raw) }; }
         [[nodiscard]] friend constexpr auto operator&(Derived lhs, Derived rhs)  noexcept -> Derived { return Derived{ static_cast<raw_type>(lhs.raw & rhs.raw) }; }
         [[nodiscard]] friend constexpr auto operator|(Derived lhs, Derived rhs)  noexcept -> Derived { return Derived{ static_cast<raw_type>(lhs.raw | rhs.raw) }; }

@@ -1,4 +1,8 @@
-//// rawr/lib/diag/dwarf.hpp.
+#ifndef RAWR_NO_SOURCE_MAPPING
+    #line 3 "rawr/lib/diag/dwarf.hpp"
+#endif
+
+#include "rawr/lib/dist/todo.pp"
 
 #ifdef RAWR_MODULE
     export module rawr.lib.diag.dwarf;
@@ -21,8 +25,10 @@ namespace rawr::inline lib::diag::dwarf
         rbp = 6,  rsp = 7,  r8  = 8,  r9  = 9,  r10 = 10, r11 = 11,
         r12 = 12, r13 = 13, r14 = 14, r15 = 15,
         rip = 16, // return address (RA)
-        // x87/MMX/SSE registers omitted; rarely needed for unwind.
-        // TODO: un-omit them, this should be a complete representation.
+        RAWR_TODO(
+            "x87/MMX/SSE registers omitted; rarely needed for unwind."
+            "un-omit them, this should be a complete representation."
+        )
     };
 
     enum class arm64_reg : unsigned char {

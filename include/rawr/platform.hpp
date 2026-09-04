@@ -1,4 +1,6 @@
-//// rawr/platform.hpp.
+#ifndef RAWR_NO_SOURCE_MAPPING
+    #line 3 "rawr/platform.hpp"
+#endif
 
 #ifdef RAWR_MODULE
     export module rawr.platform;

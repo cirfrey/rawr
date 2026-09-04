@@ -10,9 +10,3 @@ option('scratchpad',
     value: false,
     description: 'Enable scratchpad functionality'
 )
-
-option('cppm-source-mapping',
-    type: 'boolean',
-    value: false,
-    description: ''
-)
