@@ -15,7 +15,11 @@
         __pragma(message(__FILE__ "(" RAWR_TODO_STRINGIFY(__LINE__) "): [TODO] " msg))
 #else
     // Only emit warnings for the current file, sadly msvc doesnt support this.
-    #if __INCLUDE_LEVEL__ == 1
+    #ifndef RAWR_TODO_INCLUDELEVEL
+        #define RAWR_TODO_INCLUDELEVEL 1
+    #endif
+
+    #if __INCLUDE_LEVEL__ == RAWR_TODO_INCLUDELEVEL
         #define RAWR_TODO(msg) _Pragma(RAWR_TODO_STRINGIFY(GCC warning "[TODO] " msg))
     #else
         #define RAWR_TODO(x)
