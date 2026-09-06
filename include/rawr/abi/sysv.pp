@@ -63,11 +63,11 @@
 // and _start means "abi trampoline stuff". In NOCTX mode you'll only see rawr_main in the
 // generated assembly which is cleaner and more sematically consistent. The linker figures
 // everything out correctly.
-#define RAWR_ABI_SYSV_MAIN_NOCTX(...)                                     \
-    extern "C" {                                                          \
-        RAWR_NORETURN void rawr_main() noexcept {                         \
-            ::rawr::lib::diag::dwarf::mark_unwind_root();                 \
-            __VA_ARGS__;                                                  \
-        }                                                                 \
-        RAWR_NORETURN void _start() noexcept RAWR_ASM_ALIAS("rawr_main"); \
+#define RAWR_ABI_SYSV_MAIN_NOCTX(...)                               \
+    extern "C" {                                                    \
+        RAWR_NORETURN void rawr_main() noexcept {                   \
+            ::rawr::lib::diag::dwarf::mark_unwind_root();           \
+            __VA_ARGS__;                                            \
+        }                                                           \
+        RAWR_NORETURN void _start() noexcept RAWR_ASM("rawr_main"); \
     }

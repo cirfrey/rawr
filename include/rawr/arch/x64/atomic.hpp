@@ -29,8 +29,8 @@ RAWR_EXPORT namespace rawr::arch::x64::atomic::msvc
 
     // MSVC intrinsics often need an exact type match, which can be a problem if you do signed char instead of
     // char or things like using int instead of long, even if they are the same size in that architecture.
-    using rchar = RAWR_MSVC_OR(char, rs8);
-    using rlong = RAWR_MSVC_OR(long, rs32);
+    using rchar = RAWR_MSVC_ELSE(char, rs8);
+    using rlong = RAWR_MSVC_ELSE(long, rs32);
 
     RAWR_MSVC_INTRIN(1, _InterlockedCompareExchange8,  (rchar volatile*, rchar, rchar) -> rchar);
     RAWR_MSVC_INTRIN(1, _InterlockedCompareExchange16, (rs16  volatile*, rs16,  rs16)  -> rs16);

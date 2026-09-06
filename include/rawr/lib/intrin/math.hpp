@@ -31,7 +31,7 @@
 
 RAWR_EXPORT namespace rawr::inline lib::intrin::inline math::msvc
 {
-    using rulong = RAWR_MSVC_OR(unsigned long, ru32);
+    using rulong = RAWR_MSVC_ELSE(unsigned long, ru32);
 
     RAWR_MSVC_INTRIN(1,             __popcnt16, (ru16) -> ru16);
     RAWR_MSVC_INTRIN(1,             __popcnt,   (ru32) -> ru32);
@@ -419,7 +419,7 @@ RAWR_EXPORT namespace rawr::inline lib::intrin::inline math
 RAWR_EXPORT namespace rawr::inline lib::intrin::inline math::gnu
 {
     RAWR_ALWAYS_INLINE constexpr auto umul64(ru64 lhs, ru64 rhs) noexcept -> ru64_pair
-    RAWR_GNU_COND(RAWR_HAS_INT128, {
+    RAWR_GNU_AND(RAWR_HAS_INT128, {
         ru128 ret = static_cast<ru128>(lhs) * rhs;
         return {
             .hi = static_cast<ru64>(ret >> bitsof<ru64>.val),
@@ -428,7 +428,7 @@ RAWR_EXPORT namespace rawr::inline lib::intrin::inline math::gnu
     });
 
     RAWR_ALWAYS_INLINE constexpr auto udiv128_64(ru64_pair ru64s, ru64 divisor) noexcept -> u128_div_result
-    RAWR_GNU_COND(RAWR_HAS_INT128, {
+    RAWR_GNU_AND(RAWR_HAS_INT128, {
         ru128 num = (static_cast<ru128>(ru64s.hi) << bitsof<ru64>.val) | ru64s.lo;
         return {
             .quot = static_cast<ru64>(num / divisor),

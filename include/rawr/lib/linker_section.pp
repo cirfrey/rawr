@@ -198,7 +198,7 @@
 #elif RAWR_BIN_MACHO
 
     // ld64 generates section$start$SEGMENT$section and section$end$SEGMENT$section
-    // for non-empty sections. RAWR_ASM_ALIAS binds the C++ extern to those raw
+    // for non-empty sections. RAWR_ASM binds the C++ extern to those raw
     // linker symbols regardless of which namespace the declaration lives in.
     // RAWR_ATTRIBUTE(weak) maps to Mach-O weak_import: absent symbol → null.
     //
@@ -219,10 +219,10 @@
         namespace RAWR_LS_CONCAT(rawr_ls_, tag_name_) {                             \
             extern const T_ begin_[]                                                \
                 RAWR_ATTRIBUTE(weak)                                                \
-                RAWR_ASM_ALIAS("section$start$__DATA$" #tag_name_);                 \
+                RAWR_ASM("section$start$__DATA$" #tag_name_);                       \
             extern const T_ end_[]                                                  \
                 RAWR_ATTRIBUTE(weak)                                                \
-                RAWR_ASM_ALIAS("section$end$__DATA$"   #tag_name_);                 \
+                RAWR_ASM("section$end$__DATA$"   #tag_name_);                       \
             struct type_ {                                                          \
                 using value_type = T_;                                              \
                 static auto start() -> const T_* { return begin_; }                 \
@@ -249,7 +249,7 @@
 // ============================================================================
 #elif RAWR_BIN_ELF
 
-    // RAWR_ASM_ALIAS binds the C++ name to the raw linker-generated symbol,
+    // RAWR_ASM binds the C++ name to the raw linker-generated symbol,
     // bypassing name mangling and namespace qualification entirely.
     // The namespace the extern lives in is irrelevant to the linker symbol binding.
     // RAWR_ATTRIBUTE(weak): if the linker omits __start_X or __stop_X (gold +
@@ -261,10 +261,10 @@
         namespace RAWR_LS_CONCAT(rawr_ls_, tag_name_) {                             \
             extern const T_ begin_[]                                                \
                 RAWR_ATTRIBUTE(weak)                                                \
-                RAWR_ASM_ALIAS("__start_" #tag_name_);                              \
+                RAWR_ASM("__start_" #tag_name_);                                    \
             extern const T_ end_[]                                                  \
                 RAWR_ATTRIBUTE(weak)                                                \
-                RAWR_ASM_ALIAS("__stop_"  #tag_name_);                              \
+                RAWR_ASM("__stop_"  #tag_name_);                                    \
             struct type_ {                                                          \
                 using value_type = T_;                                              \
                 static auto start() -> const T_* { return begin_; }                 \

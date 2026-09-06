@@ -36,7 +36,7 @@ RAWR_EXPORT namespace rawr::arch::x64::gnu
 {
     RAWR_TODO("__asm__ here feels like a copout, ideally there's a builtin we can call")
     RAWR_ALWAYS_INLINE auto ia32_cpuidext(int regs[4], int leaf, int subleaf) -> void
-    RAWR_GNU_COND(RAWR_ARCH_X64, {
+    RAWR_GNU_AND(RAWR_ARCH_X64, {
         __asm__ __volatile__(
             "cpuid"
             : "=a"(regs[0]), "=b"(regs[1]), "=c"(regs[2]), "=d"(regs[3])

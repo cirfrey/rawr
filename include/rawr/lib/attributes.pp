@@ -3,7 +3,7 @@
 #endif
 // The macros in this file are defined as the lower level constructs
 // directly instead of defining, say, RAWR_FLATTEN as RAWR_ATTIBUTE(flatten),
-// so that theres less expansions and more consisten and readable errors.
+// so that theres less expansions and more consistent and readable errors.
 // No one likes macro expansion puke.
 #pragma once
 
@@ -11,14 +11,14 @@
 
 #define RAWR_RAW_PRAGMA(x) _Pragma(#x)
 // Clang-cl and mingw support __declspec, if you want to use
-// it here it is. These are the escape hatches for special cases.
+// it, here it is. These are the escape hatches for special cases.
 // Note that:
 //     RAWR_DECLSPEC  = __declspec    -> Only defined on MSVC
 //     RAWR_ATTRIBUTE = __attribute__ -> Only defined outside of MSVC.
-// While these are always defined any may expand into invalid things
+// While these (RAWR_RAW_) are always defined any may expand into invalid things
 // if you don't know what you're doing.
 #define RAWR_RAW_DECLSPEC(x)  __declspec(x)
-#define RAWR_RAW_ATTRIBUTE(x) __attribute__((X))
+#define RAWR_RAW_ATTRIBUTE(x) __attribute__((x))
 
 #if RAWR_COMPILER_MSVC
     #define RAWR_DECLSPEC(x)   __declspec(x)
@@ -34,9 +34,9 @@
 
     // /alternatename is the MSVC linker-level symbol alias mechanism.
     // Usage: RAWR_SYMBOL_ALIAS("target") on the declaration,
-    //        then RAWR_SYMBOL_ALIAS_PRAGMA("cname", "target") at namespace scope.
-    #define RAWR_ASM_ALIAS(sym)
-    #define RAWR_SYMBOL_ALIAS_PRAGMA(from, to) __pragma(comment(linker, "/alternatename:" from "=" to))
+    //        then RAWR_ALTERNATENAME("cname", "target") at namespace scope.
+    #define RAWR_ASM(...)
+    #define RAWR_ALTERNATENAME(from, to) __pragma(comment(linker, "/alternatename:" from "=" to))
 #else
     #define RAWR_DECLSPEC(x)
     #define RAWR_ATTRIBUTE(x)  __attribute__((x))
@@ -49,8 +49,8 @@
     #define RAWR_FLATTEN       __attribute__((flatten))
     #define RAWR_NAKED         __attribute__((naked))
 
-    #define RAWR_ASM_ALIAS(sym) asm(sym)
-    #define RAWR_SYMBOL_ALIAS_PRAGMA(from, to)
+    #define RAWR_ASM(...) asm(__VA_ARGS__)
+    #define RAWR_ALTERNATENAME(from, to)
 #endif
 
 #if RAWR_COMPILER_CLANG
