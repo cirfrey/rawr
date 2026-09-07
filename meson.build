@@ -172,7 +172,6 @@ run_target(
         dir_include/'rawr.hpp',
         dir_include/'rawr.amalgam.hpp',
     ],
-    depends: mod_deps['rawr.stamp'],
 )
 
 

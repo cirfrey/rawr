@@ -1,6 +1,8 @@
 #ifndef RAWR_NO_SOURCE_MAPPING
-    #line 3 "rawr/data/linker_section.pp"
+    #line 3 "rawr/lib/linker_section.pp"
 #endif
+// TODO: Update comments with new API (section_name, tag_name).
+
 //
 // Decentralised typed linker-section registry.
 //
@@ -88,20 +90,20 @@
 #define RAWR_LS_CONCAT(a_, b_)  RAWR_LS_CONCAT_(a_, b_)
 
 // The #tag_name_ stringification embeds the invalid name in the diagnostic.
-#define RAWR_LS_DETAIL_VALIDATE_NAME_(tag_name_)                                \
-    static_assert(                                                              \
-        []() constexpr noexcept -> bool {                                       \
-            const char* s_ = #tag_name_;                                        \
-            for (; *s_; ++s_)                                                   \
-                if (!((*s_ >= 'a' && *s_ <= 'z') ||                             \
-                      (*s_ >= 'A' && *s_ <= 'Z') ||                             \
-                      (*s_ >= '0' && *s_ <= '9') ||                             \
-                       *s_ == '_'))                                              \
-                    return false;                                                \
-            return true;                                                        \
-        }(),                                                                    \
-        "rawr::linker_section: '" #tag_name_ "'"                                \
-        " — section name must be a plain C identifier (a-z A-Z 0-9 _)"         \
+#define RAWR_LS_DETAIL_VALIDATE_NAME_(section_name)                    \
+    static_assert(                                                     \
+        []() constexpr noexcept -> bool {                              \
+            const char* s_ = #section_name;                            \
+            for (; *s_; ++s_)                                          \
+                if (!((*s_ >= 'a' && *s_ <= 'z') ||                    \
+                      (*s_ >= 'A' && *s_ <= 'Z') ||                    \
+                      (*s_ >= '0' && *s_ <= '9') ||                    \
+                       *s_ == '_'))                                    \
+                    return false;                                      \
+            return true;                                               \
+        }(),                                                           \
+        "rawr::linker_section: '" #section_name "'"                    \
+        " — section name must be a plain C identifier (a-z A-Z 0-9 _)" \
     )
 
 // ============================================================================
@@ -113,16 +115,16 @@
     // RAWR_PRAGMA expands to __pragma on MSVC, avoiding stringification issues.
     // start() skips the $A sentinel by advancing one sentinel-sized step.
     // stop() is the address of the $Z sentinel.
-    #define RAWR_LINKER_SECTION_DEFINE(tag_name_, T_)                               \
+    #define RAWR_LINKER_SECTION_DEFINE(section_name, tag_name, T_)                  \
         RAWR_LS_DETAIL_VALIDATE_NAME_(tag_name_);                                   \
-        RAWR_PRAGMA(section(#tag_name_ "$A", read))                                 \
-        RAWR_PRAGMA(section(#tag_name_ "$I", read))                                 \
-        RAWR_PRAGMA(section(#tag_name_ "$Z", read))                                 \
-        namespace RAWR_LS_CONCAT(rawr_ls_, tag_name_) {                             \
+        RAWR_PRAGMA(section(#section_name "$A", read))                              \
+        RAWR_PRAGMA(section(#section_name "$I", read))                              \
+        RAWR_PRAGMA(section(#section_name "$Z", read))                              \
+        namespace RAWR_LS_CONCAT(rawr_ls_, section_name) {                          \
             struct sentinel_t_ { alignas(T_) char _[sizeof(T_)]; };                 \
-            RAWR_DECLSPEC(selectany) RAWR_DECLSPEC(allocate(#tag_name_ "$A"))       \
+            RAWR_DECLSPEC(selectany) RAWR_DECLSPEC(allocate(#section_name "$A"))    \
             const sentinel_t_ sent_start_{};                                        \
-            RAWR_DECLSPEC(selectany) RAWR_DECLSPEC(allocate(#tag_name_ "$Z"))       \
+            RAWR_DECLSPEC(selectany) RAWR_DECLSPEC(allocate(#section_name "$Z"))    \
             const sentinel_t_ sent_stop_{};                                         \
             struct type_ {                                                          \
                 using value_type = T_;                                              \
@@ -140,13 +142,12 @@
                 auto empty() const -> bool { return start() == stop(); }            \
             };                                                                      \
         }                                                                           \
-        inline constexpr RAWR_LS_CONCAT(rawr_ls_, tag_name_)::type_ tag_name_ {}
+        inline constexpr RAWR_LS_CONCAT(rawr_ls_, section_name)::type_ tag_name {}
 
     // Not #undef'd: expansion-time dependency of RAWR_LINKER_SECTION_REGISTER.
-    #define RAWR_LS_DETAIL_REGISTER_(tag_name_, ctr_, ...)                          \
-        RAWR_DECLSPEC(allocate(#tag_name_ "$I"))                                    \
-        static const decltype(tag_name_)::value_type                                \
-            RAWR_LS_CONCAT(rawr_ls_item_, ctr_) { __VA_ARGS__ }
+    #define RAWR_LS_DETAIL_REGISTER_(section_name, tag_name, ctr_) \
+        RAWR_DECLSPEC(allocate(#section_name "$I"))                \
+        static const decltype(tag_name)::value_type RAWR_LS_CONCAT(rawr_ls_item_, ctr_)
 
 // ============================================================================
 // PE / GNU — MinGW (GCC or Clang targeting Windows PE)
@@ -156,16 +157,16 @@
     // RAWR_DECLSPEC is empty on non-MSVC. MinGW sentinels use RAWR_ATTRIBUTE(weak)
     // for COMDAT deduplication — the linker picks one definition across TUs,
     // equivalent to __declspec(selectany) on this toolchain.
-    #define RAWR_LINKER_SECTION_DEFINE(tag_name_, T_)                               \
-        RAWR_LS_DETAIL_VALIDATE_NAME_(tag_name_);                                   \
-        namespace RAWR_LS_CONCAT(rawr_ls_, tag_name_) {                             \
+    #define RAWR_LINKER_SECTION_DEFINE(section_name, tag_name, T_)                  \
+        RAWR_LS_DETAIL_VALIDATE_NAME_(section_name);                                \
+        namespace RAWR_LS_CONCAT(rawr_ls_, section_name) {                          \
             struct sentinel_t_ { alignas(T_) char _[sizeof(T_)]; };                 \
             RAWR_ATTRIBUTE(weak)                                                    \
-            RAWR_ATTRIBUTE(section(#tag_name_ "$A"))                                \
+            RAWR_ATTRIBUTE(section(#section_name "$A"))                             \
             RAWR_ATTRIBUTE(used)                                                    \
             const sentinel_t_ sent_start_{};                                        \
             RAWR_ATTRIBUTE(weak)                                                    \
-            RAWR_ATTRIBUTE(section(#tag_name_ "$Z"))                                \
+            RAWR_ATTRIBUTE(section(#section_name "$Z"))                             \
             RAWR_ATTRIBUTE(used)                                                    \
             const sentinel_t_ sent_stop_{};                                         \
             struct type_ {                                                          \
@@ -184,13 +185,12 @@
                 auto empty() const -> bool { return start() == stop(); }            \
             };                                                                      \
         }                                                                           \
-        inline constexpr RAWR_LS_CONCAT(rawr_ls_, tag_name_)::type_ tag_name_ {}
+        inline constexpr RAWR_LS_CONCAT(rawr_ls_, section_name)::type_ tag_name {}
 
-    #define RAWR_LS_DETAIL_REGISTER_(tag_name_, ctr_, ...)                          \
-        RAWR_ATTRIBUTE(section(#tag_name_ "$I"))                                    \
-        RAWR_ATTRIBUTE(used)                                                        \
-        static const decltype(tag_name_)::value_type                                \
-            RAWR_LS_CONCAT(rawr_ls_item_, ctr_) { __VA_ARGS__ }
+    #define RAWR_LS_DETAIL_REGISTER_(section_name, tag_name, ctr_) \
+        RAWR_ATTRIBUTE(section(#section_name "$I"))                \
+        RAWR_ATTRIBUTE(used)                                       \
+        static const decltype(tag_name)::value_type RAWR_LS_CONCAT(rawr_ls_item_, ctr_)
 
 // ============================================================================
 // Mach-O — macOS, iOS (ld64, lld/MachO)
@@ -204,45 +204,44 @@
     //
     // Section name limit: Mach-O section names are stored in a 16-byte field.
     // Names longer than 16 characters produce silent truncation or a linker error.
-    #define RAWR_LINKER_SECTION_DEFINE(tag_name_, T_)                               \
-        RAWR_LS_DETAIL_VALIDATE_NAME_(tag_name_);                                   \
-        static_assert(                                                              \
-            []() constexpr noexcept -> bool {                                       \
-                const char* s_ = #tag_name_;                                        \
-                int n_ = 0;                                                         \
-                while (*s_++) ++n_;                                                 \
-                return n_ <= 16;                                                    \
-            }(),                                                                    \
-            "rawr::linker_section: '" #tag_name_ "'"                                \
-            " — Mach-O section names are limited to 16 characters"                  \
-        );                                                                          \
-        namespace RAWR_LS_CONCAT(rawr_ls_, tag_name_) {                             \
-            extern const T_ begin_[]                                                \
-                RAWR_ATTRIBUTE(weak)                                                \
-                RAWR_ASM("section$start$__DATA$" #tag_name_);                       \
-            extern const T_ end_[]                                                  \
-                RAWR_ATTRIBUTE(weak)                                                \
-                RAWR_ASM("section$end$__DATA$"   #tag_name_);                       \
-            struct type_ {                                                          \
-                using value_type = T_;                                              \
-                static auto start() -> const T_* { return begin_; }                 \
-                static auto stop()  -> const T_* { return end_;   }                 \
-                auto begin() const  -> const T_* { return start(); }                \
-                auto end()   const  -> const T_* { return stop();  }                \
-                auto size()  const  -> decltype(stop() - start()) {                 \
-                    return stop() - start();                                        \
-                }                                                                   \
-                auto empty() const -> bool { return start() == stop(); }            \
-            };                                                                      \
-        }                                                                           \
-        inline constexpr RAWR_LS_CONCAT(rawr_ls_, tag_name_)::type_ tag_name_ {}
+    #define RAWR_LINKER_SECTION_DEFINE(section_name, tag_name, T_)       \
+        RAWR_LS_DETAIL_VALIDATE_NAME_(section_name);                     \
+        static_assert(                                                   \
+            []() constexpr noexcept -> bool {                            \
+                const char* s_ = #section_name;                          \
+                int n_ = 0;                                              \
+                while (*s_++) ++n_;                                      \
+                return n_ <= 16;                                         \
+            }(),                                                         \
+            "rawr::linker_section: '" #section_name "'"                  \
+            " — Mach-O section names are limited to 16 characters"       \
+        );                                                               \
+        namespace RAWR_LS_CONCAT(rawr_ls_, section_name) {               \
+            extern const T_ begin_[]                                     \
+                RAWR_ATTRIBUTE(weak)                                     \
+                RAWR_ASM("section$start$__DATA$" #section_name);         \
+            extern const T_ end_[]                                       \
+                RAWR_ATTRIBUTE(weak)                                     \
+                RAWR_ASM("section$end$__DATA$"   #section_name);         \
+            struct type_ {                                               \
+                using value_type = T_;                                   \
+                static auto start() -> const T_* { return begin_; }      \
+                static auto stop()  -> const T_* { return end_;   }      \
+                auto begin() const  -> const T_* { return start(); }     \
+                auto end()   const  -> const T_* { return stop();  }     \
+                auto size()  const  -> decltype(stop() - start()) {      \
+                    return stop() - start();                             \
+                }                                                        \
+                auto empty() const -> bool { return start() == stop(); } \
+            };                                                           \
+        }                                                                \
+        inline constexpr RAWR_LS_CONCAT(rawr_ls_, section_name)::type_ tag_name {}
 
     // Adjacent string literal concat: "__DATA," #tag_name_ → "__DATA,foo".
-    #define RAWR_LS_DETAIL_REGISTER_(tag_name_, ctr_, ...)                          \
-        RAWR_ATTRIBUTE(section("__DATA," #tag_name_))                               \
-        RAWR_ATTRIBUTE(used)                                                        \
-        static const decltype(tag_name_)::value_type                                \
-            RAWR_LS_CONCAT(rawr_ls_item_, ctr_) { __VA_ARGS__ }
+    #define RAWR_LS_DETAIL_REGISTER_(section_name, tag_name, ctr_) \
+        RAWR_ATTRIBUTE(section("__DATA," #section_name))           \
+        RAWR_ATTRIBUTE(used)                                       \
+        static const decltype(tag_name)::value_type RAWR_LS_CONCAT(rawr_ls_item_, ctr_)
 
 // ============================================================================
 // ELF — Linux, bare-metal (any ELF toolchain)
@@ -256,19 +255,15 @@
     // empty section; bare-metal without explicit linker script entries), the symbol
     // resolves to null rather than a link error. start() == stop() == nullptr;
     // the loop body never executes. See bare-metal note in file header.
-    #define RAWR_LINKER_SECTION_DEFINE(tag_name_, T_)                               \
-        RAWR_LS_DETAIL_VALIDATE_NAME_(tag_name_);                                   \
-        namespace RAWR_LS_CONCAT(rawr_ls_, tag_name_) {                             \
-            extern const T_ begin_[]                                                \
-                RAWR_ATTRIBUTE(weak)                                                \
-                RAWR_ASM("__start_" #tag_name_);                                    \
-            extern const T_ end_[]                                                  \
-                RAWR_ATTRIBUTE(weak)                                                \
-                RAWR_ASM("__stop_"  #tag_name_);                                    \
+    #define RAWR_LINKER_SECTION_DEFINE(section_name, tag_name, T_)                  \
+        RAWR_LS_DETAIL_VALIDATE_NAME_(section_name);                                \
+        namespace RAWR_LS_CONCAT(rawr_ls_, section_name) {                          \
+            RAWR_WEAK extern const T_ start_[] RAWR_ASM("__start_" #section_name);  \
+            RAWR_WEAK extern const T_ stop_[]  RAWR_ASM("__stop_"  #section_name);  \
             struct type_ {                                                          \
                 using value_type = T_;                                              \
-                static auto start() -> const T_* { return begin_; }                 \
-                static auto stop()  -> const T_* { return end_;   }                 \
+                static auto start() -> const T_* { return start_; }                 \
+                static auto stop()  -> const T_* { return stop_;  }                 \
                 auto begin() const  -> const T_* { return start(); }                \
                 auto end()   const  -> const T_* { return stop();  }                \
                 auto size()  const  -> decltype(stop() - start()) {                 \
@@ -277,16 +272,15 @@
                 auto empty() const -> bool { return start() == stop(); }            \
             };                                                                      \
         }                                                                           \
-        inline constexpr RAWR_LS_CONCAT(rawr_ls_, tag_name_)::type_ tag_name_ {}
+        inline constexpr RAWR_LS_CONCAT(rawr_ls_, section_name)::type_ tag_name {}
 
     // static: internal linkage prevents ODR conflicts across TUs registering into
     // the same section. RAWR_ATTRIBUTE(used) suppresses object-file-level DCE.
     // See LTO note in file header.
-    #define RAWR_LS_DETAIL_REGISTER_(tag_name_, ctr_, ...)                          \
-        RAWR_ATTRIBUTE(section(#tag_name_))                                         \
-        RAWR_ATTRIBUTE(used)                                                        \
-        static const decltype(tag_name_)::value_type                                \
-            RAWR_LS_CONCAT(rawr_ls_item_, ctr_) { __VA_ARGS__ }
+    #define RAWR_LS_DETAIL_REGISTER_(section_name, tag_name, ctr_) \
+        RAWR_ATTRIBUTE(section(#section_name))                     \
+        RAWR_ATTRIBUTE(used)                                       \
+        static const decltype(tag_name)::value_type RAWR_LS_CONCAT(rawr_ls_item_, ctr_)
 
 // ============================================================================
 // Unsupported
@@ -311,5 +305,5 @@
 // Two-level indirection forces __COUNTER__ to expand to its integer value
 // before token-pasting. ## suppresses expansion of adjacent tokens, so the
 // expansion must happen at the call boundary via argument passing.
-#define RAWR_LINKER_SECTION_REGISTER(tag_name_, ...)                            \
-    RAWR_LS_DETAIL_REGISTER_(tag_name_, __COUNTER__, __VA_ARGS__)
+#define RAWR_LINKER_SECTION_REGISTER(section_name, tag_name) \
+    RAWR_LS_DETAIL_REGISTER_(section_name, tag_name, __COUNTER__)

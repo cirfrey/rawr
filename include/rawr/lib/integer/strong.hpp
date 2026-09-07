@@ -38,7 +38,7 @@ namespace rawr::inline lib::inline integer::inline strong::detail
 
 RAWR_EXPORT namespace rawr::inline lib::inline integer::inline strong
 {
-    RAWR_TODO("Assetion is a dummy for now. Crucial for correcness, need implementation")
+    RAWR_TODO("Assertion is a dummy for now. Crucial for correcness, need implementation")
     #define RAWR_ASSERTION(...)
 
     enum class integer_policy : ru8 { checked, wrapping, saturating };

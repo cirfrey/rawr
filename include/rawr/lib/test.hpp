@@ -19,6 +19,7 @@
 #endif
 #include "rawr/lib/detection.pp"
 #include "rawr/lib/compiler.pp"
+#include "rawr/lib/linker_section.pp"
 
 #if RAWR_COMPILER_MSVC
     namespace rawr::inline lib::inline test::msvc
@@ -54,13 +55,20 @@ RAWR_EXPORT namespace rawr::inline lib::inline test
     };
     using test_suite_check_callback = void(*)(test_suite_check, void* userdata);
 
-    struct test_suite_result {
+    struct test_suite_info {
         char const* name;
-        ru32 total_check_count;
-        ru32 check_count;
-        test_suite_check* checks;
     };
-    using test_suite_callback = void(*)(test_suite_result const&, void* userdata);
+
+    struct test_section_entry
+    {
+        using run_t      = void(*)(test_suite_check_callback, void*);
+        using get_info_t = test_suite_info(*)();
+
+        run_t run;
+        get_info_t get_info;
+    };
+
+    RAWR_LINKER_SECTION_DEFINE(rawr_test_section, section, test_section_entry);
 
     template <typename T>
     concept test_suite = requires(T t)
@@ -70,83 +78,49 @@ RAWR_EXPORT namespace rawr::inline lib::inline test
     };
 
     template <typename Suite>
-    struct autosized_test_suite
+    struct normal_test_suite
     {
-    private:
-        RAWR_GCC_PRAGMA(GCC diagnostic push)
-        RAWR_GCC_PRAGMA(GCC diagnostic ignored "-Wnon-template-friend")
-        RAWR_GCC_PRAGMA(GCC diagnostic ignored "-Wsfinae-incomplete") // What's this and why is it needed?
-        template<int N> struct Flag { friend constexpr auto adl_flag(Flag<N>); };
-        template<int N> struct Writer { friend constexpr auto adl_flag(Flag<N>) { return true; } };
-        RAWR_GCC_PRAGMA(GCC diagnostic pop)
-
     protected:
-        template <int N, auto U>
-        static constexpr int get_total_check_count() {
-            if constexpr (requires { adl_flag(Flag<N>{}); }) return get_total_check_count<N + 1, U>();
-            else return N;
+        constexpr auto check(
+            bool cond,
+            source_location const loc = source_location::current()
+        ) {
+            if(check_callback) check_callback(test_suite_check{
+                .cond = cond,
+                .expr = nullptr,
+                .loc  = loc
+            }, userdata);
         }
 
-        template <int C, int Size>
+        template <decltype(sizeof(0)) Size>
         constexpr auto check(
             bool cond,
             char const (&expr)[Size],
-            source_location const loc = source_location::current(),
-            Writer<C> = {}
+            source_location const loc = source_location::current()
         ) {
-            auto check_result = test_suite_check{
+            if(check_callback) check_callback(test_suite_check{
                 .cond = cond,
                 .expr = expr,
                 .loc  = loc
-            };
-            if(check_callback) check_callback(check_result, userdata);
+            }, userdata);
         }
 
     public:
         test_suite_check_callback check_callback = nullptr;
         void* userdata                           = nullptr;
 
-        // If you want to get only the final counts and whatnot.
-        static constexpr auto run(test_suite_callback callback, void* userdata = nullptr)
-        requires test_suite<Suite>
-        {
-            constexpr auto total_check_count = get_total_check_count<0, []{}>();
-
-            test_suite_check checks[total_check_count > 0 ? total_check_count : 1] = {};
-            auto result = test_suite_result {
-                .name = Suite::name(),
-                .total_check_count = total_check_count,
-                .check_count = 0,
-                .checks = checks
-            };
-            Suite suite{
-                [](auto check_result, void* result_){
-                    auto& result = *(test_suite_result*)result_;
-                    result.checks[result.check_count++] = check_result;
-                },
-                &result
-            };
-            suite.run_checks();
-
-            callback(result, userdata);
-        }
-
-        // If you want per-check injection.
-        static constexpr auto run_interactive(test_suite_check_callback callback, void* userdata = nullptr)
+        static constexpr auto run(test_suite_check_callback callback, void* userdata = nullptr)
         requires test_suite<Suite>
         {
             Suite suite{ callback, userdata };
             suite.run_checks();
         }
 
-        static constexpr auto get_info() -> test_suite_result
+        static constexpr auto get_info() -> test_suite_info
         requires test_suite<Suite>
         {
             return {
                 .name = Suite::name(),
-                .total_check_count = get_total_check_count<0, []{}>(),
-                .check_count = 0,
-                .checks = nullptr
             };
         }
     };

@@ -20,7 +20,7 @@ include/rawr/arch/x64/cpuid.hpp|rawr.arch.x64.cpuid|rawr.lib.bitfield,rawr.lib.b
 include/rawr/lib/intrin/math.hpp|rawr.lib.intrin.math|rawr.lib.bits,rawr.lib.detection,rawr.lib.integer.base,rawr.lib.integer.raw,rawr.lib.intrin.base|30656|1788736372724397300|b87a04a27b89a20c40ba054f97cc15ece50d1aac89a40bb52e7211f8d2fab523
 include/rawr/lib/intrin/mem.hpp|rawr.lib.intrin.mem|rawr.lib.bits,rawr.lib.detection,rawr.lib.integer.base,rawr.lib.integer.raw,rawr.lib.intrin.base|5713|1788555608227750300|6db7c7206f9e8dba228cc98fa3f16a5b7c3b0e86a55d5527a631081eca511c2a
 include/rawr/lib/intrin.hpp|rawr.lib.intrin|rawr.lib.intrin.base,rawr.lib.intrin.math,rawr.lib.intrin.mem|395|1788553785364998700|5ca6a106464b98331bf8482c5318e8ac00a3f79134dbd5954a22595d05edba9c
-include/rawr/lib/integer/strong.hpp|rawr.lib.integer.strong|rawr.lib.bits,rawr.lib.integer.base,rawr.lib.integer.raw,rawr.lib.intrin|76186|1788555519967543200|96acc76166e333a30f57588e3c4577c9fde61414c0fc7cf2293868718cbd99db
+include/rawr/lib/integer/strong.hpp|rawr.lib.integer.strong|rawr.lib.bits,rawr.lib.integer.base,rawr.lib.integer.raw,rawr.lib.intrin|76187|1788738272737880300|7a8e959508e08a9bed9b78547e1094daae261d293704b1e0a650a7a1ca5d1100
 include/rawr/lib/integer.hpp|rawr.lib.integer|rawr.lib.integer.base,rawr.lib.integer.raw,rawr.lib.integer.strong|407|1788553785782975400|bdf006822021fe05d960b02736ef46055bd861fec04c61c760ebbb3c20a5ec89
 include/rawr/lib/rich_enum.hpp|rawr.lib.rich_enum||885|1788553785364998700|5c7dfc947df32b4cf75b5a2ba03d9f330bc4627480ac911c5ec99e73d4cebc33
 include/rawr/lib/simd/storage.hpp|rawr.lib.simd.storage|rawr.lib.integer.raw|1749|1788553785794735200|a992ff74652f2495de1ae49e13056fa2dcac9a2fe39498b51192fae468ae27e3
@@ -31,7 +31,7 @@ include/rawr/arch/x64/atomic.hpp|rawr.arch.x64.atomic|rawr.lib.detection,rawr.li
 include/rawr/arch/x64.hpp|rawr.arch.x64|rawr.arch.x64.atomic,rawr.arch.x64.cpuid,rawr.arch.x64.simd|402|1788553785796864600|345a65b24ea4bd83895d6b36a32ecb376734ab4b82a95c13236e8cb63a98cf20
 include/rawr/arch.hpp|rawr.arch|rawr.arch.x64|222|1788553785363947000|928c273339f89af944fe7d9bb4224459f3e60156ba45f8fc17e26cd30052021b
 include/rawr/lib/sync.hpp|rawr.lib.sync|rawr.lib.sync.base|229|1788553785781951100|b3e736b039f66ac055a7eabf4979d3ebbfc727ecb2cd766a88a1327dc932573a
-include/rawr/lib/test.hpp|rawr.lib.test|rawr.lib.integer.raw,rawr.lib.intrin,rawr.lib.source_location|5000|1788553785790225300|7d3506519ce73e7a4e2c79ad0d5bcf5916f5909e9580157e4462730e4402a1c7
+include/rawr/lib/test.hpp|rawr.lib.test|rawr.lib.integer.raw,rawr.lib.intrin,rawr.lib.source_location|3542|1788790057382331900|ef51ea21afbfc799bae2efed37c8244d9175929c99d79d04621a6d11a6078ab2
 include/rawr/lib/type_name.hpp|rawr.lib.type_name||2413|1788553785394313100|92d374d94f4445dc93abcb4bfce0cb29ba374ecc947e00a0dcd1b6db044a19d3
 include/rawr/lib/fmt.hpp|rawr.lib.fmt|rawr.lib.bits,rawr.lib.integer.base,rawr.lib.intrin,rawr.lib.type_name|20011|1788555723593244400|00a933d07f9b354953fa9756a70b6945a322f28aec903adbc3d499e5b5920fa8
 include/rawr/lib.hpp|rawr.lib|rawr.lib.bitfield,rawr.lib.bits,rawr.lib.detection,rawr.lib.diag,rawr.lib.dummy_return,rawr.lib.fmt,rawr.lib.integer,rawr.lib.intrin,rawr.lib.rich_enum,rawr.lib.sync,rawr.lib.test,rawr.lib.type_name|1323|1788553785363947000|d20a603f8917022b12f17c187c2834c466b0ad44fb3ab1489ccc504e1abc55fa

@@ -31,11 +31,13 @@
     #define RAWR_ALWAYS_INLINE __forceinline
     #define RAWR_FLATTEN       // no MSVC equivalent — accept the cost
     #define RAWR_NAKED         // not supported on x64 MSVC at all
+    #define RAWR_WEAK
 
-    // /alternatename is the MSVC linker-level symbol alias mechanism.
-    // Usage: RAWR_SYMBOL_ALIAS("target") on the declaration,
-    //        then RAWR_ALTERNATENAME("cname", "target") at namespace scope.
     #define RAWR_ASM(...)
+    #define RAWR_ASMV(...)
+    // /alternatename is the MSVC linker-level symbol alias mechanism.
+    // Usage: RAWR_ASM("target") on the declaration,
+    //        then RAWR_ALTERNATENAME("cname", "target") at namespace scope.
     #define RAWR_ALTERNATENAME(from, to) __pragma(comment(linker, "/alternatename:" from "=" to))
 #else
     #define RAWR_DECLSPEC(x)
@@ -48,8 +50,10 @@
     #define RAWR_ALWAYS_INLINE __attribute__((always_inline)) inline
     #define RAWR_FLATTEN       __attribute__((flatten))
     #define RAWR_NAKED         __attribute__((naked))
+    #define RAWR_WEAK          __attribute__((weak))
 
-    #define RAWR_ASM(...) asm(__VA_ARGS__)
+    #define RAWR_ASM(...)  __asm__(__VA_ARGS__)
+    #define RAWR_ASMV(...) __asm__ volatile(__VA_ARGS__)
     #define RAWR_ALTERNATENAME(from, to)
 #endif
 
