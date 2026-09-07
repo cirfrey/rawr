@@ -12,6 +12,7 @@
     export import rawr.lib.fmt;
     export import rawr.lib.integer;
     export import rawr.lib.intrin;
+    export import rawr.lib.linker_section;
     export import rawr.lib.rich_enum;
     export import rawr.lib.sync;
     export import rawr.lib.test;
@@ -26,6 +27,7 @@
     #include "rawr/lib/fmt.hpp"
     #include "rawr/lib/integer.hpp"
     #include "rawr/lib/intrin.hpp"
+    #include "rawr/lib/linker_section.hpp"
     #include "rawr/lib/rich_enum.hpp"
     #include "rawr/lib/sync.hpp"
     #include "rawr/lib/test.hpp"

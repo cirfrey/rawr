@@ -21,15 +21,13 @@
 #include "rawr/lib/compiler.pp"
 #include "rawr/lib/linker_section.pp"
 
-#if RAWR_COMPILER_MSVC
-    namespace rawr::inline lib::inline test::msvc
-    {
-        // MSVC: __declspec(noinline) creates an opaque call boundary without volatile
-        // semantics or static initialisation. Safe in nostdlib test binaries.
-        template<typename T>
-        __declspec(noinline) auto no_fold(T v) noexcept -> T { return v; }
-    }
-#endif
+RAWR_EXPORT namespace rawr::inline lib::inline test::msvc
+{
+    // MSVC: __declspec(noinline) creates an opaque call boundary without volatile
+    // semantics or static initialisation. Safe in nostdlib test binaries.
+    template<typename T>
+    RAWR_DECLSPEC(noinline) auto no_fold(T v) noexcept -> T { return v; }
+}
 
 RAWR_EXPORT namespace rawr::inline lib::inline test
 {
@@ -68,7 +66,7 @@ RAWR_EXPORT namespace rawr::inline lib::inline test
         get_info_t get_info;
     };
 
-    RAWR_LINKER_SECTION_DEFINE(rawr_test_section, section, test_section_entry);
+    RAWR_LINKER_SECTION_DEFINE(rawr_lib_test_section, section, test_section_entry);
 
     template <typename T>
     concept test_suite = requires(T t)
