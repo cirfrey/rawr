@@ -1,31 +1,31 @@
 
-# Short term - 27/08/26 - 06/09/26
+# Short term - 07/09/26 - 13/09/26
 
-[ ] meson sanitizer integration
-    - [ ] clang tidy the code
-    - [ ] clang tidy workflow
-    - [ ] cppcheck code/workflow
-    - [ ] Clang Static Analyzer (CSA) code/workflow
 [ ] rawr::test
-    - [ ] linker section
     - [ ] write tests for rawr::test
-    - [ ] write tests for the rest of the library.
-[ ] Fix docker compiler explorer setup
+    - [ ] fix linker section on windows
 [ ] rawr::sync
     - [X] detection stuff
     - [~] arch::X::atomic
     - [ ] guard<>
-    - [ ] More complex primitives ?
-[ ] Refactor rawr.lib.integer.strong into generated header -> better debug messages.
 [ ] README.md
 [ ] LICENSE.md
 [ ] detection.pp: optional error on unknown arch/bin/etc
 [ ] Distribution
     - [ ] Meson project version from rawr/lib/dist/version.(h)pp
-[ ] Review linux syscall code for platform/compiler/arch correctness and gating.
 
 # Longer term
 
+[ ] rawr::sync more complex primitives ?
+[ ] meson sanitizer integration
+    - [ ] clang tidy the code
+    - [ ] clang tidy workflow
+    - [ ] cppcheck code/workflow
+    - [ ] Clang Static Analyzer (CSA) code/workflow
+[ ] Fix docker compiler explorer setup
+[ ] Review linux syscall code for platform/compiler/arch correctness and gating.
+[ ] Refactor rawr.lib.integer.strong into generated header -> better debug messages.
+[ ] write tests for the rest of the library.
 [ ] examples
 [ ] rawr::lib::simd (semantic)
     - [ ] rawr::lib::simd::dispatch

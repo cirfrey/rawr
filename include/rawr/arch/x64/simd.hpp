@@ -28,7 +28,7 @@
 // MSVC is quite picky about intrinsics, you have to *declare* them.
 // Its also very picky about the names of the types involved.
 // Somehow its not picky about whether or not they are namespaced.
-namespace rawr::arch::x64::msvc
+RAWR_EXPORT namespace rawr::arch::x64::msvc
 {
     union RAWR_DECLSPEC(intrin_type) alignas(16) __m128 {
         rawr::ru8  ru8 [16];
@@ -82,7 +82,13 @@ namespace rawr::arch::x64::msvc
     RAWR_MSVC_INTRIN(RAWR_ARCH_X64, _mm_add_epi32, (__m128i, __m128i) -> __m128i);
 }
 
-namespace rawr::arch::x64::sse
+RAWR_EXPORT namespace rawr::arch::x64::gnu
+{
+    RAWR_ALWAYS_INLINE constexpr auto add_u32x4(simd::storage::ru32x4 lhs, simd::storage::ru32x4 rhs) -> simd::storage::ru32x4
+    RAWR_GNU({ return { lhs.lanes + rhs.lanes }; });
+}
+
+RAWR_EXPORT namespace rawr::arch::x64::sse
 {
     namespace soft
     {
@@ -103,7 +109,7 @@ namespace rawr::arch::x64::sse
             static_assert("Unimplemented");
             return dummy_return{};
         } else if constexpr(this_compiler.is_family_gnu()) {
-            return { lhs.lanes + rhs.lanes };
+            return gnu::add_u32x4(lhs, rhs);
         } else if constexpr(this_compiler.is_msvc()) {
             if(intrin::is_consteval()) { return soft::add_u32x4(lhs, rhs); }
             auto val = msvc::_mm_add_epi32(
