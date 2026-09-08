@@ -55,6 +55,7 @@ RAWR_EXPORT namespace rawr::inline lib::inline test
 
     struct test_suite_info {
         char const* name;
+        rst name_size;
     };
 
     struct test_section_entry
@@ -69,9 +70,10 @@ RAWR_EXPORT namespace rawr::inline lib::inline test
     RAWR_LINKER_SECTION_DEFINE(rawr_lib_test_section, section, test_section_entry);
 
     template <typename T>
-    concept test_suite = requires(T t)
+    concept TestSuite = requires(T t)
     {
-        { T::name() } -> intrin::convertible_to<char const*>;
+        { T::name()      } -> intrin::ConvertibleTo<char const*>;
+        { T::name_size() } -> intrin::ConvertibleTo<rst>;
         { t.run_checks() };
     };
 
@@ -108,18 +110,26 @@ RAWR_EXPORT namespace rawr::inline lib::inline test
         void* userdata                           = nullptr;
 
         static constexpr auto run(test_suite_check_callback callback, void* userdata = nullptr)
-        requires test_suite<Suite>
+        requires TestSuite<Suite>
         {
             Suite suite{ callback, userdata };
             suite.run_checks();
         }
 
         static constexpr auto get_info() -> test_suite_info
-        requires test_suite<Suite>
+        requires TestSuite<Suite>
         {
             return {
-                .name = Suite::name(),
+                .name      = Suite::name(),
+                .name_size = Suite::name_size()
             };
         }
+    };
+
+    enum class meson_code : ru8 {
+        ok    = 0,
+        skip  = 77, // Test was skipped.
+        error = 99, // Signals a hard setup failure.
+        // Anything else = Fail.
     };
 }

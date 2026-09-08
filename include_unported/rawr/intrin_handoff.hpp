@@ -1603,7 +1603,7 @@ struct f32x8 {
 //   - Intrinsic names (epi8/epi16/epi32/epi64, ps/pd, etc.)
 //   - Which ops exist: u64 has no SIMD multiply; u8/s8 have no mul
 //   - Signed vs unsigned shift/min/max variants (_epi32 vs _epu32 etc.)
-//   - ARM: int vs uint NEON type names
+//   - ARM: int vs Uint NEON type names
 
 // ── cross-type deletion ───────────────────────────────────────────
 // Arithmetic between different element types is always a mistake.

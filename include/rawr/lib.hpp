@@ -10,10 +10,12 @@
     export import rawr.lib.diag;
     export import rawr.lib.dummy_return;
     export import rawr.lib.fmt;
+    export import rawr.lib.hash;
     export import rawr.lib.integer;
     export import rawr.lib.intrin;
     export import rawr.lib.linker_section;
     export import rawr.lib.rich_enum;
+    export import rawr.lib.sass;
     export import rawr.lib.sync;
     export import rawr.lib.test;
     export import rawr.lib.type_name;
@@ -25,10 +27,12 @@
     #include "rawr/lib/diag.hpp"
     #include "rawr/lib/dummy_return.hpp"
     #include "rawr/lib/fmt.hpp"
+    #include "rawr/lib/hash.hpp"
     #include "rawr/lib/integer.hpp"
     #include "rawr/lib/intrin.hpp"
     #include "rawr/lib/linker_section.hpp"
     #include "rawr/lib/rich_enum.hpp"
+    #include "rawr/lib/sass.hpp"
     #include "rawr/lib/sync.hpp"
     #include "rawr/lib/test.hpp"
     #include "rawr/lib/type_name.hpp"

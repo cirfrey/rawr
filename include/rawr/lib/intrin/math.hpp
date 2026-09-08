@@ -64,7 +64,7 @@ RAWR_EXPORT namespace rawr::inline lib::intrin::inline math::msvc
 // GNU builtin wrappers for popcount, clz, ctz, bswap.
 RAWR_EXPORT namespace rawr::inline lib::intrin::inline math::gnu
 {
-    template <raint Raw>
+    template <RAint Raw>
     RAWR_ALWAYS_INLINE constexpr auto popcount(Raw val) noexcept -> Raw
     RAWR_GNU({
         auto const uval = static_cast<ruint_of<Raw>>(val);
@@ -73,7 +73,7 @@ RAWR_EXPORT namespace rawr::inline lib::intrin::inline math::gnu
         else                                                     { return static_cast<Raw>(__builtin_popcountll(static_cast<unsigned long long>(uval))); }
     });
 
-    template <raint Raw>
+    template <RAint Raw>
     RAWR_ALWAYS_INLINE constexpr auto leading_zeros(Raw val) noexcept -> Raw
     RAWR_GNU({
         using URaw = ruint_of<Raw>;
@@ -85,7 +85,7 @@ RAWR_EXPORT namespace rawr::inline lib::intrin::inline math::gnu
         else                                                     { return static_cast<Raw>(__builtin_clzll(static_cast<unsigned long long>(uval))); }
     });
 
-    template <raint Raw>
+    template <RAint Raw>
     RAWR_ALWAYS_INLINE constexpr auto trailing_zeros(Raw val) noexcept -> Raw
     RAWR_GNU({
         using URaw = ruint_of<Raw>;
@@ -97,7 +97,7 @@ RAWR_EXPORT namespace rawr::inline lib::intrin::inline math::gnu
         else                                                     { return static_cast<Raw>(__builtin_ctzll(static_cast<unsigned long long>(uval))); }
     });
 
-    template <ruint Raw>
+    template <RUint Raw>
     RAWR_ALWAYS_INLINE constexpr auto bswap(Raw val) noexcept -> Raw
     RAWR_GNU({
              if constexpr (sizeof(Raw) == 1) { return val; }
@@ -112,11 +112,11 @@ RAWR_EXPORT namespace rawr::inline lib::intrin::inline math
 {
     namespace soft
     {
-        template <raint Raw>
+        template <RAint Raw>
         [[nodiscard]] constexpr auto popcount(Raw val) noexcept -> Raw
         { Raw count = 0; while (val) { val &= static_cast<Raw>(val - Raw{1}); ++count; } return count; }
 
-        template <raint Raw>
+        template <RAint Raw>
         [[nodiscard]] constexpr auto leading_zeros(Raw val) noexcept -> Raw
         {
             constexpr auto width = static_cast<Raw>(sizeof(Raw) * 8);
@@ -127,7 +127,7 @@ RAWR_EXPORT namespace rawr::inline lib::intrin::inline math
             return count;
         }
 
-        template <raint Raw>
+        template <RAint Raw>
         [[nodiscard]] constexpr auto trailing_zeros(Raw val) noexcept -> Raw
         {
             if (val == Raw{0}) { return static_cast<Raw>(bitsof<Raw>.val); }
@@ -136,11 +136,11 @@ RAWR_EXPORT namespace rawr::inline lib::intrin::inline math
             return count;
         }
 
-        template <raint Raw> [[nodiscard]] constexpr auto leading_ones(Raw val)  noexcept -> Raw { return leading_zeros(~val); }
-        template <raint Raw> [[nodiscard]] constexpr auto trailing_ones(Raw val) noexcept -> Raw { return trailing_zeros(~val); }
+        template <RAint Raw> [[nodiscard]] constexpr auto leading_ones(Raw val)  noexcept -> Raw { return leading_zeros(~val); }
+        template <RAint Raw> [[nodiscard]] constexpr auto trailing_ones(Raw val) noexcept -> Raw { return trailing_zeros(~val); }
     }
 
-    template <raint Raw>
+    template <RAint Raw>
     [[nodiscard]] constexpr auto popcount(Raw val) noexcept -> Raw
     {
         if constexpr(this_compiler.is_family_gnu()) {
@@ -165,7 +165,7 @@ RAWR_EXPORT namespace rawr::inline lib::intrin::inline math
         }
     }
 
-    template <raint Raw>
+    template <RAint Raw>
     [[nodiscard]] constexpr auto leading_zeros(Raw val) noexcept -> Raw
     {
         if constexpr(this_compiler.is_family_gnu()) {
@@ -197,7 +197,7 @@ RAWR_EXPORT namespace rawr::inline lib::intrin::inline math
         }
     }
 
-    template <raint Raw>
+    template <RAint Raw>
     [[nodiscard]] constexpr auto trailing_zeros(Raw val) noexcept -> Raw
     {
         if constexpr(this_compiler.is_family_gnu()) {
@@ -231,8 +231,8 @@ RAWR_EXPORT namespace rawr::inline lib::intrin::inline math
         }
     }
 
-    template <raint Raw> [[nodiscard]] constexpr auto leading_ones(Raw val)  noexcept -> Raw { return leading_zeros(static_cast<Raw>(~val)); }
-    template <raint Raw> [[nodiscard]] constexpr auto trailing_ones(Raw val) noexcept -> Raw { return trailing_zeros(static_cast<Raw>(~val)); }
+    template <RAint Raw> [[nodiscard]] constexpr auto leading_ones(Raw val)  noexcept -> Raw { return leading_zeros(static_cast<Raw>(~val)); }
+    template <RAint Raw> [[nodiscard]] constexpr auto trailing_ones(Raw val) noexcept -> Raw { return trailing_zeros(static_cast<Raw>(~val)); }
 }
 
 // Byte-swap and rotation.
@@ -240,7 +240,7 @@ RAWR_EXPORT namespace rawr::inline lib::intrin::inline math
 {
     namespace soft
     {
-        template <ruint Raw>
+        template <RUint Raw>
         [[nodiscard]] constexpr auto bswap(Raw val) noexcept -> Raw
         {
                  if constexpr (sizeof(Raw) == 1) { return val; }
@@ -273,7 +273,7 @@ RAWR_EXPORT namespace rawr::inline lib::intrin::inline math
         }
 
         // Normalize any int to [0, bits) — handles negative n (rotate right by k == rotate left by bits-k).
-        template <ruint Raw>
+        template <RUint Raw>
         [[nodiscard]] constexpr auto rotl(Raw val, int n) noexcept -> Raw
         {
             constexpr int bits = static_cast<int>(bitsof<Raw>.val);
@@ -282,13 +282,13 @@ RAWR_EXPORT namespace rawr::inline lib::intrin::inline math
             return static_cast<Raw>((val << static_cast<unsigned>(n)) | (val >> static_cast<unsigned>(bits - n)));
         }
 
-        template <ruint Raw>
+        template <RUint Raw>
         [[nodiscard]] constexpr auto rotr(Raw val, int n) noexcept -> Raw
         { return soft::rotl(val, -n); }
     }
 
     // Byte-swap. Restricted to unsigned — signed bswap has no meaningful interpretation.
-    template <ruint Raw>
+    template <RUint Raw>
     [[nodiscard]] RAWR_ALWAYS_INLINE constexpr auto bswap(Raw val) noexcept -> Raw
     {
         if constexpr(this_compiler.is_family_gnu()) {
@@ -309,7 +309,7 @@ RAWR_EXPORT namespace rawr::inline lib::intrin::inline math
     // Rotation. Negative n rotates in the opposite direction (matching std::rotl/rotr semantics).
     // GCC ≥ 12 and Clang ≥ 8 have __builtin_rotateleft*, but GCC 11 (minimum supported) does not.
     // The idiom in soft:: is recognised by all supported compilers and lowers to a single ROL/ROR on x86.
-    template <ruint Raw>
+    template <RUint Raw>
     [[nodiscard]] RAWR_ALWAYS_INLINE constexpr auto rotl(Raw val, int n) noexcept -> Raw
     {
         if constexpr(this_compiler.is_family_gnu()) {
@@ -327,7 +327,7 @@ RAWR_EXPORT namespace rawr::inline lib::intrin::inline math
         }
     }
 
-    template <ruint Raw>
+    template <RUint Raw>
     [[nodiscard]] RAWR_ALWAYS_INLINE constexpr auto rotr(Raw val, int n) noexcept -> Raw
     {
         if constexpr(this_compiler.is_family_gnu()) {
@@ -477,46 +477,46 @@ RAWR_EXPORT namespace rawr::inline lib::intrin::inline math
 RAWR_EXPORT namespace rawr::inline lib::intrin::inline math
 {
     // Unconstrained deliberately — see note above. It's a passive holder;
-    // constraining T against `aint` here is what caused the CRTP hazard.
+    // constraining T against `Aint` here is what caused the CRTP hazard.
     template <typename T> struct ov_result { T val{}; bool overflowed = false; };
 
     namespace soft
     {
-        template <rsint Raw>
+        template <RSint Raw>
         [[nodiscard]] constexpr auto did_add_overflow(Raw lhs, Raw rhs, Raw result) noexcept -> bool
         { return (lhs > 0 && rhs > 0 && result < 0) || (lhs < 0 && rhs < 0 && result >= 0); }
-        template <rsint Raw>
+        template <RSint Raw>
         [[nodiscard]] constexpr auto did_sub_underflow(Raw lhs, Raw rhs, Raw result) noexcept -> bool
         { return (lhs >= 0 && rhs < 0 && result < 0) || (lhs < 0 && rhs >= 0 && result >= 0); }
 
-        template <raint Raw>
+        template <RAint Raw>
         [[nodiscard]] constexpr auto ov_add(Raw lhs_, Raw rhs_) noexcept -> ov_result<Raw>
         {
             auto const lhs    = static_cast<ruint_of<Raw>>(lhs_);
             auto const rhs    = static_cast<ruint_of<Raw>>(rhs_);
             Raw const  result = static_cast<Raw>( lhs + rhs );
-            if constexpr (uint<Raw>) { return { result, static_cast<ruint_of<Raw>>(lhs + rhs) < lhs }; }
+            if constexpr (Uint<Raw>) { return { result, static_cast<ruint_of<Raw>>(lhs + rhs) < lhs }; }
             else                     { return { result, did_add_overflow(lhs_, rhs_, result) }; }
         }
 
-        template <raint Raw>
+        template <RAint Raw>
         [[nodiscard]] constexpr auto ov_sub(Raw lhs_, Raw rhs_) noexcept -> ov_result<Raw>
         {
             auto const lhs    = static_cast<ruint_of<Raw>>(lhs_);
             auto const rhs    = static_cast<ruint_of<Raw>>(rhs_);
             Raw const  result = static_cast<Raw>( lhs - rhs );
-            if constexpr (uint<Raw>) { return { result, lhs < rhs }; }
+            if constexpr (Uint<Raw>) { return { result, lhs < rhs }; }
             else                     { return { result, did_sub_underflow(lhs_, rhs_, result) }; }
         }
 
-        template <ruint Raw> requires (sizeof(Raw) <= 4)
+        template <RUint Raw> requires (sizeof(Raw) <= 4)
         [[nodiscard]] constexpr auto ov_mul(Raw lhs, Raw rhs) noexcept -> ov_result<Raw>
         {
             ru64 const wider = static_cast<ru64>(lhs) * static_cast<ru64>(rhs);
             return { static_cast<Raw>(wider), wider > static_cast<ru64>(aint_max<Raw>) };
         }
 
-        template <rsint Raw> requires (sizeof(Raw) <= 4)
+        template <RSint Raw> requires (sizeof(Raw) <= 4)
         [[nodiscard]] constexpr auto ov_mul(Raw lhs, Raw rhs) noexcept -> ov_result<Raw>
         {
             rs64 const wider = static_cast<rs64>(lhs) * static_cast<rs64>(rhs);
@@ -526,14 +526,14 @@ RAWR_EXPORT namespace rawr::inline lib::intrin::inline math
             };
         }
 
-        template <ruint64 Raw>
+        template <RUint64 Raw>
         [[nodiscard]] constexpr auto ov_mul(Raw lhs, Raw rhs) noexcept -> ov_result<Raw>
         {
             auto const ret = intrin::umul64(lhs, rhs);
             return { static_cast<Raw>(ret.lo), ret.hi != 0 };
         }
 
-        template <rsint64 Raw>
+        template <RSint64 Raw>
         [[nodiscard]] constexpr auto ov_mul(Raw lhs, Raw rhs) noexcept -> ov_result<Raw>
         {
             if (lhs == 0 || rhs == 0) { return { Raw{0}, false }; }
@@ -556,7 +556,7 @@ RAWR_EXPORT namespace rawr::inline lib::intrin::inline math
 
 RAWR_EXPORT namespace rawr::inline lib::intrin::inline math::gnu
 {
-    template <raint Raw>
+    template <RAint Raw>
     RAWR_ALWAYS_INLINE constexpr auto ov_add(Raw lhs, Raw rhs) noexcept -> ov_result<Raw>
     RAWR_GNU({
         Raw result;
@@ -564,7 +564,7 @@ RAWR_EXPORT namespace rawr::inline lib::intrin::inline math::gnu
         return { result, overflowed };
     });
 
-    template <raint Raw>
+    template <RAint Raw>
     RAWR_ALWAYS_INLINE constexpr auto ov_sub(Raw lhs, Raw rhs) noexcept -> ov_result<Raw>
     RAWR_GNU({
         Raw result;
@@ -572,7 +572,7 @@ RAWR_EXPORT namespace rawr::inline lib::intrin::inline math::gnu
         return { result, overflowed };
     });
 
-    template <raint Raw>
+    template <RAint Raw>
     RAWR_ALWAYS_INLINE constexpr auto ov_mul(Raw lhs, Raw rhs) noexcept -> ov_result<Raw>
     RAWR_GNU({
         Raw result;
@@ -583,7 +583,7 @@ RAWR_EXPORT namespace rawr::inline lib::intrin::inline math::gnu
 
 RAWR_EXPORT namespace rawr::inline lib::intrin::inline math
 {
-    template <raint Raw>
+    template <RAint Raw>
     [[nodiscard]] constexpr auto ov_add(Raw lhs, Raw rhs) noexcept -> ov_result<Raw>
     {
         if constexpr(this_compiler.is_family_gnu()) {
@@ -596,7 +596,7 @@ RAWR_EXPORT namespace rawr::inline lib::intrin::inline math
                     ru32 result_;
                     ru8 const carry = msvc::_addcarry_u32(0, static_cast<ru32>(lhs), static_cast<ru32>(rhs), &result_);
                     Raw const result = static_cast<Raw>(result_);
-                    if constexpr (uint<Raw>) return { result, carry != 0 };
+                    if constexpr (Uint<Raw>) return { result, carry != 0 };
                     else                    return { result, soft::did_add_overflow(lhs, rhs, result) };
                 } else { return soft::ov_add(lhs, rhs); }
             } else if constexpr (sizeof(Raw) == 8) {
@@ -605,7 +605,7 @@ RAWR_EXPORT namespace rawr::inline lib::intrin::inline math
                     ru64 result_;
                     ru8 const carry = msvc::_addcarry_u64(0, static_cast<ru64>(lhs), static_cast<ru64>(rhs), &result_);
                     Raw const result = static_cast<Raw>(result_);
-                    if constexpr (uint<Raw>) return { result, carry != 0 };
+                    if constexpr (Uint<Raw>) return { result, carry != 0 };
                     else                    return { result, soft::did_add_overflow(lhs, rhs, result) };
                 } else { return soft::ov_add(lhs, rhs); }
             } else { return soft::ov_add(lhs, rhs); }
@@ -614,7 +614,7 @@ RAWR_EXPORT namespace rawr::inline lib::intrin::inline math
         }
     }
 
-    template <raint Raw>
+    template <RAint Raw>
     [[nodiscard]] constexpr auto ov_sub(Raw lhs, Raw rhs) noexcept -> ov_result<Raw>
     {
         if constexpr(this_compiler.is_family_gnu()) {
@@ -627,7 +627,7 @@ RAWR_EXPORT namespace rawr::inline lib::intrin::inline math
                     ru32 result_;
                     ru8 const carry = msvc::_subborrow_u32(0, static_cast<ru32>(lhs), static_cast<ru32>(rhs), &result_);
                     Raw const result = static_cast<Raw>(result_);
-                    if constexpr (uint<Raw>) return { result, carry != 0 };
+                    if constexpr (Uint<Raw>) return { result, carry != 0 };
                     else                    return { result, soft::did_sub_underflow(lhs, rhs, result) };
                 } else { return soft::ov_sub(lhs, rhs); }
             } else if constexpr (sizeof(Raw) == 8) {
@@ -636,7 +636,7 @@ RAWR_EXPORT namespace rawr::inline lib::intrin::inline math
                     ru64 result_;
                     ru8 const carry = msvc::_subborrow_u64(0, static_cast<ru64>(lhs), static_cast<ru64>(rhs), &result_);
                     Raw const result = static_cast<Raw>(result_);
-                    if constexpr (uint<Raw>) return { result, carry != 0 };
+                    if constexpr (Uint<Raw>) return { result, carry != 0 };
                     else                    return { result, soft::did_sub_underflow(lhs, rhs, result) };
                 } else { return soft::ov_sub(lhs, rhs); }
             } else { return soft::ov_sub(lhs, rhs); }
@@ -645,7 +645,7 @@ RAWR_EXPORT namespace rawr::inline lib::intrin::inline math
         }
     }
 
-    template <raint Raw>
+    template <RAint Raw>
     [[nodiscard]] constexpr auto ov_mul(Raw lhs, Raw rhs) noexcept -> ov_result<Raw>
     {
         if constexpr(this_compiler.is_family_gnu()) {
@@ -656,7 +656,7 @@ RAWR_EXPORT namespace rawr::inline lib::intrin::inline math
                 // _umul128/_mul128 are x64-only; arm64 and x86 MSVC fall back to soft.
                 if constexpr(this_arch.is_x64()) {
                     if (intrin::is_consteval()) return soft::ov_mul(lhs, rhs);
-                    if constexpr (uint<Raw>) {
+                    if constexpr (Uint<Raw>) {
                         ru64 high;
                         ru64 low = msvc::_umul128(static_cast<ru64>(lhs), static_cast<ru64>(rhs), &high);
                         return { static_cast<Raw>(low), high != 0 };

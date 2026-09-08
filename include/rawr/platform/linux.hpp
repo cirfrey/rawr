@@ -245,9 +245,9 @@ RAWR_EXPORT namespace rawr::platform::linux
     [[nodiscard]] constexpr auto is_##canon() const noexcept { return is_error() && as_error() == error::canon; } \
     [[nodiscard]] constexpr auto is_##sem()   const noexcept { return is_error() && as_error() == error::sem; }
 #define RAWR_PLATFORM_LINUX_SYSCALL_IS(epair) RAWR_PP_DISPATCH_PLIST_BY_ARITY(RAWR_PLATFORM_LINUX_SYSCALL_IS_, epair)
-#define RAWR_PLATFORM_LINUX_SYSCALL_ON_2(canon, sem)                                         \
-    constexpr auto on_##canon(auto&& callback) noexcept -> self& { if (is_##canon()) callback(); return *this; } \
-    constexpr auto on_##sem(auto&& callback)   noexcept -> self& { if (is_##sem())   callback(); return *this; }
+#define RAWR_PLATFORM_LINUX_SYSCALL_ON_2(canon, sem)                                                                                \
+    template <typename T> constexpr auto on_##canon(T&& callback) noexcept -> self& { if (is_##canon()) callback(); return *this; } \
+    template <typename T> constexpr auto on_##sem(T&& callback)   noexcept -> self& { if (is_##sem())   callback(); return *this; }
 #define RAWR_PLATFORM_LINUX_SYSCALL_ON(epair) RAWR_PP_DISPATCH_PLIST_BY_ARITY(RAWR_PLATFORM_LINUX_SYSCALL_ON_, epair)
 
 RAWR_EXPORT namespace rawr::platform::linux::x64::syscall
@@ -274,7 +274,8 @@ RAWR_EXPORT namespace rawr::platform::linux::x64::syscall
         (edquot,  quota_exceeded)// user disk quota exhausted
     ), (rax < 0), (rax), ())
     template <compilers C = this_compiler, archs A = this_arch>
-    RAWR_ALWAYS_INLINE auto write(fd_t file, char const* data, ruint auto size) -> write_r{
+    RAWR_ALWAYS_INLINE auto write(fd_t file, char const* data, RUint auto size) -> write_r
+    {
         reg_t rax = metadata::write.number;
         RAWR_PLATFORM_LINUX_X64_SYSCALL_GATED_BODY(
             // Microoptimization: Forces 32-bit register constraints (edx) for sizes <= 4 bytes
@@ -305,7 +306,8 @@ RAWR_EXPORT namespace rawr::platform::linux::x64::syscall
     // Explicit specialization for known sizes, better cloberring.
     // NOTE: this doesn't do any null-terminator stripping, it just outputs what it gets.
     template <rst Size, compilers C = this_compiler, archs A = this_arch>
-    RAWR_ALWAYS_INLINE auto write(fd_t file, char const(&data)[Size]) -> write_r {
+    RAWR_ALWAYS_INLINE auto write(fd_t file, char const(&data)[Size]) -> write_r
+    {
         reg_t rax = metadata::write.number;
         RAWR_PLATFORM_LINUX_X64_SYSCALL_GATED_BODY(
             // Same microoptimization.
@@ -331,7 +333,8 @@ RAWR_EXPORT namespace rawr::platform::linux::x64::syscall
 
     // Explicit specialization for chars.
     template <compilers C = this_compiler, archs A = this_arch>
-    RAWR_ALWAYS_INLINE auto write(fd_t file, char data) -> write_r {
+    RAWR_ALWAYS_INLINE auto write(fd_t file, char data) -> write_r
+    {
         const char arr[] = { data };
         return write<1>(file, arr);
     }
@@ -339,8 +342,9 @@ RAWR_EXPORT namespace rawr::platform::linux::x64::syscall
     template <compilers C = this_compiler, archs A = this_arch>
     RAWR_ALWAYS_INLINE RAWR_NORETURN auto exit(ru8 code) -> void
     {
+        reg_t rax = metadata::exit.number;
         RAWR_PLATFORM_LINUX_X64_SYSCALL_GATED_BODY(
-            asm volatile("syscall" :: "a"(metadata::exit.number), "D"(code));
+            asm volatile("syscall" :: "a"(rax), "D"(code));
             RAWR_UNREACHABLE;
         )
     }

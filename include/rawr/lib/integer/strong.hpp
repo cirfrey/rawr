@@ -25,7 +25,7 @@
 namespace rawr::inline lib::inline integer::inline strong::detail
 {
     // Do not define these.
-    #if RAWR_COMPILER_FAMILY_GNU
+	#if RAWR_COMPILER_GCC || (RAWR_COMPILER_CLANG && RAWR_COMPILER_VERSION_MAJOR >= 14)
         [[gnu::error("Literal underflows target type")]]      void lit_underflows_target_min() noexcept;
         [[gnu::error("Literal overflows target type")]]       void lit_overflows_target_max()  noexcept;
         [[gnu::error("Negative literal to unsigned target")]] void lit_negative_to_unsigned()  noexcept;
@@ -43,7 +43,7 @@ RAWR_EXPORT namespace rawr::inline lib::inline integer::inline strong
 
     enum class integer_policy : ru8 { checked, wrapping, saturating };
 
-    template <typename Derived, aint RawType, integer_policy Policy = integer_policy::checked>
+    template <typename Derived, Aint RawType, integer_policy Policy = integer_policy::checked>
     struct strong_integer
     {
     private:
@@ -56,8 +56,8 @@ RAWR_EXPORT namespace rawr::inline lib::inline integer::inline strong
         raw_type raw = 0;
 
         /* --- Static Metadata --- */
-        static constexpr bool is_signed     = sint<raw_type>;
-        static constexpr bool is_unsigned   = uint<raw_type>;
+        static constexpr bool is_signed     = Sint<raw_type>;
+        static constexpr bool is_unsigned   = Uint<raw_type>;
         static constexpr auto bits          = bitsof<raw_type>;
         static constexpr auto policy        = Policy;
         static constexpr auto is_checked    = policy == integer_policy::checked;
@@ -74,8 +74,8 @@ RAWR_EXPORT namespace rawr::inline lib::inline integer::inline strong
         friend Derived;
 
     public:
-        [[nodiscard]] static constexpr auto narrow(aint auto val)   noexcept -> Derived { RAWR_ASSERTION(val >= min && val <= max); return Derived{ static_cast<raw_type>(val) }; }
-        [[nodiscard]] static constexpr auto saturate(aint auto val) noexcept -> Derived { return Derived{ aint_saturating_cast<raw_type>(val) }; }
+        template <Aint T> [[nodiscard]] static constexpr auto narrow(T val)   noexcept -> Derived { RAWR_ASSERTION(val >= min && val <= max); return Derived{ static_cast<raw_type>(val) }; }
+        template <Aint T> [[nodiscard]] static constexpr auto saturate(T val) noexcept -> Derived { return Derived{ aint_saturating_cast<raw_type>(val) }; }
 
         /* --- Primitive Cast --- */
         [[nodiscard]] constexpr explicit operator raw_type() const noexcept { return raw; }
@@ -417,26 +417,28 @@ RAWR_EXPORT namespace rawr::inline lib::inline integer::inline strong
 
     /// Then we actually go about declaring each one and whatever conversions are suitable.
 
-    #define RAWR_LIB_INTEGER_DECLARE(Name, Raw, Policy, ...)                                                  \
-        struct Policy::Name : strong_integer<Policy::Name, Raw, integer_policy::Policy>                       \
-        {                                                                                                     \
-            constexpr Name() = default;                                                                       \
-            constexpr explicit Name(raw_type val) noexcept : strong_integer{ val } {}                                    \
-            consteval Name(aint auto val) noexcept : strong_integer{ rawr::aint_from_literal<raw_type>(val) } {}         \
-                                                                                                              \
-            using checked    = checked::Name;                                                                 \
-            using wrapping   = wrapping::Name;                                                                \
-            using saturating = saturating::Name;                                                              \
-            [[nodiscard]] constexpr auto as_checked()    const noexcept -> checked;                           \
-            [[nodiscard]] constexpr auto as_wrapping()   const noexcept -> wrapping;                          \
-            [[nodiscard]] constexpr auto as_saturating() const noexcept -> saturating;                        \
-            __VA_ARGS__                                                                                       \
-        };                                                                                                    \
-        static_assert(                                                                                        \
-            intrin::is_trivially_copyable<Policy::Name> &&                                                    \
-            intrin::is_standard_layout<Policy::Name> &&                                                       \
-            sizeof(Policy::Name)  == sizeof(Raw) &&                                                           \
-            alignof(Policy::Name) == alignof(Raw),                                                            \
+    #define RAWR_LIB_INTEGER_DECLARE(Name, Raw, Policy, ...)                            \
+        struct Policy::Name : strong_integer<Policy::Name, Raw, integer_policy::Policy> \
+        {                                                                               \
+            constexpr Name() = default;                                                 \
+            constexpr explicit Name(raw_type val) noexcept : strong_integer{ val } {}   \
+            template <Aint T>                                                           \
+            consteval Name(T val) noexcept                                              \
+                : strong_integer{ rawr::aint_from_literal<raw_type>(val) } {}           \
+                                                                                        \
+            using checked    = checked::Name;                                           \
+            using wrapping   = wrapping::Name;                                          \
+            using saturating = saturating::Name;                                        \
+            [[nodiscard]] constexpr auto as_checked()    const noexcept -> checked;     \
+            [[nodiscard]] constexpr auto as_wrapping()   const noexcept -> wrapping;    \
+            [[nodiscard]] constexpr auto as_saturating() const noexcept -> saturating;  \
+            __VA_ARGS__                                                                 \
+        };                                                                              \
+        static_assert(                                                                  \
+            intrin::TriviallyCopyable<Policy::Name> &&                                  \
+            intrin::StandardLayout<Policy::Name> &&                                     \
+            sizeof(Policy::Name)  == sizeof(Raw) &&                                     \
+            alignof(Policy::Name) == alignof(Raw),                                      \
             "strong integer must be layout-compatible with its raw type")
     #define RAWR_LIB_INTEGER_DECLARE3(Name, Raw, ConversionMacro)                      \
         RAWR_LIB_INTEGER_DECLARE(Name, Raw,  saturating, ConversionMacro(saturating)); \

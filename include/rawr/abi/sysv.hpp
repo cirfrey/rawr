@@ -21,7 +21,7 @@
 #include "rawr/lib/attributes.pp"
 #include "rawr/lib/rich_enum.pp"
 
-namespace rawr::abi::sysv
+RAWR_EXPORT namespace rawr::abi::sysv
 {
     // SysV psABI auxiliary vector tag constants.
     // Values are ABI-fixed — explicit enumerator values are not optional here.

@@ -8,6 +8,7 @@
     import rawr.lib.integer.raw;
     import rawr.lib.sync.base;
     import rawr.lib.detection;
+    import rawr.lib.sass;
 
     #include "rawr/lib/dist/module.pp"
 #else
@@ -16,6 +17,7 @@
     #include "rawr/lib/integer/raw.hpp"
     #include "rawr/lib/sync/base.hpp"
     #include "rawr/lib/detection.hpp"
+    #include "rawr/lib/sass.hpp"
 
     #include "rawr/lib/dist/header.pp"
 #endif
@@ -67,7 +69,7 @@ RAWR_EXPORT namespace rawr::arch::x64::atomic::gnu
         }
     });
 
-    template <raint Type>
+    template <RAint Type>
     RAWR_ALWAYS_INLINE constexpr auto atomic_compare_exchange_n(
         Type* ptr,
         Type* expected,
@@ -79,23 +81,23 @@ RAWR_EXPORT namespace rawr::arch::x64::atomic::gnu
         return ::__atomic_compare_exchange_n(ptr, expected, desired, weak, success, failure);
     });
 
-    template <raint Type> RAWR_ALWAYS_INLINE constexpr auto atomic_load_n    (Type* addr,             int memorder) -> Type RAWR_GNU({ return ::__atomic_load_n(addr, memorder); });
-    template <raint Type> RAWR_ALWAYS_INLINE constexpr auto atomic_store_n   (Type* addr, Type val,   int memorder) -> void RAWR_GNU({ ::__atomic_store_n(addr, val, memorder); });
-    template <raint Type> RAWR_ALWAYS_INLINE constexpr auto atomic_fetch_add (Type* addr, Type delta, int memorder) -> Type RAWR_GNU({ return ::__atomic_fetch_add(addr, delta, memorder); });
-    template <raint Type> RAWR_ALWAYS_INLINE constexpr auto atomic_exchange_n(Type* addr, Type val,   int memorder) -> Type RAWR_GNU({ return ::__atomic_exchange_n(addr, val, memorder); });
+    template <RAint Type> RAWR_ALWAYS_INLINE constexpr auto atomic_load_n    (Type* addr,             int memorder) -> Type RAWR_GNU({ return ::__atomic_load_n(addr, memorder); });
+    template <RAint Type> RAWR_ALWAYS_INLINE constexpr auto atomic_store_n   (Type* addr, Type val,   int memorder) -> void RAWR_GNU({ ::__atomic_store_n(addr, val, memorder); });
+    template <RAint Type> RAWR_ALWAYS_INLINE constexpr auto atomic_fetch_add (Type* addr, Type delta, int memorder) -> Type RAWR_GNU({ return ::__atomic_fetch_add(addr, delta, memorder); });
+    template <RAint Type> RAWR_ALWAYS_INLINE constexpr auto atomic_exchange_n(Type* addr, Type val,   int memorder) -> Type RAWR_GNU({ return ::__atomic_exchange_n(addr, val, memorder); });
 }
 
 RAWR_EXPORT namespace rawr::arch::x64::atomic
 {
     template <
-        raint T,
+        RAint T,
         sync::memory_order Success = sync::memory_order::seq_cst,
         sync::memory_order Failure = sync::memory_order::seq_cst
     >
     RAWR_ALWAYS_INLINE auto cas(T* addr, T& expected, T desired) noexcept -> bool
     {
         if constexpr(!this_arch.is_x64()) {
-            static_assert(false);
+            static_assert(sass::fail<T>);
             return false;
         } else if constexpr(this_compiler.is_family_gnu()) {
             return gnu::atomic_compare_exchange_n(
@@ -121,11 +123,11 @@ RAWR_EXPORT namespace rawr::arch::x64::atomic
         }
     }
 
-    template <raint T, sync::memory_order Order = sync::memory_order::seq_cst>
+    template <RAint T, sync::memory_order Order = sync::memory_order::seq_cst>
     RAWR_ALWAYS_INLINE auto load(T const* addr) noexcept -> T
     {
         if constexpr(!this_arch.is_x64()) {
-            static_assert(false);
+            static_assert(sass::fail<T>);
             return T{};
         } else if constexpr(this_compiler.is_family_gnu()) {
             return gnu::atomic_load_n(addr, gnu::to_gnu_order(Order));
@@ -148,11 +150,11 @@ RAWR_EXPORT namespace rawr::arch::x64::atomic
         }
     }
 
-    template <raint T, sync::memory_order Order = sync::memory_order::release>
+    template <RAint T, sync::memory_order Order = sync::memory_order::release>
     RAWR_ALWAYS_INLINE auto store(T* addr, T value) noexcept -> void
     {
         if constexpr(!this_arch.is_x64()) {
-            static_assert(false);
+            static_assert(sass::fail<T>);
         } else if constexpr(this_compiler.is_family_gnu()) {
             gnu::atomic_store_n(addr, value, gnu::to_gnu_order(Order));
         } else if constexpr(this_compiler.is_msvc()){
@@ -168,11 +170,11 @@ RAWR_EXPORT namespace rawr::arch::x64::atomic
         }
     }
 
-    template <raint T, sync::memory_order Order = sync::memory_order::seq_cst>
+    template <RAint T, sync::memory_order Order = sync::memory_order::seq_cst>
     RAWR_ALWAYS_INLINE auto fetch_add(T* addr, T delta) noexcept -> T
     {
         if constexpr(!this_arch.is_x64()) {
-            static_assert(false);
+            static_assert(sass::fail<T>);
             return T{};
         } else if constexpr(this_compiler.is_family_gnu()) {
             return gnu::atomic_fetch_add(addr, delta, gnu::to_gnu_order(Order));
@@ -185,11 +187,11 @@ RAWR_EXPORT namespace rawr::arch::x64::atomic
         }
     }
 
-    template <raint T, sync::memory_order Order = sync::memory_order::seq_cst>
+    template <RAint T, sync::memory_order Order = sync::memory_order::seq_cst>
     RAWR_ALWAYS_INLINE auto exchange(T* addr, T value) noexcept -> T
     {
         if constexpr(!this_arch.is_x64()) {
-            static_assert(false);
+            static_assert(sass::fail<T>);
             return T{};
         } else if constexpr(this_compiler.is_family_gnu()) {
             return gnu::atomic_exchange_n(addr, value, gnu::to_gnu_order(Order));

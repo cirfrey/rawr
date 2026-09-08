@@ -34,6 +34,12 @@ namespace rawr::inline lib::type_name::detail
         unsigned long long len;
     };
 
+    namespace error
+    {
+        auto start_marker_not_found() -> void;
+        auto end_marker_not_found()   -> void;
+    }
+
     template <typename T>
     consteval auto get_tn_info() -> tn_info {
         #if RAWR_COMPILER_FAMILY_GNU
@@ -49,10 +55,10 @@ namespace rawr::inline lib::type_name::detail
         #endif
 
         auto start = tn_find(name, start_marker, 0);
-        if(start == ~0ull) throw "Start marker not found";
+        if(start == ~0ull) error::start_marker_not_found();
 
         auto end = tn_find(name, end_marker, start);
-        if(end == ~0ull) throw "End marker not found";
+        if(end == ~0ull) error::end_marker_not_found();
 
         return {
             .start = name + start + sizeof(start_marker) - 1,

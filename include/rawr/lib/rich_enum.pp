@@ -95,8 +95,8 @@
             const Under other_val = static_cast<Under>(other._enum_value);                                                                                                    \
             return (val & other_val) == other_val;                                                                                                                            \
         }                                                                                                                                                                     \
-        [[nodiscard]] constexpr auto has_all(auto... flags) const noexcept -> bool { return (has(flags) && ...); }                                                            \
-        [[nodiscard]] constexpr auto has_any(auto... flags) const noexcept -> bool { return (has(flags) || ...); }                                                            \
+        template <typename... T> [[nodiscard]] constexpr auto has_all(T... flags) const noexcept -> bool { return (has(flags) && ...); }                                                            \
+        template <typename... T> [[nodiscard]] constexpr auto has_any(T... flags) const noexcept -> bool { return (has(flags) || ...); }                                                            \
         /* Generates has_IDENT for each IDENT passed to this macro. */                                                                                                        \
         RAWR_PP_EACH_CTX(RAWR_RF_HAS, Name, RAWR_PP_EACH_SEP(RAWR_PP_ENSURE_PAREN, RAWR_PP_COMMA_SEP, RAWR_PP_STRIP(Enumerations)))                                           \
                                                                                                                                                                               \

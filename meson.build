@@ -7,13 +7,38 @@ project(
 )
 
 python = import('python').find_installation('python3')
-cpp_id = meson.get_compiler('cpp').get_id()
+cpp    = meson.get_compiler('cpp')
+cpp_id = cpp.get_id()
 
 dir_sources = meson.current_source_dir()/'src'
 dir_include = meson.current_source_dir()/'include'
 dir_scripts = meson.current_source_dir()/'scripts'
 dir_build   = meson.current_build_dir()
 dir_include_name = 'include'
+
+freestanding_cpp_args = []
+freestanding_link_args = []
+
+# Convenience dependency for injecting freestanding flags.
+freestanding_dep = ''
+if cpp.get_id() == 'msvc'
+    freestanding_dep = declare_dependency(
+        # no RTTI, no stack cookie
+        # exceptions: build TUs with /EHs-c- and treat 'throw' as an error at review time;
+        # MSVC has no clean single-flag "no exceptions" the way gcc/clang do.
+        compile_args: ['/GR-', '/GS-'],
+    )
+else
+    freestanding_dep = declare_dependency(
+        compile_args: cpp.get_supported_arguments([
+            '-fno-exceptions',
+            '-fno-rtti',
+            '-fno-stack-protector',
+            '-ffreestanding',
+        ]),
+        link_args: ['-nostdlib'],
+    )
+endif
 
 manifest_script = dir_scripts/'manifest.py'
 
@@ -87,7 +112,7 @@ foreach o : module_manifest.split('\n')
     #
     # Resolve dependencies for this module.
     #
-    current_deps = []
+    current_deps = [freestanding_dep]
 
     if deps_str != ''
         foreach d : deps_str.split(',')
@@ -155,6 +180,7 @@ foreach o : module_manifest.split('\n')
             compile_args: usage_args,
             sources: bridge,
             dependencies: current_deps,
+            include_directories: dir_include_name,
         )
     }
 endforeach
@@ -191,6 +217,8 @@ if clang_tidy.found()
         ]
     )
 endif
+
+subdir('test')
 
 ### TODO: sectioned off for now.
 

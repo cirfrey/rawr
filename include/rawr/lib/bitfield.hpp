@@ -75,8 +75,8 @@ RAWR_EXPORT namespace rawr::inline lib::bitfield
                 : static_cast<mask_type>((mask_type{1} << width) - 1);
             const mask_type raw = static_cast<mask_type>(storage[word_index] >> bit_in_word) & mask_value;
 
-            if constexpr (aint<value_type>) {
-                if constexpr (sint<value_type> && width < bitsof<value_type>) {
+            if constexpr (Aint<value_type>) {
+                if constexpr (Sint<value_type> && width < bitsof<value_type>) {
                     uv uraw     = static_cast<uv>(raw);
                     uv sign_bit = uv{1} << (width - 1);
                     uv extended = static_cast<uv>((uraw ^ sign_bit) - sign_bit);
@@ -105,9 +105,9 @@ RAWR_EXPORT namespace rawr::inline lib::bitfield
             const mask_type write_mask = mask_value << bit_in_word;
 
             mask_type raw;
-            if constexpr (aint<value_type>) {
+            if constexpr (Aint<value_type>) {
                 raw = static_cast<mask_type>(val);
-            } else if constexpr (intrin::is_trivially_copyable<value_type>) {
+            } else if constexpr (intrin::TriviallyCopyable<value_type>) {
                 raw = static_cast<mask_type>(intrin::bit_cast<uv>(val));
             } else {
                 static_assert(sizeof(value_type) == 0,

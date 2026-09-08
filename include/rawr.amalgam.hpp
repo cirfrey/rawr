@@ -72,6 +72,7 @@
 	- rawr/lib/diag/dwarf.hpp
 	- rawr/lib/dummy_return.hpp
 	- rawr/lib/fmt.hpp
+	- rawr/lib/hash/fnv1a.hpp
 	- rawr/lib/integer/base.hpp
 	- rawr/lib/integer/raw.hpp
 	- rawr/lib/integer/strong.hpp
@@ -80,6 +81,7 @@
 	- rawr/lib/intrin/mem.hpp
 	- rawr/lib/linker_section.hpp
 	- rawr/lib/rich_enum.hpp
+	- rawr/lib/sass.hpp
 	- rawr/lib/simd/storage.hpp
 	- rawr/lib/source_location.hpp
 	- rawr/lib/sync/base.hpp
@@ -117,6 +119,7 @@
 	- rawr/lib/diag/dwarf.hpp
 	- rawr/lib/dummy_return.hpp
 	- rawr/lib/fmt.hpp
+	- rawr/lib/hash/fnv1a.hpp
 	- rawr/lib/integer/base.hpp
 	- rawr/lib/integer/raw.hpp
 	- rawr/lib/integer/strong.hpp
@@ -125,6 +128,7 @@
 	- rawr/lib/intrin/mem.hpp
 	- rawr/lib/linker_section.hpp
 	- rawr/lib/rich_enum.hpp
+	- rawr/lib/sass.hpp
 	- rawr/lib/simd/storage.hpp
 	- rawr/lib/source_location.hpp
 	- rawr/lib/sync/base.hpp
@@ -1206,7 +1210,7 @@
 	namespace rawr::inline lib::inline integer::inline base::detail
 	{
 	    // Prefer aint_[max|min] to using these directly, those dont need a call (are constexpr variables),
-	    // are type safe(r) via the aint concept and
+	    // are type safe(r) via the Aint concept and
 	    constexpr auto uint_max(bitwidth const bits) noexcept -> unsigned long long { return bits == biw64 ? ~0ULL : (1ULL << bits.val) - 1ULL; }
 	    constexpr auto sint_max(bitwidth const bits) noexcept -> long long          { return static_cast<long long>(uint_max(bits) >> 1U); }
 	    constexpr auto sint_min(bitwidth const bits) noexcept -> long long          { return ~sint_max(bits); } // two's complement bitwise NOT, defined in C++20.
@@ -1223,20 +1227,61 @@
 	        else                                                      { return static_cast<unsigned char>(Num); }
 	    }
 	
-	    // NOTE: These could just as well belong on a public library layer
-	    //       somewhere else instead of integer::detail.
+	    // This specific formulation of a type selector works on GCC <= 13, the previous one would crash the compiler.
+	    // Likely due to bodged requires() implementation.
+	    template <bitwidth Bits, typename Type, typename... Rest>
+	    constexpr auto select_type_by_size_helper()
+	    {
+	             if constexpr (bitsof<Type> == Bits) { return static_cast<Type>(0);}
+	        else if constexpr (sizeof...(Rest) > 0)  { return select_type_by_size_helper<Bits, Rest...>();}
+	        else {
+	            static_assert(Bits == biw0, "No type of this size");
+	            return char{0};
+	        }
+	    }
 	    template <bitwidth Bits, typename... Types>
-	    struct select_type_by_size { static_assert(Bits == biw0, "No type of this size"); };
+	    using select_type_by_size = decltype(select_type_by_size_helper<Bits, Types...>());
 	
-	    template <bitwidth Bits, typename Type, typename... Rest>
-	    requires (bitsof<Type> == Bits)
-	    struct select_type_by_size<Bits, Type, Rest...> { using type = Type; };
-	
-	    template <bitwidth Bits, typename Type, typename... Rest>
-	    struct select_type_by_size<Bits, Type, Rest...> : select_type_by_size<Bits, Rest...> {};
+	    template <bitwidth Bits>
+	    struct rsint_exact
+	    {
+	        using type = typename detail::select_type_by_size<Bits,
+	            signed char,
+	            signed short,
+	            signed int,
+	            signed long,
+	            signed long long
+	            #if RAWR_HAS_INT128
+	                , __int128
+	            #endif
+	        >;
+	    };
+	    template <bitwidth Bits>
+	    struct ruint_exact
+	    {
+	        using type = typename detail::select_type_by_size<Bits,
+	            unsigned char,
+	            unsigned short,
+	            unsigned int,
+	            unsigned long,
+	            unsigned long long
+	            #if RAWR_HAS_INT128
+	                , unsigned __int128
+	            #endif
+	        >;
+	    };
+	    template <bitwidth Bits>
+	    struct rfloat_exact
+	    {
+	        using type = typename detail::select_type_by_size<Bits,
+	            float,
+	            double,
+	            long double
+	        >;
+	    };
 	
 	    // Needed by the int_from_literal function. Do not define these.
-	    #if RAWR_COMPILER_FAMILY_GNU
+		#if RAWR_COMPILER_GCC || (RAWR_COMPILER_CLANG && RAWR_COMPILER_VERSION_MAJOR >= 14)
 	        [[gnu::error("Literal underflows target type")]]      void lit_underflows_target_min() noexcept;
 	        [[gnu::error("Literal overflows target type")]]       void lit_overflows_target_max()  noexcept;
 	        [[gnu::error("Negative literal to unsigned target")]] void lit_negative_to_unsigned()  noexcept;
@@ -1259,136 +1304,128 @@
 	    // NOTE: We use raw intrinsics since intrin:: actually depends on integer.base.
 	    // NOTE: raint32, raint64, rsint32, etc, still make some sort of sense since it could feasibly be referring
 	    //       to two (or more) different types.
-	    //       For example, for rsint: int and long sometimes are the same size on some architectures.
+	    //       For example, for RSint: int and long sometimes are the same size on some architectures.
 	    #if RAWR_COMPILER_MSVC
-	        template <typename T, bitwidth Bits = biw0> concept rsint = (detail::is_same<T, signed   char>::value || detail::is_same<T, signed   short>::value || detail::is_same<T, signed   int>::value || detail::is_same<T, signed   long>::value || detail::is_same<T, signed   long long>::value) && (Bits == biw0 || bitsof<T> == Bits);
-	        template <typename T, bitwidth Bits = biw0> concept ruint = (detail::is_same<T, unsigned char>::value || detail::is_same<T, unsigned short>::value || detail::is_same<T, unsigned int>::value || detail::is_same<T, unsigned long>::value || detail::is_same<T, unsigned long long>::value) && (Bits == biw0 || bitsof<T> == Bits);
+	        template <typename T, bitwidth Bits = biw0> concept RSint = (detail::is_same<T, signed   char>::value || detail::is_same<T, signed   short>::value || detail::is_same<T, signed   int>::value || detail::is_same<T, signed   long>::value || detail::is_same<T, signed   long long>::value) && (Bits == biw0 || bitsof<T> == Bits);
+	        template <typename T, bitwidth Bits = biw0> concept RUint = (detail::is_same<T, unsigned char>::value || detail::is_same<T, unsigned short>::value || detail::is_same<T, unsigned int>::value || detail::is_same<T, unsigned long>::value || detail::is_same<T, unsigned long long>::value) && (Bits == biw0 || bitsof<T> == Bits);
 	    #else
-	        template <typename T, bitwidth Bits = biw0> concept rsint = (
+	        template <typename T, bitwidth Bits = biw0> concept RSint = (
 	            __is_same(T, signed   char) || __is_same(T, signed   short) || __is_same(T, signed   int) || __is_same(T, signed   long) || __is_same(T, signed long long)
 	            #if RAWR_HAS_INT128
 	                || __is_same(T, __int128)
 	            #endif
 	            ) && (Bits == biw0 || bitsof<T> == Bits);
-	        template <typename T, bitwidth Bits = biw0> concept ruint = (
+	        template <typename T, bitwidth Bits = biw0> concept RUint = (
 	            __is_same(T, unsigned char) || __is_same(T, unsigned short) || __is_same(T, unsigned int) || __is_same(T, unsigned long) || __is_same(T, unsigned long long)
 	            #if RAWR_HAS_INT128
 	                || __is_same(T, unsigned __int128)
 	            #endif
 	            )  && (Bits == biw0 || bitsof<T> == Bits);
 	    #endif
-	    template <typename T> concept ruint8   = ruint<T, biw8>;
-	    template <typename T> concept ruint16  = ruint<T, biw16>;
-	    template <typename T> concept ruint32  = ruint<T, biw32>;
-	    template <typename T> concept ruint64  = ruint<T, biw64>;
-	    template <typename T> concept ruint128 = ruint<T, biw128>;
-	    template <typename T> concept rsint8   = rsint<T, biw8>;
-	    template <typename T> concept rsint16  = rsint<T, biw16>;
-	    template <typename T> concept rsint32  = rsint<T, biw32>;
-	    template <typename T> concept rsint64  = rsint<T, biw64>;
-	    template <typename T> concept rsint128 = rsint<T, biw128>;
-	    template <typename T, bitwidth Bits = biw0> concept raint = rsint<T, Bits> || ruint<T, Bits>;
-	    template <typename T> concept raint8   = raint<T, biw8>;
-	    template <typename T> concept raint16  = raint<T, biw16>;
-	    template <typename T> concept raint32  = raint<T, biw32>;
-	    template <typename T> concept raint64  = raint<T, biw64>;
-	    template <typename T> concept raint128 = raint<T, biw128>;
+	    template <typename T> concept RUint8   = RUint<T, biw8>;
+	    template <typename T> concept RUint16  = RUint<T, biw16>;
+	    template <typename T> concept RUint32  = RUint<T, biw32>;
+	    template <typename T> concept RUint64  = RUint<T, biw64>;
+	    template <typename T> concept RUint128 = RUint<T, biw128>;
+	    template <typename T> concept RSint8   = RSint<T, biw8>;
+	    template <typename T> concept RSint16  = RSint<T, biw16>;
+	    template <typename T> concept RSint32  = RSint<T, biw32>;
+	    template <typename T> concept RSint64  = RSint<T, biw64>;
+	    template <typename T> concept RSint128 = RSint<T, biw128>;
+	    template <typename T, bitwidth Bits = biw0> concept RAint = RSint<T, Bits> || RUint<T, Bits>;
+	    template <typename T> concept RAint8   = RAint<T, biw8>;
+	    template <typename T> concept RAint16  = RAint<T, biw16>;
+	    template <typename T> concept RAint32  = RAint<T, biw32>;
+	    template <typename T> concept RAint64  = RAint<T, biw64>;
+	    template <typename T> concept RAint128 = RAint<T, biw128>;
 	
-	    // uint and sint are opt-in. Specialize as needed.
+	    // Uint and Sint are opt-in. Specialize as needed.
 	    namespace trait
 	    {
 	        template <typename T> struct uint { static constexpr auto value = false; };
 	        template <typename T> struct sint { static constexpr auto value = false; };
 	    }
 	    // Such as (specializing for the raw integer types):
-	    template <ruint T> struct trait::uint<T> { static constexpr auto value = true; };
-	    template <rsint T> struct trait::sint<T> { static constexpr auto value = true; };
+	    template <RUint T> struct trait::uint<T> { static constexpr auto value = true; };
+	    template <RSint T> struct trait::sint<T> { static constexpr auto value = true; };
 	
 	    // These encode any integer type, raw or custom.
-	    template <typename T, bitwidth Bits = biw0> concept uint = trait::uint<T>::value && (Bits == biw0 || bitsof<T> == Bits);
-	    template <typename T> concept uint8   = uint<T, biw8>;
-	    template <typename T> concept uint16  = uint<T, biw16>;
-	    template <typename T> concept uint32  = uint<T, biw32>;
-	    template <typename T> concept uint64  = uint<T, biw64>;
-	    template <typename T> concept uint128 = uint<T, biw128>;
-	    template <typename T, bitwidth Bits = biw0> concept sint = trait::sint<T>::value && (Bits == biw0 || bitsof<T> == Bits);
-	    template <typename T> concept sint8   = sint<T, biw8>;
-	    template <typename T> concept sint16  = sint<T, biw16>;
-	    template <typename T> concept sint32  = sint<T, biw32>;
-	    template <typename T> concept sint64  = sint<T, biw64>;
-	    template <typename T> concept sint128 = sint<T, biw128>;
-	    template <typename T, bitwidth Bits = biw0> concept aint = uint<T, Bits> || sint<T, Bits>;
-	    template <typename T> concept aint8   = aint<T, biw8>;
-	    template <typename T> concept aint16  = aint<T, biw16>;
-	    template <typename T> concept aint32  = aint<T, biw32>;
-	    template <typename T> concept aint64  = aint<T, biw64>;
-	    template <typename T> concept aint128 = aint<T, biw128>;
+	    template <typename T, bitwidth Bits = biw0> concept Uint = trait::uint<T>::value && (Bits == biw0 || bitsof<T> == Bits);
+	    template <typename T> concept Uint8   = Uint<T, biw8>;
+	    template <typename T> concept Uint16  = Uint<T, biw16>;
+	    template <typename T> concept Uint32  = Uint<T, biw32>;
+	    template <typename T> concept Uint64  = Uint<T, biw64>;
+	    template <typename T> concept Uint128 = Uint<T, biw128>;
+	    template <typename T, bitwidth Bits = biw0> concept Sint = trait::sint<T>::value && (Bits == biw0 || bitsof<T> == Bits);
+	    template <typename T> concept Sint8   = Sint<T, biw8>;
+	    template <typename T> concept Sint16  = Sint<T, biw16>;
+	    template <typename T> concept Sint32  = Sint<T, biw32>;
+	    template <typename T> concept Sint64  = Sint<T, biw64>;
+	    template <typename T> concept Sint128 = Sint<T, biw128>;
+	    template <typename T, bitwidth Bits = biw0> concept Aint = Uint<T, Bits> || Sint<T, Bits>;
+	    template <typename T> concept Aint8   = Aint<T, biw8>;
+	    template <typename T> concept Aint16  = Aint<T, biw16>;
+	    template <typename T> concept Aint32  = Aint<T, biw32>;
+	    template <typename T> concept Aint64  = Aint<T, biw64>;
+	    template <typename T> concept Aint128 = Aint<T, biw128>;
 	
 	    // For completeness, heres how you detect ONLY custom integer types.
-	    template <typename T, bitwidth Bits = biw0> concept cuint = (!ruint<T> && trait::uint<T>::value) && (Bits == biw0 || bitsof<T> == Bits);
-	    template <typename T> concept cuint8   = cuint<T, biw8>;
-	    template <typename T> concept cuint16  = cuint<T, biw16>;
-	    template <typename T> concept cuint32  = cuint<T, biw32>;
-	    template <typename T> concept cuint64  = cuint<T, biw64>;
-	    template <typename T> concept cuint128 = cuint<T, biw128>;
-	    template <typename T, bitwidth Bits = biw0> concept csint = (!rsint<T> && trait::sint<T>::value) && (Bits == biw0 || bitsof<T> == Bits);
-	    template <typename T> concept csint8   = csint<T, biw8>;
-	    template <typename T> concept csint16  = csint<T, biw16>;
-	    template <typename T> concept csint32  = csint<T, biw32>;
-	    template <typename T> concept csint64  = csint<T, biw64>;
-	    template <typename T> concept csint128 = csint<T, biw128>;
-	    template <typename T, bitwidth Bits = biw0> concept caint = cuint<T, Bits> || csint<T, Bits>;
-	    template <typename T> concept caint8   = caint<T, biw8>;
-	    template <typename T> concept caint16  = caint<T, biw16>;
-	    template <typename T> concept caint32  = caint<T, biw32>;
-	    template <typename T> concept caint64  = caint<T, biw64>;
-	    template <typename T> concept caint128 = caint<T, biw128>;
+	    template <typename T, bitwidth Bits = biw0> concept CUint = (!RUint<T> && trait::uint<T>::value) && (Bits == biw0 || bitsof<T> == Bits);
+	    template <typename T> concept CUint8   = CUint<T, biw8>;
+	    template <typename T> concept CUint16  = CUint<T, biw16>;
+	    template <typename T> concept CUint32  = CUint<T, biw32>;
+	    template <typename T> concept CUint64  = CUint<T, biw64>;
+	    template <typename T> concept CUint128 = CUint<T, biw128>;
+	    template <typename T, bitwidth Bits = biw0> concept CSint = (!RSint<T> && trait::sint<T>::value) && (Bits == biw0 || bitsof<T> == Bits);
+	    template <typename T> concept CSint8   = CSint<T, biw8>;
+	    template <typename T> concept CSint16  = CSint<T, biw16>;
+	    template <typename T> concept CSint32  = CSint<T, biw32>;
+	    template <typename T> concept CSint64  = CSint<T, biw64>;
+	    template <typename T> concept CSint128 = CSint<T, biw128>;
+	    template <typename T, bitwidth Bits = biw0> concept CAint = CUint<T, Bits> || CSint<T, Bits>;
+	    template <typename T> concept CAint8   = CAint<T, biw8>;
+	    template <typename T> concept CAint16  = CAint<T, biw16>;
+	    template <typename T> concept CAint32  = CAint<T, biw32>;
+	    template <typename T> concept CAint64  = CAint<T, biw64>;
+	    template <typename T> concept CAint128 = CAint<T, biw128>;
 	
-	    template <aint T>
-	    constexpr T aint_max = sint<T>
+	    template <Aint T>
+	    constexpr T aint_max = Sint<T>
 	        ? static_cast<T>(detail::sint_max(bitsof<T>))
 	        : static_cast<T>(detail::uint_max(bitsof<T>));
-	    template <aint T>
-	    constexpr T aint_min = sint<T>
+	    template <Aint T>
+	    constexpr T aint_min = Sint<T>
 	        ? static_cast<T>(detail::sint_min(bitsof<T>))
 	        : T{0};
 	
-	    template <bitwidth Bits>     using ruint_exact   = detail::select_type_by_size<Bits, unsigned char, unsigned short, unsigned int, unsigned long, unsigned long long
-	        #if RAWR_HAS_INT128
-	            , unsigned __int128
-	        #endif
-	        >::type;
-	    template <bitwidth Bits>     using rsint_exact   = detail::select_type_by_size<Bits,   signed char,   signed short,   signed int,   signed long,   signed long long
-	        #if RAWR_HAS_INT128
-	            , __int128
-	        #endif
-	        >::type;
-	    template <bitwidth Bits>     using rfloat_exact  = detail::select_type_by_size<Bits,         float,         double,  long double>::type;
-	    template <unsigned long Num> using ruint_capable = decltype(detail::ruint_capable<Num>());
+		template <bitwidth Bits>     using rsint_exact   = typename detail::rsint_exact<Bits>::type;
+		template <bitwidth Bits>     using ruint_exact   = typename detail::ruint_exact<Bits>::type;
+		template <bitwidth Bits>     using rfloat_exact  = typename detail::rfloat_exact<Bits>::type;
+		template <unsigned long Num> using ruint_capable = decltype(detail::ruint_capable<Num>());
 	}
 	
 	namespace rawr::inline lib::inline integer::inline base::detail
 	{
-	    template <aint T> struct raint_of_t;
-	    template <sint T> struct raint_of_t<T> { using type = rsint_exact<bitsof<T>>; };
-	    template <uint T> struct raint_of_t<T> { using type = ruint_exact<bitsof<T>>; };
+	    template <Aint T> struct raint_of_t;
+	    template <Sint T> struct raint_of_t<T> { using type = base::rsint_exact<bitsof<T>>; };
+	    template <Uint T> struct raint_of_t<T> { using type = base::ruint_exact<bitsof<T>>; };
 	}
 	
 	RAWR_EXPORT namespace rawr::inline lib::inline integer::inline base
 	{
 	    // Gets the corresponding RAW integer type for a given T.
-	    template <aint T> using ruint_of = ruint_exact<bitsof<T>>;
-	    template <aint T> using rsint_of = rsint_exact<bitsof<T>>;
-	    // Automatically gets the correspoding ru* or rs* for a given aint of the same size.
-	    // Behaves like a std::conditional_t<sint<T>, rsint_exact<sizeof(T)>, ruint_exact<sizeof(T)>.
-	    template <aint T> using raint_of = detail::raint_of_t<T>::type;
+	    template <Aint T> using ruint_of = ruint_exact<bitsof<T>>;
+	    template <Aint T> using rsint_of = rsint_exact<bitsof<T>>;
+	    // Automatically gets the correspoding ru* or rs* for a given Aint of the same size.
+	    // Behaves like a std::conditional_t<Sint<T>, rsint_exact<sizeof(T)>, ruint_exact<sizeof(T)>.
+	    template <Aint T> using raint_of = typename detail::raint_of_t<T>::type;
 	
 	    // Safely construct an integer of a Target type from an arbitrary literal.
-	    template <aint Target>
+	    template <Aint Target>
 	    consteval auto aint_from_literal(auto val) noexcept -> Target
 	    {
-	        constexpr bool v_signed = sint<decltype(val)>;
-	        constexpr bool t_signed = sint<Target>;
+	        constexpr bool v_signed = Sint<decltype(val)>;
+	        constexpr bool t_signed = Sint<Target>;
 	
 	        if constexpr (v_signed == t_signed) {
 	            if (val < aint_min<Target>) { detail::lit_underflows_target_min(); }
@@ -1414,12 +1451,12 @@
 	        return static_cast<Target>(val);
 	    }
 	
-	    template <aint Target>
+	    template <Aint Target>
 	    constexpr auto aint_saturating_cast(auto val) noexcept -> Target
 	    {
 	        using V = decltype(val);
-	        constexpr auto v_signed = sint<decltype(val)>;
-	        constexpr auto t_signed = sint<Target>;
+	        constexpr auto v_signed = Sint<decltype(val)>;
+	        constexpr auto t_signed = Sint<Target>;
 	
 	        if constexpr (v_signed && !t_signed) {
 	            if (val < V{0}) { return aint_min<Target>; }
@@ -1447,6 +1484,7 @@
 	- rawr/arch/x64/cpuid.hpp
 	- rawr/arch/x64/simd.hpp
 	- rawr/lib/detection.hpp
+	- rawr/lib/hash/fnv1a.hpp
 	- rawr/lib/integer.hpp
 	- rawr/lib/integer/strong.hpp
 	- rawr/lib/intrin/math.hpp
@@ -1995,8 +2033,8 @@
 	            const Under other_val = static_cast<Under>(other._enum_value);                                                                                                    \
 	            return (val & other_val) == other_val;                                                                                                                            \
 	        }                                                                                                                                                                     \
-	        [[nodiscard]] constexpr auto has_all(auto... flags) const noexcept -> bool { return (has(flags) && ...); }                                                            \
-	        [[nodiscard]] constexpr auto has_any(auto... flags) const noexcept -> bool { return (has(flags) || ...); }                                                            \
+	        template <typename... T> [[nodiscard]] constexpr auto has_all(T... flags) const noexcept -> bool { return (has(flags) && ...); }                                                            \
+	        template <typename... T> [[nodiscard]] constexpr auto has_any(T... flags) const noexcept -> bool { return (has(flags) || ...); }                                                            \
 	        /* Generates has_IDENT for each IDENT passed to this macro. */                                                                                                        \
 	        RAWR_PP_EACH_CTX(RAWR_RF_HAS, Name, RAWR_PP_EACH_SEP(RAWR_PP_ENSURE_PAREN, RAWR_PP_COMMA_SEP, RAWR_PP_STRIP(Enumerations)))                                           \
 	                                                                                                                                                                              \
@@ -2476,7 +2514,7 @@
 	//RAWR_AMALGAM_IGNORE #include "rawr/lib/attributes.pp"
 	//RAWR_AMALGAM_IGNORE #include "rawr/lib/rich_enum.pp"
 	
-	namespace rawr::abi::sysv
+	RAWR_EXPORT namespace rawr::abi::sysv
 	{
 	    // SysV psABI auxiliary vector tag constants.
 	    // Values are ABI-fixed — explicit enumerator values are not optional here.
@@ -2800,14 +2838,15 @@
 	
 	// rawr_main_ctx only exists to have ctx be a dependent name in the user's main.
 	// Its a template since MSVC is bad at inlining lambdas.
-	#define RAWR_ABI_WIN64_MAIN(...)                                                             \
-	    _Pragma("comment(linker, \"/entry:rawr_main\")")                                         \
-	    RAWR_ALWAYS_INLINE RAWR_NORETURN void rawr_main_ctx(auto& ctx) noexcept { __VA_ARGS__; } \
-	    extern "C" RAWR_NORETURN void rawr_main() noexcept { auto c = 0; rawr_main_ctx(c); }
+	#define RAWR_ABI_WIN64_MAIN(...)                                                          \
+	    RAWR_ALWAYS_INLINE RAWR_NORETURN void rawr_user_main(__VA_ARGS__) noexcept;           \
+	    _Pragma("comment(linker, \"/entry:rawr_main\")")                                      \
+	    extern "C" RAWR_NORETURN void rawr_main() noexcept { auto c = 0; rawr_user_main(c); } \
+	    RAWR_ALWAYS_INLINE RAWR_NORETURN void rawr_user_main(__VA_ARGS__) noexcept
 	
-	#define RAWR_ABI_WIN64_MAIN_NOCTX(...)               \
-	    _Pragma("comment(linker, \"/entry:rawr_main\")") \
-	    extern "C" RAWR_NORETURN void rawr_main() noexcept { __VA_ARGS__; }
+	#define RAWR_ABI_WIN64_MAIN_NOCTX                         \
+	    _Pragma("comment(linker, \"/entry:rawr_user_main\")") \
+	    extern "C" RAWR_NORETURN void rawr_user_main() noexcept
 
 #pragma endregion "rawr/abi/win64.pp"
 
@@ -2833,6 +2872,33 @@
 #pragma endregion "rawr/lib/dist/pp.pp"
 
 /* required by:
+	- rawr/arch/x64/atomic.hpp
+	- rawr/lib.hpp
+	- rawr/lib/diag/dwarf.hpp
+*/
+#pragma region "rawr/lib/sass.hpp"
+	#ifndef RAWR_NO_SOURCE_MAPPING
+	    #line 3 "rawr/lib/sass.hpp"
+	#endif
+	// Static assertion utils.
+	
+	#ifdef RAWR_MODULE
+	    //RAWR_AMALGAM_IGNORE export module rawr.lib.sass;
+	    //RAWR_AMALGAM_IGNORE #include "rawr/lib/dist/module.pp"
+	#else
+	    //RAWR_AMALGAM_IGNORE #pragma once
+	    //RAWR_AMALGAM_IGNORE #include "rawr/lib/dist/header.pp"
+	#endif
+	
+	RAWR_EXPORT namespace rawr::inline lib::sass
+	{
+	    template <typename...>
+	    inline constexpr auto fail = false;
+	}
+
+#pragma endregion "rawr/lib/sass.hpp"
+
+/* required by:
 	- rawr/abi/sysv.pp
 	- rawr/lib/diag.hpp
 */
@@ -2846,18 +2912,20 @@
 	#ifdef RAWR_MODULE
 	    //RAWR_AMALGAM_IGNORE export module rawr.lib.diag.dwarf;
 	    import rawr.lib.detection;
+	    import rawr.lib.sass;
 	
 	    //RAWR_AMALGAM_IGNORE #include "rawr/lib/dist/module.pp"
 	#else
 	    //RAWR_AMALGAM_IGNORE #pragma once
 	    //RAWR_AMALGAM_IGNORE #include "rawr/lib/detection.hpp"
+	    //RAWR_AMALGAM_IGNORE #include "rawr/lib/sass.hpp"
 	
 	    //RAWR_AMALGAM_IGNORE #include "rawr/lib/dist/header.pp"
 	#endif
 	//RAWR_AMALGAM_IGNORE #include "rawr/lib/detection.pp"
 	//RAWR_AMALGAM_IGNORE #include "rawr/lib/attributes.pp"
 	
-	namespace rawr::inline lib::diag::dwarf
+	RAWR_EXPORT namespace rawr::inline lib::diag::dwarf
 	{
 	    enum class x64_reg : unsigned char {
 	        rax = 0,  rdx = 1,  rcx = 2,  rbx = 3,  rsi = 4,  rdi = 5,
@@ -2901,7 +2969,7 @@
 	                 if constexpr(A.is_x64())     { asm volatile(".cfi_undefined 16"); }
 	            else if constexpr(A.is_arm64())   { asm volatile(".cfi_undefined 30"); }
 	            else if constexpr(A.is_riscv64()) { asm volatile(".cfi_undefined 1"); }
-	            else                              { static_assert(false, "Unimplemented"); }
+	            else                              { static_assert(sass::fail<decltype(A)>, "Unimplemented"); }
 	        #endif
 	    }
 	}
@@ -2938,54 +3006,63 @@
 	    // GCC injects a ud2 in _start, the RAWR_UNREACHABLE supresses it.
 	    // If you want a ud2 you should do it yourself, the trampoline is guaranteed
 	    // to not hit it.
-	    #define RAWR_ABI_SYSV_MAIN(...)                                              \
-	        static_assert(                                                           \
-	            ::rawr::abi::sysv::ctx_trampolines[::rawr::this_arch].is_set,        \
-	            "SysV trampoline not defined for this architecture"                  \
-	        );                                                                       \
-	        extern "C" {                                                             \
-	            [[gnu::naked]] RAWR_NORETURN void _start() noexcept {                \
-	                asm((::rawr::abi::sysv::ctx_trampolines[::rawr::this_arch]));    \
-	                RAWR_UNREACHABLE;                                                \
-	            }                                                                    \
-	            [[gnu::flatten]] RAWR_NORETURN void rawr_main(void* sp) noexcept {   \
-	                ::rawr::lib::diag::dwarf::mark_unwind_root();                    \
-	                auto ctx = ::rawr::abi::sysv::context64::from_stack_pointer(sp); \
-	                [](auto& ctx) RAWR_NORETURN { __VA_ARGS__; }(ctx);               \
-	            }                                                                    \
-	        }
+	    #define RAWR_ABI_SYSV_MAIN(...)                                               \
+	        static_assert(                                                            \
+	            ::rawr::abi::sysv::ctx_trampolines[::rawr::this_arch].is_set,         \
+	            "SysV trampoline not defined for this architecture"                   \
+	        );                                                                        \
+	        [[gnu::flatten]] RAWR_NORETURN void rawr_user_main(__VA_ARGS__) noexcept; \
+	        extern "C" {                                                              \
+	            [[gnu::naked]] RAWR_NORETURN void _start() noexcept {                 \
+	                asm((::rawr::abi::sysv::ctx_trampolines[::rawr::this_arch]));     \
+	                RAWR_UNREACHABLE;                                                 \
+	            }                                                                     \
+	            [[gnu::flatten]] RAWR_NORETURN void rawr_main(void* sp) noexcept {    \
+	                ::rawr::lib::diag::dwarf::mark_unwind_root();                     \
+	                auto ctx = ::rawr::abi::sysv::context64::from_stack_pointer(sp);  \
+	                rawr_user_main(ctx);                                              \
+	            }                                                                     \
+	        }                                                                         \
+	        [[gnu::flatten]] RAWR_NORETURN void rawr_user_main(__VA_ARGS__) noexcept
+	
 	#elif RAWR_COMPILER_CLANG
 	    // Clang complains about non-asm in naked functions. It also doesn't
 	    // inject a ud2 in _start, so we don't need to suppress it.
-	    #define RAWR_ABI_SYSV_MAIN(...)                                              \
-	        static_assert(                                                           \
-	            ::rawr::abi::sysv::ctx_trampolines[::rawr::this_arch].is_set,        \
-	            "SysV ctx trampoline not defined for this architecture"              \
-	        );                                                                       \
-	        extern "C" {                                                             \
-	            [[gnu::naked]] RAWR_NORETURN void _start() noexcept {                \
-	                asm((::rawr::abi::sysv::ctx_trampolines[::rawr::this_arch]));    \
-	            }                                                                    \
-	            [[gnu::flatten]] RAWR_NORETURN void rawr_main(void* sp) noexcept {   \
-	                ::rawr::lib::diag::dwarf::mark_unwind_root();                    \
-	                auto ctx = ::rawr::abi::sysv::context64::from_stack_pointer(sp); \
-	                [](auto& ctx) RAWR_NORETURN { __VA_ARGS__; }(ctx);               \
-	            }                                                                    \
-	        }
+	    #define RAWR_ABI_SYSV_MAIN(...)                                               \
+	        static_assert(                                                            \
+	            ::rawr::abi::sysv::ctx_trampolines[::rawr::this_arch].is_set,         \
+	            "SysV ctx trampoline not defined for this architecture"               \
+	        );                                                                        \
+	        [[gnu::flatten]] RAWR_NORETURN void rawr_user_main(__VA_ARGS__) noexcept; \
+	        extern "C" {                                                              \
+	            [[gnu::naked]] RAWR_NORETURN void _start() noexcept {                 \
+	                asm((::rawr::abi::sysv::ctx_trampolines[::rawr::this_arch]));     \
+	            }                                                                     \
+	            [[gnu::flatten]] RAWR_NORETURN void rawr_main(void* sp) noexcept {    \
+	                ::rawr::lib::diag::dwarf::mark_unwind_root();                     \
+	                auto ctx = ::rawr::abi::sysv::context64::from_stack_pointer(sp);  \
+	                rawr_user_main(ctx);                                              \
+	            }                                                                     \
+	        }                                                                         \
+	        [[gnu::flatten]] RAWR_NORETURN void rawr_user_main(__VA_ARGS__) noexcept
+	
 	#endif
 	
 	// _start is aliased to rawr_main, this makes it so conceptually rawr_main means "user code"
 	// and _start means "abi trampoline stuff". In NOCTX mode you'll only see rawr_main in the
 	// generated assembly which is cleaner and more sematically consistent. The linker figures
 	// everything out correctly.
-	#define RAWR_ABI_SYSV_MAIN_NOCTX(...)                               \
-	    extern "C" {                                                    \
-	        RAWR_NORETURN void rawr_main() noexcept {                   \
-	            ::rawr::lib::diag::dwarf::mark_unwind_root();           \
-	            __VA_ARGS__;                                            \
-	        }                                                           \
-	        RAWR_NORETURN void _start() noexcept RAWR_ASM("rawr_main"); \
-	    }
+	#define RAWR_ABI_SYSV_MAIN_NOCTX                          \
+	    extern "C" {                                          \
+	        RAWR_NORETURN void rawr_user_main() noexcept;     \
+	        RAWR_NORETURN void rawr_main() noexcept {         \
+	            ::rawr::lib::diag::dwarf::mark_unwind_root(); \
+	            rawr_user_main();                             \
+	        }                                                 \
+	        RAWR_ATTRIBUTE(alias("rawr_main"))                \
+	        RAWR_NORETURN void _start() noexcept;             \
+	    }                                                     \
+	    extern "C" RAWR_NORETURN void rawr_user_main() noexcept
 
 #pragma endregion "rawr/abi/sysv.pp"
 
@@ -3052,6 +3129,7 @@
 	- rawr/arch/x64/cpuid.hpp
 	- rawr/arch/x64/simd.hpp
 	- rawr/lib.hpp
+	- rawr/lib/intrin/base.hpp
 	- rawr/lib/intrin/math.hpp
 	- rawr/lib/intrin/mem.hpp
 	- rawr/lib/test.hpp
@@ -3147,6 +3225,7 @@
 	    import rawr.lib.integer.raw;
 	    import rawr.lib.sync.base;
 	    import rawr.lib.detection;
+	    import rawr.lib.sass;
 	
 	    //RAWR_AMALGAM_IGNORE #include "rawr/lib/dist/module.pp"
 	#else
@@ -3155,6 +3234,7 @@
 	    //RAWR_AMALGAM_IGNORE #include "rawr/lib/integer/raw.hpp"
 	    //RAWR_AMALGAM_IGNORE #include "rawr/lib/sync/base.hpp"
 	    //RAWR_AMALGAM_IGNORE #include "rawr/lib/detection.hpp"
+	    //RAWR_AMALGAM_IGNORE #include "rawr/lib/sass.hpp"
 	
 	    //RAWR_AMALGAM_IGNORE #include "rawr/lib/dist/header.pp"
 	#endif
@@ -3206,7 +3286,7 @@
 	        }
 	    });
 	
-	    template <raint Type>
+	    template <RAint Type>
 	    RAWR_ALWAYS_INLINE constexpr auto atomic_compare_exchange_n(
 	        Type* ptr,
 	        Type* expected,
@@ -3218,23 +3298,23 @@
 	        return ::__atomic_compare_exchange_n(ptr, expected, desired, weak, success, failure);
 	    });
 	
-	    template <raint Type> RAWR_ALWAYS_INLINE constexpr auto atomic_load_n    (Type* addr,             int memorder) -> Type RAWR_GNU({ return ::__atomic_load_n(addr, memorder); });
-	    template <raint Type> RAWR_ALWAYS_INLINE constexpr auto atomic_store_n   (Type* addr, Type val,   int memorder) -> void RAWR_GNU({ ::__atomic_store_n(addr, val, memorder); });
-	    template <raint Type> RAWR_ALWAYS_INLINE constexpr auto atomic_fetch_add (Type* addr, Type delta, int memorder) -> Type RAWR_GNU({ return ::__atomic_fetch_add(addr, delta, memorder); });
-	    template <raint Type> RAWR_ALWAYS_INLINE constexpr auto atomic_exchange_n(Type* addr, Type val,   int memorder) -> Type RAWR_GNU({ return ::__atomic_exchange_n(addr, val, memorder); });
+	    template <RAint Type> RAWR_ALWAYS_INLINE constexpr auto atomic_load_n    (Type* addr,             int memorder) -> Type RAWR_GNU({ return ::__atomic_load_n(addr, memorder); });
+	    template <RAint Type> RAWR_ALWAYS_INLINE constexpr auto atomic_store_n   (Type* addr, Type val,   int memorder) -> void RAWR_GNU({ ::__atomic_store_n(addr, val, memorder); });
+	    template <RAint Type> RAWR_ALWAYS_INLINE constexpr auto atomic_fetch_add (Type* addr, Type delta, int memorder) -> Type RAWR_GNU({ return ::__atomic_fetch_add(addr, delta, memorder); });
+	    template <RAint Type> RAWR_ALWAYS_INLINE constexpr auto atomic_exchange_n(Type* addr, Type val,   int memorder) -> Type RAWR_GNU({ return ::__atomic_exchange_n(addr, val, memorder); });
 	}
 	
 	RAWR_EXPORT namespace rawr::arch::x64::atomic
 	{
 	    template <
-	        raint T,
+	        RAint T,
 	        sync::memory_order Success = sync::memory_order::seq_cst,
 	        sync::memory_order Failure = sync::memory_order::seq_cst
 	    >
 	    RAWR_ALWAYS_INLINE auto cas(T* addr, T& expected, T desired) noexcept -> bool
 	    {
 	        if constexpr(!this_arch.is_x64()) {
-	            static_assert(false);
+	            static_assert(sass::fail<T>);
 	            return false;
 	        } else if constexpr(this_compiler.is_family_gnu()) {
 	            return gnu::atomic_compare_exchange_n(
@@ -3260,11 +3340,11 @@
 	        }
 	    }
 	
-	    template <raint T, sync::memory_order Order = sync::memory_order::seq_cst>
+	    template <RAint T, sync::memory_order Order = sync::memory_order::seq_cst>
 	    RAWR_ALWAYS_INLINE auto load(T const* addr) noexcept -> T
 	    {
 	        if constexpr(!this_arch.is_x64()) {
-	            static_assert(false);
+	            static_assert(sass::fail<T>);
 	            return T{};
 	        } else if constexpr(this_compiler.is_family_gnu()) {
 	            return gnu::atomic_load_n(addr, gnu::to_gnu_order(Order));
@@ -3287,11 +3367,11 @@
 	        }
 	    }
 	
-	    template <raint T, sync::memory_order Order = sync::memory_order::release>
+	    template <RAint T, sync::memory_order Order = sync::memory_order::release>
 	    RAWR_ALWAYS_INLINE auto store(T* addr, T value) noexcept -> void
 	    {
 	        if constexpr(!this_arch.is_x64()) {
-	            static_assert(false);
+	            static_assert(sass::fail<T>);
 	        } else if constexpr(this_compiler.is_family_gnu()) {
 	            gnu::atomic_store_n(addr, value, gnu::to_gnu_order(Order));
 	        } else if constexpr(this_compiler.is_msvc()){
@@ -3307,11 +3387,11 @@
 	        }
 	    }
 	
-	    template <raint T, sync::memory_order Order = sync::memory_order::seq_cst>
+	    template <RAint T, sync::memory_order Order = sync::memory_order::seq_cst>
 	    RAWR_ALWAYS_INLINE auto fetch_add(T* addr, T delta) noexcept -> T
 	    {
 	        if constexpr(!this_arch.is_x64()) {
-	            static_assert(false);
+	            static_assert(sass::fail<T>);
 	            return T{};
 	        } else if constexpr(this_compiler.is_family_gnu()) {
 	            return gnu::atomic_fetch_add(addr, delta, gnu::to_gnu_order(Order));
@@ -3324,11 +3404,11 @@
 	        }
 	    }
 	
-	    template <raint T, sync::memory_order Order = sync::memory_order::seq_cst>
+	    template <RAint T, sync::memory_order Order = sync::memory_order::seq_cst>
 	    RAWR_ALWAYS_INLINE auto exchange(T* addr, T value) noexcept -> T
 	    {
 	        if constexpr(!this_arch.is_x64()) {
-	            static_assert(false);
+	            static_assert(sass::fail<T>);
 	            return T{};
 	        } else if constexpr(this_compiler.is_family_gnu()) {
 	            return gnu::atomic_exchange_n(addr, value, gnu::to_gnu_order(Order));
@@ -3349,6 +3429,7 @@
 	- rawr/lib/intrin.hpp
 	- rawr/lib/intrin/math.hpp
 	- rawr/lib/intrin/mem.hpp
+	- rawr/san/asan.hpp
 */
 #pragma region "rawr/lib/intrin/base.hpp"
 	#ifndef RAWR_NO_SOURCE_MAPPING
@@ -3368,45 +3449,71 @@
 	#endif
 	//RAWR_AMALGAM_IGNORE #include "rawr/lib/detection.pp"
 	//RAWR_AMALGAM_IGNORE #include "rawr/lib/attributes.pp"
-	
-	// MSVC is quite picky with __is_same.
-	#if RAWR_COMPILER_MSVC
-	    namespace rawr::inline lib::intrin::inline base::msvc
-	    {
-	        template <typename T, typename U> struct is_same       { static constexpr auto value = false; };
-	        template <typename T>             struct is_same<T, T> { static constexpr auto value = true; };
-	    }
-	#endif
+	//RAWR_AMALGAM_IGNORE #include "rawr/lib/compiler.pp"
 	
 	RAWR_EXPORT namespace rawr::inline lib::intrin::inline base
 	{
+	    template <typename T> T&& declval() noexcept;
+	
+	    namespace soft
+	    {
+	        template <typename T, typename U> struct is_same       { static constexpr auto value = false; };
+	        template <typename T>             struct is_same<T, T> { static constexpr auto value = true; };
+	
+	        template <typename From, typename To>
+	        concept ImplictlyConvertible = requires {
+	            // This tests if an expression of type 'From' can be passed
+	            // to a function expecting 'To' (implicit conversion)
+	            void(declval<void(*)(To)>()(declval<From>()));
+	        };
+	
+	        template <typename T> struct remove_cvref                   { using type = T; };
+	        template <typename T> struct remove_cvref<const T>          { using type = T; };
+	        template <typename T> struct remove_cvref<volatile T>       { using type = T; };
+	        template <typename T> struct remove_cvref<const volatile T> { using type = T; };
+	        template <typename T> struct remove_cvref<T&>  : remove_cvref<T> {};
+	        template <typename T> struct remove_cvref<T&&> : remove_cvref<T> {};
+	    }
+	
+	    template <typename T>
+	    using bare =
+	        #if RAWR_COMPILER_MSVC || \
+	            (RAWR_COMPILER_CLANG && RAWR_COMPILER_VERSION_MAJOR < 16) || \
+	            (RAWR_COMPILER_GCC && RAWR_COMPILER_VERSION_MAJOR < 13)
+	            typename soft::remove_cvref<T>::type;
+	        #else
+	            __remove_cvref(T);
+	        #endif
+	
 	    [[nodiscard]] RAWR_ALWAYS_INLINE constexpr auto is_consteval() noexcept -> bool
 	    { return __builtin_is_constant_evaluated(); }
 	
-	    #if RAWR_COMPILER_MSVC
-	        template<typename T, typename... Us> concept is = (msvc::is_same<T, Us>::value || ...);
-	    #else
-	        template<typename T, typename... Us> concept is = (__is_same(T, Us) || ...);
-	    #endif
+	    // MSVC is quite picky with __is_same.
+	    template<typename T, typename... Us> concept is = (
+	        RAWR_MSVC(soft::is_same<T, Us>::value) RAWR_NOT_MSVC(__is_same(T, Us))
+	        || ...
+	    );
 	
-	    template <typename T> concept is_trivially_copyable = __is_trivially_copyable(T);
-	    template <typename T> concept is_standard_layout    = __is_standard_layout(T);
+	    template <typename T> concept TriviallyCopyable = __is_trivially_copyable(T);
+	    template <typename T> concept StandardLayout    = __is_standard_layout(T);
 	
-	    template <typename T> T&& declval() noexcept;
-	    #if RAWR_COMPILER_FAMILY_GNU
+	    #if RAWR_COMPILER_CLANG || (RAWR_COMPILER_GCC && RAWR_COMPILER_VERSION_MAJOR >= 13)
 	        template <typename From, typename To>
-	        concept convertible_to = __is_convertible(From, To) && requires { static_cast<To>(declval<From>()); };
+	        concept ConvertibleTo = __is_convertible(From, To) && requires { static_cast<To>(declval<From>()); };
 	    #elif RAWR_COMPILER_MSVC
 	        template <typename From, typename To>
-	        concept convertible_to = __is_convertible_to(From, To) && requires { static_cast<To>(declval<From>()); };
+	        concept ConvertibleTo = __is_convertible_to(From, To) && requires { static_cast<To>(declval<From>()); };
+	    #else
+	        template <typename From, typename To>
+	        concept ConvertibleTo = soft::ImplictlyConvertible<From, To> && requires { static_cast<To>(declval<From>()); };
 	    #endif
 	
-	    template <is_trivially_copyable To, is_trivially_copyable From>
+	    template <TriviallyCopyable To, TriviallyCopyable From>
 	    requires (sizeof(To) == sizeof(From))
 	    [[nodiscard]] RAWR_ALWAYS_INLINE constexpr auto bit_cast(From const& from) noexcept -> To
 	    { return __builtin_bit_cast(To, from); }
 	
-	    template <is_trivially_copyable To, is_trivially_copyable From>
+	    template <TriviallyCopyable To, TriviallyCopyable From>
 	    requires (sizeof(To) < sizeof(From))
 	    [[nodiscard]] RAWR_ALWAYS_INLINE constexpr auto bit_cast(From const& from, unsigned char ByteOffset = 0) noexcept -> To
 	    {
@@ -3509,8 +3616,8 @@
 	                : static_cast<mask_type>((mask_type{1} << width) - 1);
 	            const mask_type raw = static_cast<mask_type>(storage[word_index] >> bit_in_word) & mask_value;
 	
-	            if constexpr (aint<value_type>) {
-	                if constexpr (sint<value_type> && width < bitsof<value_type>) {
+	            if constexpr (Aint<value_type>) {
+	                if constexpr (Sint<value_type> && width < bitsof<value_type>) {
 	                    uv uraw     = static_cast<uv>(raw);
 	                    uv sign_bit = uv{1} << (width - 1);
 	                    uv extended = static_cast<uv>((uraw ^ sign_bit) - sign_bit);
@@ -3539,9 +3646,9 @@
 	            const mask_type write_mask = mask_value << bit_in_word;
 	
 	            mask_type raw;
-	            if constexpr (aint<value_type>) {
+	            if constexpr (Aint<value_type>) {
 	                raw = static_cast<mask_type>(val);
-	            } else if constexpr (intrin::is_trivially_copyable<value_type>) {
+	            } else if constexpr (intrin::TriviallyCopyable<value_type>) {
 	                raw = static_cast<mask_type>(intrin::bit_cast<uv>(val));
 	            } else {
 	                static_assert(sizeof(value_type) == 0,
@@ -4131,7 +4238,7 @@
 	// GNU builtin wrappers for popcount, clz, ctz, bswap.
 	RAWR_EXPORT namespace rawr::inline lib::intrin::inline math::gnu
 	{
-	    template <raint Raw>
+	    template <RAint Raw>
 	    RAWR_ALWAYS_INLINE constexpr auto popcount(Raw val) noexcept -> Raw
 	    RAWR_GNU({
 	        auto const uval = static_cast<ruint_of<Raw>>(val);
@@ -4140,7 +4247,7 @@
 	        else                                                     { return static_cast<Raw>(__builtin_popcountll(static_cast<unsigned long long>(uval))); }
 	    });
 	
-	    template <raint Raw>
+	    template <RAint Raw>
 	    RAWR_ALWAYS_INLINE constexpr auto leading_zeros(Raw val) noexcept -> Raw
 	    RAWR_GNU({
 	        using URaw = ruint_of<Raw>;
@@ -4152,7 +4259,7 @@
 	        else                                                     { return static_cast<Raw>(__builtin_clzll(static_cast<unsigned long long>(uval))); }
 	    });
 	
-	    template <raint Raw>
+	    template <RAint Raw>
 	    RAWR_ALWAYS_INLINE constexpr auto trailing_zeros(Raw val) noexcept -> Raw
 	    RAWR_GNU({
 	        using URaw = ruint_of<Raw>;
@@ -4164,7 +4271,7 @@
 	        else                                                     { return static_cast<Raw>(__builtin_ctzll(static_cast<unsigned long long>(uval))); }
 	    });
 	
-	    template <ruint Raw>
+	    template <RUint Raw>
 	    RAWR_ALWAYS_INLINE constexpr auto bswap(Raw val) noexcept -> Raw
 	    RAWR_GNU({
 	             if constexpr (sizeof(Raw) == 1) { return val; }
@@ -4179,11 +4286,11 @@
 	{
 	    namespace soft
 	    {
-	        template <raint Raw>
+	        template <RAint Raw>
 	        [[nodiscard]] constexpr auto popcount(Raw val) noexcept -> Raw
 	        { Raw count = 0; while (val) { val &= static_cast<Raw>(val - Raw{1}); ++count; } return count; }
 	
-	        template <raint Raw>
+	        template <RAint Raw>
 	        [[nodiscard]] constexpr auto leading_zeros(Raw val) noexcept -> Raw
 	        {
 	            constexpr auto width = static_cast<Raw>(sizeof(Raw) * 8);
@@ -4194,7 +4301,7 @@
 	            return count;
 	        }
 	
-	        template <raint Raw>
+	        template <RAint Raw>
 	        [[nodiscard]] constexpr auto trailing_zeros(Raw val) noexcept -> Raw
 	        {
 	            if (val == Raw{0}) { return static_cast<Raw>(bitsof<Raw>.val); }
@@ -4203,11 +4310,11 @@
 	            return count;
 	        }
 	
-	        template <raint Raw> [[nodiscard]] constexpr auto leading_ones(Raw val)  noexcept -> Raw { return leading_zeros(~val); }
-	        template <raint Raw> [[nodiscard]] constexpr auto trailing_ones(Raw val) noexcept -> Raw { return trailing_zeros(~val); }
+	        template <RAint Raw> [[nodiscard]] constexpr auto leading_ones(Raw val)  noexcept -> Raw { return leading_zeros(~val); }
+	        template <RAint Raw> [[nodiscard]] constexpr auto trailing_ones(Raw val) noexcept -> Raw { return trailing_zeros(~val); }
 	    }
 	
-	    template <raint Raw>
+	    template <RAint Raw>
 	    [[nodiscard]] constexpr auto popcount(Raw val) noexcept -> Raw
 	    {
 	        if constexpr(this_compiler.is_family_gnu()) {
@@ -4232,7 +4339,7 @@
 	        }
 	    }
 	
-	    template <raint Raw>
+	    template <RAint Raw>
 	    [[nodiscard]] constexpr auto leading_zeros(Raw val) noexcept -> Raw
 	    {
 	        if constexpr(this_compiler.is_family_gnu()) {
@@ -4264,7 +4371,7 @@
 	        }
 	    }
 	
-	    template <raint Raw>
+	    template <RAint Raw>
 	    [[nodiscard]] constexpr auto trailing_zeros(Raw val) noexcept -> Raw
 	    {
 	        if constexpr(this_compiler.is_family_gnu()) {
@@ -4298,8 +4405,8 @@
 	        }
 	    }
 	
-	    template <raint Raw> [[nodiscard]] constexpr auto leading_ones(Raw val)  noexcept -> Raw { return leading_zeros(static_cast<Raw>(~val)); }
-	    template <raint Raw> [[nodiscard]] constexpr auto trailing_ones(Raw val) noexcept -> Raw { return trailing_zeros(static_cast<Raw>(~val)); }
+	    template <RAint Raw> [[nodiscard]] constexpr auto leading_ones(Raw val)  noexcept -> Raw { return leading_zeros(static_cast<Raw>(~val)); }
+	    template <RAint Raw> [[nodiscard]] constexpr auto trailing_ones(Raw val) noexcept -> Raw { return trailing_zeros(static_cast<Raw>(~val)); }
 	}
 	
 	// Byte-swap and rotation.
@@ -4307,7 +4414,7 @@
 	{
 	    namespace soft
 	    {
-	        template <ruint Raw>
+	        template <RUint Raw>
 	        [[nodiscard]] constexpr auto bswap(Raw val) noexcept -> Raw
 	        {
 	                 if constexpr (sizeof(Raw) == 1) { return val; }
@@ -4340,7 +4447,7 @@
 	        }
 	
 	        // Normalize any int to [0, bits) — handles negative n (rotate right by k == rotate left by bits-k).
-	        template <ruint Raw>
+	        template <RUint Raw>
 	        [[nodiscard]] constexpr auto rotl(Raw val, int n) noexcept -> Raw
 	        {
 	            constexpr int bits = static_cast<int>(bitsof<Raw>.val);
@@ -4349,13 +4456,13 @@
 	            return static_cast<Raw>((val << static_cast<unsigned>(n)) | (val >> static_cast<unsigned>(bits - n)));
 	        }
 	
-	        template <ruint Raw>
+	        template <RUint Raw>
 	        [[nodiscard]] constexpr auto rotr(Raw val, int n) noexcept -> Raw
 	        { return soft::rotl(val, -n); }
 	    }
 	
 	    // Byte-swap. Restricted to unsigned — signed bswap has no meaningful interpretation.
-	    template <ruint Raw>
+	    template <RUint Raw>
 	    [[nodiscard]] RAWR_ALWAYS_INLINE constexpr auto bswap(Raw val) noexcept -> Raw
 	    {
 	        if constexpr(this_compiler.is_family_gnu()) {
@@ -4376,7 +4483,7 @@
 	    // Rotation. Negative n rotates in the opposite direction (matching std::rotl/rotr semantics).
 	    // GCC ≥ 12 and Clang ≥ 8 have __builtin_rotateleft*, but GCC 11 (minimum supported) does not.
 	    // The idiom in soft:: is recognised by all supported compilers and lowers to a single ROL/ROR on x86.
-	    template <ruint Raw>
+	    template <RUint Raw>
 	    [[nodiscard]] RAWR_ALWAYS_INLINE constexpr auto rotl(Raw val, int n) noexcept -> Raw
 	    {
 	        if constexpr(this_compiler.is_family_gnu()) {
@@ -4394,7 +4501,7 @@
 	        }
 	    }
 	
-	    template <ruint Raw>
+	    template <RUint Raw>
 	    [[nodiscard]] RAWR_ALWAYS_INLINE constexpr auto rotr(Raw val, int n) noexcept -> Raw
 	    {
 	        if constexpr(this_compiler.is_family_gnu()) {
@@ -4544,46 +4651,46 @@
 	RAWR_EXPORT namespace rawr::inline lib::intrin::inline math
 	{
 	    // Unconstrained deliberately — see note above. It's a passive holder;
-	    // constraining T against `aint` here is what caused the CRTP hazard.
+	    // constraining T against `Aint` here is what caused the CRTP hazard.
 	    template <typename T> struct ov_result { T val{}; bool overflowed = false; };
 	
 	    namespace soft
 	    {
-	        template <rsint Raw>
+	        template <RSint Raw>
 	        [[nodiscard]] constexpr auto did_add_overflow(Raw lhs, Raw rhs, Raw result) noexcept -> bool
 	        { return (lhs > 0 && rhs > 0 && result < 0) || (lhs < 0 && rhs < 0 && result >= 0); }
-	        template <rsint Raw>
+	        template <RSint Raw>
 	        [[nodiscard]] constexpr auto did_sub_underflow(Raw lhs, Raw rhs, Raw result) noexcept -> bool
 	        { return (lhs >= 0 && rhs < 0 && result < 0) || (lhs < 0 && rhs >= 0 && result >= 0); }
 	
-	        template <raint Raw>
+	        template <RAint Raw>
 	        [[nodiscard]] constexpr auto ov_add(Raw lhs_, Raw rhs_) noexcept -> ov_result<Raw>
 	        {
 	            auto const lhs    = static_cast<ruint_of<Raw>>(lhs_);
 	            auto const rhs    = static_cast<ruint_of<Raw>>(rhs_);
 	            Raw const  result = static_cast<Raw>( lhs + rhs );
-	            if constexpr (uint<Raw>) { return { result, static_cast<ruint_of<Raw>>(lhs + rhs) < lhs }; }
+	            if constexpr (Uint<Raw>) { return { result, static_cast<ruint_of<Raw>>(lhs + rhs) < lhs }; }
 	            else                     { return { result, did_add_overflow(lhs_, rhs_, result) }; }
 	        }
 	
-	        template <raint Raw>
+	        template <RAint Raw>
 	        [[nodiscard]] constexpr auto ov_sub(Raw lhs_, Raw rhs_) noexcept -> ov_result<Raw>
 	        {
 	            auto const lhs    = static_cast<ruint_of<Raw>>(lhs_);
 	            auto const rhs    = static_cast<ruint_of<Raw>>(rhs_);
 	            Raw const  result = static_cast<Raw>( lhs - rhs );
-	            if constexpr (uint<Raw>) { return { result, lhs < rhs }; }
+	            if constexpr (Uint<Raw>) { return { result, lhs < rhs }; }
 	            else                     { return { result, did_sub_underflow(lhs_, rhs_, result) }; }
 	        }
 	
-	        template <ruint Raw> requires (sizeof(Raw) <= 4)
+	        template <RUint Raw> requires (sizeof(Raw) <= 4)
 	        [[nodiscard]] constexpr auto ov_mul(Raw lhs, Raw rhs) noexcept -> ov_result<Raw>
 	        {
 	            ru64 const wider = static_cast<ru64>(lhs) * static_cast<ru64>(rhs);
 	            return { static_cast<Raw>(wider), wider > static_cast<ru64>(aint_max<Raw>) };
 	        }
 	
-	        template <rsint Raw> requires (sizeof(Raw) <= 4)
+	        template <RSint Raw> requires (sizeof(Raw) <= 4)
 	        [[nodiscard]] constexpr auto ov_mul(Raw lhs, Raw rhs) noexcept -> ov_result<Raw>
 	        {
 	            rs64 const wider = static_cast<rs64>(lhs) * static_cast<rs64>(rhs);
@@ -4593,14 +4700,14 @@
 	            };
 	        }
 	
-	        template <ruint64 Raw>
+	        template <RUint64 Raw>
 	        [[nodiscard]] constexpr auto ov_mul(Raw lhs, Raw rhs) noexcept -> ov_result<Raw>
 	        {
 	            auto const ret = intrin::umul64(lhs, rhs);
 	            return { static_cast<Raw>(ret.lo), ret.hi != 0 };
 	        }
 	
-	        template <rsint64 Raw>
+	        template <RSint64 Raw>
 	        [[nodiscard]] constexpr auto ov_mul(Raw lhs, Raw rhs) noexcept -> ov_result<Raw>
 	        {
 	            if (lhs == 0 || rhs == 0) { return { Raw{0}, false }; }
@@ -4623,7 +4730,7 @@
 	
 	RAWR_EXPORT namespace rawr::inline lib::intrin::inline math::gnu
 	{
-	    template <raint Raw>
+	    template <RAint Raw>
 	    RAWR_ALWAYS_INLINE constexpr auto ov_add(Raw lhs, Raw rhs) noexcept -> ov_result<Raw>
 	    RAWR_GNU({
 	        Raw result;
@@ -4631,7 +4738,7 @@
 	        return { result, overflowed };
 	    });
 	
-	    template <raint Raw>
+	    template <RAint Raw>
 	    RAWR_ALWAYS_INLINE constexpr auto ov_sub(Raw lhs, Raw rhs) noexcept -> ov_result<Raw>
 	    RAWR_GNU({
 	        Raw result;
@@ -4639,7 +4746,7 @@
 	        return { result, overflowed };
 	    });
 	
-	    template <raint Raw>
+	    template <RAint Raw>
 	    RAWR_ALWAYS_INLINE constexpr auto ov_mul(Raw lhs, Raw rhs) noexcept -> ov_result<Raw>
 	    RAWR_GNU({
 	        Raw result;
@@ -4650,7 +4757,7 @@
 	
 	RAWR_EXPORT namespace rawr::inline lib::intrin::inline math
 	{
-	    template <raint Raw>
+	    template <RAint Raw>
 	    [[nodiscard]] constexpr auto ov_add(Raw lhs, Raw rhs) noexcept -> ov_result<Raw>
 	    {
 	        if constexpr(this_compiler.is_family_gnu()) {
@@ -4663,7 +4770,7 @@
 	                    ru32 result_;
 	                    ru8 const carry = msvc::_addcarry_u32(0, static_cast<ru32>(lhs), static_cast<ru32>(rhs), &result_);
 	                    Raw const result = static_cast<Raw>(result_);
-	                    if constexpr (uint<Raw>) return { result, carry != 0 };
+	                    if constexpr (Uint<Raw>) return { result, carry != 0 };
 	                    else                    return { result, soft::did_add_overflow(lhs, rhs, result) };
 	                } else { return soft::ov_add(lhs, rhs); }
 	            } else if constexpr (sizeof(Raw) == 8) {
@@ -4672,7 +4779,7 @@
 	                    ru64 result_;
 	                    ru8 const carry = msvc::_addcarry_u64(0, static_cast<ru64>(lhs), static_cast<ru64>(rhs), &result_);
 	                    Raw const result = static_cast<Raw>(result_);
-	                    if constexpr (uint<Raw>) return { result, carry != 0 };
+	                    if constexpr (Uint<Raw>) return { result, carry != 0 };
 	                    else                    return { result, soft::did_add_overflow(lhs, rhs, result) };
 	                } else { return soft::ov_add(lhs, rhs); }
 	            } else { return soft::ov_add(lhs, rhs); }
@@ -4681,7 +4788,7 @@
 	        }
 	    }
 	
-	    template <raint Raw>
+	    template <RAint Raw>
 	    [[nodiscard]] constexpr auto ov_sub(Raw lhs, Raw rhs) noexcept -> ov_result<Raw>
 	    {
 	        if constexpr(this_compiler.is_family_gnu()) {
@@ -4694,7 +4801,7 @@
 	                    ru32 result_;
 	                    ru8 const carry = msvc::_subborrow_u32(0, static_cast<ru32>(lhs), static_cast<ru32>(rhs), &result_);
 	                    Raw const result = static_cast<Raw>(result_);
-	                    if constexpr (uint<Raw>) return { result, carry != 0 };
+	                    if constexpr (Uint<Raw>) return { result, carry != 0 };
 	                    else                    return { result, soft::did_sub_underflow(lhs, rhs, result) };
 	                } else { return soft::ov_sub(lhs, rhs); }
 	            } else if constexpr (sizeof(Raw) == 8) {
@@ -4703,7 +4810,7 @@
 	                    ru64 result_;
 	                    ru8 const carry = msvc::_subborrow_u64(0, static_cast<ru64>(lhs), static_cast<ru64>(rhs), &result_);
 	                    Raw const result = static_cast<Raw>(result_);
-	                    if constexpr (uint<Raw>) return { result, carry != 0 };
+	                    if constexpr (Uint<Raw>) return { result, carry != 0 };
 	                    else                    return { result, soft::did_sub_underflow(lhs, rhs, result) };
 	                } else { return soft::ov_sub(lhs, rhs); }
 	            } else { return soft::ov_sub(lhs, rhs); }
@@ -4712,7 +4819,7 @@
 	        }
 	    }
 	
-	    template <raint Raw>
+	    template <RAint Raw>
 	    [[nodiscard]] constexpr auto ov_mul(Raw lhs, Raw rhs) noexcept -> ov_result<Raw>
 	    {
 	        if constexpr(this_compiler.is_family_gnu()) {
@@ -4723,7 +4830,7 @@
 	                // _umul128/_mul128 are x64-only; arm64 and x86 MSVC fall back to soft.
 	                if constexpr(this_arch.is_x64()) {
 	                    if (intrin::is_consteval()) return soft::ov_mul(lhs, rhs);
-	                    if constexpr (uint<Raw>) {
+	                    if constexpr (Uint<Raw>) {
 	                        ru64 high;
 	                        ru64 low = msvc::_umul128(static_cast<ru64>(lhs), static_cast<ru64>(rhs), &high);
 	                        return { static_cast<Raw>(low), high != 0 };
@@ -4842,7 +4949,8 @@
 	        }
 	    }
 	
-	    RAWR_ALWAYS_INLINE constexpr auto memcpy(auto* dst, auto const* src, rst n) noexcept -> void*
+	    template <typename Dst, typename Src>
+	    RAWR_ALWAYS_INLINE constexpr auto memcpy(Dst* dst, Src const* src, rst n) noexcept -> void*
 	    {
 	        if (intrin::is_consteval())                      { return soft::memcpy(dst, src, n); }
 	             if constexpr(this_compiler.is_family_gnu()) { return  gnu::memcpy(dst, src, n); }
@@ -5276,6 +5384,12 @@
 	        unsigned long long len;
 	    };
 	
+	    namespace error
+	    {
+	        auto start_marker_not_found() -> void;
+	        auto end_marker_not_found()   -> void;
+	    }
+	
 	    template <typename T>
 	    consteval auto get_tn_info() -> tn_info {
 	        #if RAWR_COMPILER_FAMILY_GNU
@@ -5291,10 +5405,10 @@
 	        #endif
 	
 	        auto start = tn_find(name, start_marker, 0);
-	        if(start == ~0ull) throw "Start marker not found";
+	        if(start == ~0ull) error::start_marker_not_found();
 	
 	        auto end = tn_find(name, end_marker, start);
-	        if(end == ~0ull) throw "End marker not found";
+	        if(end == ~0ull) error::end_marker_not_found();
 	
 	        return {
 	            .start = name + start + sizeof(start_marker) - 1,
@@ -5518,10 +5632,10 @@
 	RAWR_EXPORT namespace rawr::inline lib
 	{
 	    template <typename Formatter>
-	    concept compliant_formatter = requires(Formatter const& fmt, format::buf& buf, format::view specifier){
+	    concept CompliantFormatter = requires(Formatter const& fmt, format::buf& buf, format::view specifier){
 	        typename Formatter::value_type;
 	
-	        { fmt.worst_case_buffer_size } -> intrin::convertible_to<format::st>;
+	        { fmt.worst_case_buffer_size } -> intrin::ConvertibleTo<format::st>;
 	        // Commented for now, need to get a T from formatter.
 	        { fmt.format(
 	            buf,
@@ -5561,7 +5675,7 @@
 	
 	    namespace format {
 	        template <typename T, template <typename> typename Formatter = formatter>
-	        requires (compliant_formatter<Formatter<T>>)
+	        requires (CompliantFormatter<Formatter<T>>)
 	        constexpr void erase_formatter(buf& b, void const* v, view s) {
 	            Formatter<T>::format(b, *static_cast<T const*>(v), s);
 	        }
@@ -5572,7 +5686,7 @@
 	            st worst_case_buffer_size;
 	
 	            template <template <typename> typename Formatter = formatter, typename T>
-	            requires (compliant_formatter<Formatter<T>>)
+	            requires (CompliantFormatter<Formatter<T>>)
 	            constexpr erased_arg(T const& v)
 	                : object{&v}
 	                , format{ erase_formatter<T, Formatter> }
@@ -5676,19 +5790,27 @@
 	{
 	    template <format::fixed_str FS>
 	    struct fmt_lit {
-	        [[nodiscard]] constexpr auto operator()(auto const&... args) const noexcept
+	        template <typename... Args>
+	        [[nodiscard]] constexpr auto operator()(Args const&... args) const noexcept
 	        { return rawr::fmt<FS>(args...); }
 	
-	        template <format::st BufSize = 0>
-	        [[nodiscard]] consteval auto ct(auto const&... args) const noexcept
+	        template <format::st BufSize = 0, typename... Args>
+	        [[nodiscard]] consteval auto ct(Args const&... args) const noexcept
 	        { return  rawr::fmt_constant<FS, BufSize>(args...); }
 	
-	        template <format::st BufSize = 0>
-	        [[nodiscard]] constexpr auto bufsize(auto const&... args) const noexcept
+	        template <format::st BufSize = 0, typename... Args>
+	        [[nodiscard]] constexpr auto bufsize(Args const&... args) const noexcept
 	        { return rawr::fmt<FS, BufSize>(args...); }
 	    };
 	
-	    template <format::fixed_str FS> consteval auto operator""_fmt() noexcept { return fmt_lit<FS>{}; }
+	    #if RAWR_COMPILER_MSVC && _MSC_VER <= 1928
+	        template <char... Cs> consteval auto operator""_fmt() noexcept {
+	            constexpr char arr[] = {Cs..., '\0'};
+	            return fmt_lit< format::fixed_str<sizeof...(Cs) + 1>{arr} >{};
+	        }
+	    #else
+	        template <format::fixed_str FS> consteval auto operator""_fmt() noexcept { return fmt_lit<FS>{}; }
+	    #endif
 	}
 	
 	
@@ -5768,12 +5890,12 @@
 	        }
 	    }
 	
-	    template <aint T>
+	    template <Aint T>
 	    struct number_formatter
 	    {
 	        using value_type = T;
 	
-	        static constexpr st worst_case_buffer_size = (bitsof<value_type>.val * 301) / 1000 + 1 + (sint<T>);
+	        static constexpr st worst_case_buffer_size = (bitsof<value_type>.val * 301) / 1000 + 1 + (Sint<T>);
 	
 	        static constexpr void format(
 	            buf& buf,
@@ -5786,7 +5908,7 @@
 	                spec.data[0] == ':' &&
 	                spec.data[1] == 'x';
 	
-	            if constexpr(sint<T>)
+	            if constexpr(Sint<T>)
 	            {
 	                auto v = static_cast<long long>(value);
 	                auto magnitude = static_cast<unsigned long long>(v);
@@ -5907,6 +6029,86 @@
 #pragma endregion "rawr/lib/fmt.hpp"
 
 /* required by:
+	- rawr/lib/hash.hpp
+*/
+#pragma region "rawr/lib/hash/fnv1a.hpp"
+	#ifndef RAWR_NO_SOURCE_MAPPING
+	    #line 3 "rawr/lib/hash/fnv1a.hpp"
+	#endif
+	
+	#ifdef RAWR_MODULE
+	    //RAWR_AMALGAM_IGNORE export module rawr.lib.hash.fnv1a;
+	    import rawr.lib.integer.raw;
+	
+	    //RAWR_AMALGAM_IGNORE #include "rawr/lib/dist/module.pp"
+	#else
+	    //RAWR_AMALGAM_IGNORE #pragma once
+	    //RAWR_AMALGAM_IGNORE #include "rawr/lib/integer/raw.hpp"
+	
+	    //RAWR_AMALGAM_IGNORE #include "rawr/lib/dist/header.pp"
+	#endif
+	
+	RAWR_EXPORT namespace rawr::inline lib::inline hash::fnv1a
+	{
+	    inline constexpr ru32 offset_basis_32 = 0x811c9dc5u;
+	    inline constexpr ru32 prime_32        = 0x01000193u;
+	
+	    inline constexpr ru64 offset_basis_64 = 0xcbf29ce484222325ull;
+	    inline constexpr ru64 prime_64        = 0x100000001b3ull;
+	
+	    template <typename T>
+	    constexpr auto hash32(T const* data, rst size) noexcept -> ru32
+	    requires(sizeof(T) == 1)
+	    {
+	        auto hash = offset_basis_32;
+	        for (rst i = 0; i < size; ++i) {
+	            hash ^= ru32{ static_cast<ru8>(data[i]) };
+	            hash *= prime_32;
+	        }
+	        return hash;
+	    }
+	
+	    template <typename T>
+	    constexpr auto hash64(T const* data, rst size) noexcept -> ru64
+	    requires(sizeof(T) == 1)
+	    {
+	        auto hash = offset_basis_64;
+	        for (rst i = 0; i < size; ++i) {
+	            hash ^= ru64{ static_cast<ru8>(data[i]) };
+	            hash *= prime_64;
+	        }
+	        return hash;
+	    }
+	
+	    inline namespace literals
+	    {
+	        // NOTE: These are NOT null-terminated terminated. Be wary of comparing against hashes of null-terminated strings.
+	        consteval auto operator ""_fnv1a32(char const* str, rst len) -> ru32 { return hash32(str, len); }
+	        consteval auto operator ""_fnv1a64(char const* str, rst len) -> ru64 { return hash64(str, len); }
+	    }
+	}
+
+#pragma endregion "rawr/lib/hash/fnv1a.hpp"
+
+/* required by:
+	- rawr/lib.hpp
+*/
+#pragma region "rawr/lib/hash.hpp"
+	#ifndef RAWR_NO_SOURCE_MAPPING
+	    #line 3 "rawr/lib/hash.hpp"
+	#endif
+	
+	#ifdef RAWR_MODULE
+	    //RAWR_AMALGAM_IGNORE export module rawr.lib.hash;
+	    export import rawr.lib.hash.fnv1a;
+	#else
+	    //RAWR_AMALGAM_IGNORE #pragma once
+	    //RAWR_AMALGAM_IGNORE #include "rawr/lib/hash/fnv1a.hpp"
+	#endif
+
+#pragma endregion "rawr/lib/hash.hpp"
+
+/* required by:
 	- rawr/lib/integer.hpp
 */
 #pragma region "rawr/lib/integer/strong.hpp"
@@ -5937,7 +6139,7 @@
 	namespace rawr::inline lib::inline integer::inline strong::detail
 	{
 	    // Do not define these.
-	    #if RAWR_COMPILER_FAMILY_GNU
+		#if RAWR_COMPILER_GCC || (RAWR_COMPILER_CLANG && RAWR_COMPILER_VERSION_MAJOR >= 14)
 	        [[gnu::error("Literal underflows target type")]]      void lit_underflows_target_min() noexcept;
 	        [[gnu::error("Literal overflows target type")]]       void lit_overflows_target_max()  noexcept;
 	        [[gnu::error("Negative literal to unsigned target")]] void lit_negative_to_unsigned()  noexcept;
@@ -5955,7 +6157,7 @@
 	
 	    enum class integer_policy : ru8 { checked, wrapping, saturating };
 	
-	    template <typename Derived, aint RawType, integer_policy Policy = integer_policy::checked>
+	    template <typename Derived, Aint RawType, integer_policy Policy = integer_policy::checked>
 	    struct strong_integer
 	    {
 	    private:
@@ -5968,8 +6170,8 @@
 	        raw_type raw = 0;
 	
 	        /* --- Static Metadata --- */
-	        static constexpr bool is_signed     = sint<raw_type>;
-	        static constexpr bool is_unsigned   = uint<raw_type>;
+	        static constexpr bool is_signed     = Sint<raw_type>;
+	        static constexpr bool is_unsigned   = Uint<raw_type>;
 	        static constexpr auto bits          = bitsof<raw_type>;
 	        static constexpr auto policy        = Policy;
 	        static constexpr auto is_checked    = policy == integer_policy::checked;
@@ -5986,8 +6188,8 @@
 	        friend Derived;
 	
 	    public:
-	        [[nodiscard]] static constexpr auto narrow(aint auto val)   noexcept -> Derived { RAWR_ASSERTION(val >= min && val <= max); return Derived{ static_cast<raw_type>(val) }; }
-	        [[nodiscard]] static constexpr auto saturate(aint auto val) noexcept -> Derived { return Derived{ aint_saturating_cast<raw_type>(val) }; }
+	        template <Aint T> [[nodiscard]] static constexpr auto narrow(T val)   noexcept -> Derived { RAWR_ASSERTION(val >= min && val <= max); return Derived{ static_cast<raw_type>(val) }; }
+	        template <Aint T> [[nodiscard]] static constexpr auto saturate(T val) noexcept -> Derived { return Derived{ aint_saturating_cast<raw_type>(val) }; }
 	
 	        /* --- Primitive Cast --- */
 	        [[nodiscard]] constexpr explicit operator raw_type() const noexcept { return raw; }
@@ -6329,26 +6531,28 @@
 	
 	    /// Then we actually go about declaring each one and whatever conversions are suitable.
 	
-	    #define RAWR_LIB_INTEGER_DECLARE(Name, Raw, Policy, ...)                                                  \
-	        struct Policy::Name : strong_integer<Policy::Name, Raw, integer_policy::Policy>                       \
-	        {                                                                                                     \
-	            constexpr Name() = default;                                                                       \
-	            constexpr explicit Name(raw_type val) noexcept : strong_integer{ val } {}                                    \
-	            consteval Name(aint auto val) noexcept : strong_integer{ rawr::aint_from_literal<raw_type>(val) } {}         \
-	                                                                                                              \
-	            using checked    = checked::Name;                                                                 \
-	            using wrapping   = wrapping::Name;                                                                \
-	            using saturating = saturating::Name;                                                              \
-	            [[nodiscard]] constexpr auto as_checked()    const noexcept -> checked;                           \
-	            [[nodiscard]] constexpr auto as_wrapping()   const noexcept -> wrapping;                          \
-	            [[nodiscard]] constexpr auto as_saturating() const noexcept -> saturating;                        \
-	            __VA_ARGS__                                                                                       \
-	        };                                                                                                    \
-	        static_assert(                                                                                        \
-	            intrin::is_trivially_copyable<Policy::Name> &&                                                    \
-	            intrin::is_standard_layout<Policy::Name> &&                                                       \
-	            sizeof(Policy::Name)  == sizeof(Raw) &&                                                           \
-	            alignof(Policy::Name) == alignof(Raw),                                                            \
+	    #define RAWR_LIB_INTEGER_DECLARE(Name, Raw, Policy, ...)                            \
+	        struct Policy::Name : strong_integer<Policy::Name, Raw, integer_policy::Policy> \
+	        {                                                                               \
+	            constexpr Name() = default;                                                 \
+	            constexpr explicit Name(raw_type val) noexcept : strong_integer{ val } {}   \
+	            template <Aint T>                                                           \
+	            consteval Name(T val) noexcept                                              \
+	                : strong_integer{ rawr::aint_from_literal<raw_type>(val) } {}           \
+	                                                                                        \
+	            using checked    = checked::Name;                                           \
+	            using wrapping   = wrapping::Name;                                          \
+	            using saturating = saturating::Name;                                        \
+	            [[nodiscard]] constexpr auto as_checked()    const noexcept -> checked;     \
+	            [[nodiscard]] constexpr auto as_wrapping()   const noexcept -> wrapping;    \
+	            [[nodiscard]] constexpr auto as_saturating() const noexcept -> saturating;  \
+	            __VA_ARGS__                                                                 \
+	        };                                                                              \
+	        static_assert(                                                                  \
+	            intrin::TriviallyCopyable<Policy::Name> &&                                  \
+	            intrin::StandardLayout<Policy::Name> &&                                     \
+	            sizeof(Policy::Name)  == sizeof(Raw) &&                                     \
+	            alignof(Policy::Name) == alignof(Raw),                                      \
 	            "strong integer must be layout-compatible with its raw type")
 	    #define RAWR_LIB_INTEGER_DECLARE3(Name, Raw, ConversionMacro)                      \
 	        RAWR_LIB_INTEGER_DECLARE(Name, Raw,  saturating, ConversionMacro(saturating)); \
@@ -6931,14 +7135,14 @@
 	
 	RAWR_EXPORT namespace rawr::inline lib
 	{
-	    template <typename E> concept rich_enum  = requires { requires E::_is_rawr_rich_enum; typename E::enum_type; };
+	    template <typename E> concept RichEnum  = requires { requires E::_is_rawr_rich_enum; typename E::enum_type; };
 	    // NOTE: a rich_flags is also a rich_enum.
-	    template <typename E> concept rich_flags = requires { requires E::_is_rawr_rich_flags; typename E::enum_type; };
+	    template <typename E> concept RichFlags = requires { requires E::_is_rawr_rich_flags; typename E::enum_type; };
 	
 	    namespace enum_trait
 	    {
-	        template <typename E>  struct plain_enum    { using type = E; };
-	        template <rich_enum E> struct plain_enum<E> { using type = typename E::enum_type; };
+	        template <typename E> struct plain_enum    { using type = E; };
+	        template <RichEnum E> struct plain_enum<E> { using type = typename E::enum_type; };
 	    }
 	    template <typename E> using plain_enum = typename enum_trait::plain_enum<E>::type;
 	}
@@ -7031,9 +7235,9 @@
 	// and call it a day, with complete disregard for the underlying entry type.
 	//
 	// API:
-	//   RAWR_LINKER_SECTION_DEFINE(section_name, tag_name, entry_type) — declare a section registry (namespace scope)
-	//   RAWR_LINKER_SECTION_REGISTER(section_name, tag_name, ...)      — register one T entry; args brace-init T
-	//   for (auto& e : tag_name) { ... }                               — iterate at runtime
+	//   RAWR_LINKER_SECTION_DEFINE(section_name, tag_name, entry_type) - declare a section registry (namespace scope)
+	//   RAWR_LINKER_SECTION_REGISTER(section_name, tag_name, ...)      - register one T entry; args brace-init T
+	//   for (auto& e : tag_name) { ... }                               - iterate at runtime
 	//
 	// NOTE: On MSVC the tag_name iterators are forward iterators due to platform constraints.
 	//       If you are just using the suggested iteration syntax you can ignore this limitation.
@@ -7052,17 +7256,17 @@
 	// or file scope.
 	//
 	// -- Entry ordering ------------------------------------------------------------
-	// Entries appear in link order — the order .o files are passed to the linker.
+	// Entries appear in link order - the order .o files are passed to the linker.
 	// This is a de-facto property of all major linkers, not a standard guarantee.
 	// Do not build ordering-dependent logic on it silently. If a guaranteed order
 	// is required, include an index field in T and sort in the runner.
 	//
-	// -- Section name constraint — all platforms -----------------------------------
+	// -- Section name constraint - all platforms -----------------------------------
 	// `tag` must be a valid C identifier (a-z A-Z 0-9 _). No dots, slashes, or $
 	// characters. On ELF the __start_/__stop_ auto-symbols are derived from the
 	// section name and must satisfy C identifier rules. Validated at compile time.
 	//
-	// -- Section name constraint — Mach-O additional -------------------------------
+	// -- Section name constraint - Mach-O additional -------------------------------
 	// Mach-O section names are stored in a 16-byte null-terminated field.
 	// Names longer than 16 characters produce silent truncation or a linker error
 	// depending on ld64 version. A separate static_assert enforces this limit.
@@ -7076,22 +7280,29 @@
 	// If this code is ever backported to older compilers lacking `retain`, build
 	// with -fno-lto or add KEEP(*(.section_name)) to your linker script.
 	//
-	// -- Empty sections — ELF -----------------------------------------------------
+	// -- Empty sections - ELF -----------------------------------------------------
 	// ld.bfd, lld, mold: emit __start_X / __stop_X for any section referenced by
 	// an extern declaration, even with no REGISTER calls.
 	// gold: may omit these symbols when no entries exist. The externs are declared
 	// RAWR_ATTRIBUTE(weak) so that absent symbols resolve to null: start() ==
 	// stop() == nullptr and the loop body never executes. No crash.
 	//
-	// -- Empty sections — Mach-O --------------------------------------------------
+	// -- Empty sections - Mach-O --------------------------------------------------
 	// ld64 does not emit section$start / section$end for sections with no entries.
 	// RAWR_ATTRIBUTE(weak) on Darwin maps to Mach-O weak_import: absent symbols
 	// resolve to null. start() == stop() == nullptr; loop body never executes.
 	//
-	// -- Empty sections — PE -------------------------------------------------------
-	// Explicit $A / $Z sentinel objects bound the section. start() and stop() are
-	// derived from sentinel addresses and are always valid regardless of whether
-	// any REGISTER calls have been made.
+	// -- Empty sections - PE -------------------------------------------------------
+	// Unlike ELF/Mach-O, the PE implementation does not depend on linker-generated
+	// start/stop symbols. The explicitly allocated $A and $Z sentinel objects are
+	// themselves the boundaries of the range, so begin()/end() remain valid even
+	// when no registrations exist.
+	//
+	// The $A/$Z contributions also establish the ordering envelope for $I:
+	// section$A < section$I < section$Z.
+	//
+	// The iterator still has to tolerate linker-inserted padding inside $I; see
+	// the MSVC implementation below.
 	//
 	// -- Bare-metal ELF -----------------------------------------------------------
 	// __start_/__stop_ auto-symbols require a hosted linker with its default
@@ -7107,10 +7318,10 @@
 	// appears empty rather than crashing.
 	//
 	// -- Supported targets ---------------------------------------------------------
-	//   ELF    ld.bfd, lld, gold, mold — Linux, embedded ARM / RISC-V / Xtensa
-	//   Mach-O ld64, lld/MachO        — macOS, iOS
-	//   PE     MSVC link, lld-link    — Windows (MSVC and MinGW / Clang)
-	//   WASM                          — not supported; no equivalent mechanism
+	//   ELF    ld.bfd, lld, gold, mold - Linux, embedded ARM / RISC-V / Xtensa
+	//   Mach-O ld64, lld/MachO        - macOS, iOS
+	//   PE     MSVC link, lld-link    - Windows (MSVC and MinGW / Clang)
+	//   WASM                          - not supported; no equivalent mechanism
 	//
 	// NOTE: For some more reference on how to properly use this, look at how rawr/lib/test.(h)pp
 	//       declares a section with RAWR_LINKER_SECTION_DEFINE and how RAWR_TEST registers a
@@ -7150,7 +7361,7 @@
 	            return true;                                               \
 	        }(),                                                           \
 	        "rawr::linker_section: '" #section_name "'"                    \
-	        " — section name must be a plain C identifier (a-z A-Z 0-9 _)" \
+	        " - section name must be a plain C identifier (a-z A-Z 0-9 _)" \
 	    )
 	
 	// ============================================================================
@@ -7158,17 +7369,105 @@
 	// ============================================================================
 	#if RAWR_BIN_PE && RAWR_COMPILER_MSVC
 	
-	    // $A and $Z are necessary and used as sentinels, every register call is put into $I.
-	    // Theres a bunch of workarounds needed to keep the symbols around and the compiler happy.
-	    // TODO: document them.
+	    // MSVC/COFF does not provide ELF-like __start_/__stop_ symbols for arbitrary
+	    // user sections. Instead, we construct an ordered range using three COFF
+	    // dollar-subsections:
 	    //
-	    // Also theres some padding shenanigans so the sections cant contain T_ directly, but a pointer
-	    // to it, and iteration needs to skip compiler injected padding.
-	    // TODO: Explain this better, link relevant article.
+	    //     section$A   begin sentinel
+	    //     section$I   registered entries
+	    //     section$Z   end sentinel
 	    //
-	    // Theres also some stuff around macro expansion and thats why we need RAWR_LS_STR to stringify
-	    // some stuff.
-	    // TODO: document better.
+	    // The PE linker groups dollar-subsections by the part before '$' and then
+	    // sorts the suffixes lexicographically. Consequently $A < $I < $Z, giving
+	    // us stable begin/end anchors regardless of the order in which individual
+	    // object files and section contributions are encountered.
+	    //
+	    // We deliberately use $I rather than the base section name for registrations:
+	    // it leaves the ordering scheme explicit and gives us a place between the two
+	    // sentinels for all registered entries.
+	    //
+	    // Reference:
+	    //   Raymond Chen, "Using linker segments and __declspec(allocate(...)) to
+	    //   arrange data in a specific order"
+	    //   https://devblogs.microsoft.com/oldnewthing/20181107-00/?p=100155
+	    //
+	    //
+	    // MSVC's linker may insert padding between separate COFF section
+	    // contributions. That means a section containing:
+	    //
+	    //     T, T, T, ...
+	    //
+	    // cannot safely be treated as one contiguous C++ array of T objects:
+	    // pointer arithmetic through the range may encounter linker padding that
+	    // is not part of any T object and need not be a multiple of sizeof(T).
+	    //
+	    // Instead, $I contains pointers to the actual T objects:
+	    //
+	    //     T const*, T const*, T const*, ...
+	    //
+	    // The iterator operates on those pointer slots and skips null slots,
+	    // allowing linker-inserted padding to be ignored. This is also the pattern
+	    // recommended for robust section walking on MSVC/COFF.
+	    //
+	    // The actual T objects remain ordinary TU-local objects; only pointers to
+	    // them are allocated into the linker section.
+	    //
+	    // Reference:
+	    //   Raymond Chen, "Gotchas when using linker sections to arrange data,
+	    //   part 2"
+	    //   https://devblogs.microsoft.com/oldnewthing/20181109-00/?p=100165
+	    //
+	    //
+	    // Keeping a section contribution alive is a separate problem from placing it
+	    // into the section. __declspec(allocate(...)) only specifies where an object
+	    // is emitted; it does not by itself make an otherwise-unreferenced object
+	    // survive compiler/linker dead-stripping.
+	    //
+	    // Each registration therefore gets a compiler-generated anchor function whose
+	    // symbol is forced into the final link with:
+	    //
+	    //     #pragma comment(linker, "/include:<symbol>")
+	    //
+	    // The anchor takes the address of the corresponding pointer in $I. This gives
+	    // the linker a live reference to the section entry, while the pointer itself
+	    // keeps the underlying T object alive.
+	    //
+	    // The anchor's symbol must be externally linkable because /include operates
+	    // on linker symbol names. A TU-local anonymous-namespace function cannot be
+	    // used for this purpose.
+	    //
+	    // We therefore encode __FILE__ and __COUNTER__ into a template specialization
+	    // of linker_anchor. __FILE__ is represented by a private fixed_string NTTP,
+	    // producing a TU-specific external symbol without requiring build-system
+	    // cooperation or another globally-generated identifier.
+	    //
+	    // __COUNTER__ only needs to be unique within the translation unit here; the
+	    // file component supplies the cross-TU identity.
+	    //
+	    // The resulting chain is:
+	    //
+	    //     /include anchor
+	    //          |
+	    //          v
+	    //     linker_anchor<file, counter>::fn()
+	    //          |
+	    //          v
+	    //     rawr_ls_ptr_N
+	    //          |
+	    //          v
+	    //     rawr_ls_item_N
+	    //
+	    // This is the MSVC equivalent of the used/retain mechanism used by the
+	    // ELF and Mach-O implementations.
+	    //
+	    //
+	    // RAWR_LS_STR(...) is needed around section names because
+	    // section_name##$A / $I / $Z first has to undergo token pasting and then be
+	    // converted into a string literal for __pragma(section(...)) and
+	    // __declspec(allocate(...)).
+	    //
+	    // A single-level stringification macro would stringify the token-pasted
+	    // spelling before macro expansion, producing the wrong section name.
 	    #define RAWR_LINKER_SECTION_DEFINE(section_name, tag_name, T_)                        \
 	        RAWR_LS_DETAIL_VALIDATE_NAME_(section_name);                                      \
 	        __pragma(section(RAWR_LS_STR(section_name##$A), read))                            \
@@ -7237,12 +7536,12 @@
 	        }
 	
 	// ============================================================================
-	// PE / GNU — MinGW (GCC or Clang targeting Windows PE)
+	// PE / GNU - MinGW (GCC or Clang targeting Windows PE)
 	// ============================================================================
 	// TODO: Validate non-msvc PE.
 	#elif RAWR_BIN_PE
 	
-	    // MinGW sentinels use __attribute__(weak) for COMDAT deduplication — the linker
+	    // MinGW sentinels use __attribute__(weak) for COMDAT deduplication - the linker
 	    // picks one definition across TUs.
 	    // Equivalent to __declspec(selectany) on this toolchain.
 	    #define RAWR_LINKER_SECTION_DEFINE(section_name, tag_name, T_)        \
@@ -7279,7 +7578,7 @@
 	        static const decltype(tag_name)::value_type RAWR_LS_CONCAT(rawr_ls_item_, ctr_) __VA_ARGS__
 	
 	// ============================================================================
-	// Mach-O — macOS, iOS (ld64, lld/MachO)
+	// Mach-O - macOS, iOS (ld64, lld/MachO)
 	// ============================================================================
 	// TODO: validate MACHO.
 	#elif RAWR_BIN_MACHO
@@ -7301,7 +7600,7 @@
 	                return n_ <= 16;                                        \
 	            }(),                                                        \
 	            "rawr::linker_section: '" #section_name "'"                 \
-	            " — Mach-O section names are limited to 16 characters"      \
+	            " - Mach-O section names are limited to 16 characters"      \
 	        );                                                              \
 	        namespace RAWR_LS_CONCAT(rawr_ls_, section_name) {              \
 	            extern const T_ begin_[]                                    \
@@ -7329,7 +7628,7 @@
 	        static const decltype(tag_name)::value_type RAWR_LS_CONCAT(rawr_ls_item_, ctr_) __VA_ARGS__
 	
 	// ============================================================================
-	// ELF — Linux, bare-metal (any ELF toolchain)
+	// ELF - Linux, bare-metal (any ELF toolchain)
 	// ============================================================================
 	#elif RAWR_BIN_ELF
 	
@@ -7459,6 +7758,7 @@
 	
 	    struct test_suite_info {
 	        char const* name;
+	        rst name_size;
 	    };
 	
 	    struct test_section_entry
@@ -7473,9 +7773,10 @@
 	    RAWR_LINKER_SECTION_DEFINE(rawr_lib_test_section, section, test_section_entry);
 	
 	    template <typename T>
-	    concept test_suite = requires(T t)
+	    concept TestSuite = requires(T t)
 	    {
-	        { T::name() } -> intrin::convertible_to<char const*>;
+	        { T::name()      } -> intrin::ConvertibleTo<char const*>;
+	        { T::name_size() } -> intrin::ConvertibleTo<rst>;
 	        { t.run_checks() };
 	    };
 	
@@ -7512,19 +7813,27 @@
 	        void* userdata                           = nullptr;
 	
 	        static constexpr auto run(test_suite_check_callback callback, void* userdata = nullptr)
-	        requires test_suite<Suite>
+	        requires TestSuite<Suite>
 	        {
 	            Suite suite{ callback, userdata };
 	            suite.run_checks();
 	        }
 	
 	        static constexpr auto get_info() -> test_suite_info
-	        requires test_suite<Suite>
+	        requires TestSuite<Suite>
 	        {
 	            return {
-	                .name = Suite::name(),
+	                .name      = Suite::name(),
+	                .name_size = Suite::name_size()
 	            };
 	        }
+	    };
+	
+	    enum class meson_code : ru8 {
+	        ok    = 0,
+	        skip  = 77, // Test was skipped.
+	        error = 99, // Signals a hard setup failure.
+	        // Anything else = Fail.
 	    };
 	}
 
@@ -7540,12 +7849,12 @@
 	
 	#if RAWR_ABI_SYSV
 	    //RAWR_AMALGAM_IGNORE #include "rawr/abi/sysv.pp"
-	    #define RAWR_MAIN(...)       RAWR_ABI_SYSV_MAIN(__VA_ARGS__)
-	    #define RAWR_MAIN_NOCTX(...) RAWR_ABI_SYSV_MAIN_NOCTX(__VA_ARGS__)
+	    #define RAWR_MAIN(...)  RAWR_ABI_SYSV_MAIN(__VA_ARGS__)
+	    #define RAWR_MAIN_NOCTX RAWR_ABI_SYSV_MAIN_NOCTX
 	#elif RAWR_ABI_WIN64
 	    //RAWR_AMALGAM_IGNORE #include "rawr/abi/win64.pp"
-	    #define RAWR_MAIN(...)       RAWR_ABI_WIN64_MAIN(__VA_ARGS__)
-	    #define RAWR_MAIN_NOCTX(...) RAWR_ABI_WIN64_MAIN_NOCTX(__VA_ARGS__)
+	    #define RAWR_MAIN(...)  RAWR_ABI_WIN64_MAIN(__VA_ARGS__)
+	    #define RAWR_MAIN_NOCTX RAWR_ABI_WIN64_MAIN_NOCTX
 	#endif
 
 #pragma endregion "rawr/lib/main.pp"
@@ -7572,20 +7881,24 @@
 	#define RAWR_CHECK(cond) check(cond, #cond)
 	
 	#define RAWR_NORMAL_TEST(Name) RAWR_NORMAL_TEST_(Name, __COUNTER__)
-	#define RAWR_NORMAL_TEST_(Name, Counter)                                                              \
-	    struct RAWR_TEST_CONCAT(rawr_normal_test_, Counter)                                               \
-	        : ::rawr::lib::test::normal_test_suite<RAWR_TEST_CONCAT(rawr_normal_test_, Counter)>          \
-	    {                                                                                                 \
-	        static constexpr char const* name() { return #Name; }                                         \
-	        constexpr auto run_checks() -> void;                                                          \
-	    };                                                                                                \
-	    RAWR_LINKER_SECTION_REGISTER(rawr_lib_test_section, ::rawr::lib::test::section, {                 \
-	        .run      = RAWR_TEST_CONCAT(rawr_normal_test_, Counter)::run,                                \
-	        .get_info = RAWR_TEST_CONCAT(rawr_normal_test_, Counter)::get_info                            \
-	    });                                                                                               \
-	    /* This function is defined out-of-line so that the source location actually properly reflects */ \
-	    /* the file lines, as it would point to the beggining of the macro if the function body was    */ \
-	    /* just __VA_ARGS__ expanded after run_checks().                                               */ \
+	#define RAWR_NORMAL_TEST_(Name, Counter)                                                                  \
+	    namespace                                                                                             \
+	    {                                                                                                     \
+	        struct RAWR_TEST_CONCAT(rawr_normal_test_, Counter)                                               \
+	            : ::rawr::lib::test::normal_test_suite<RAWR_TEST_CONCAT(rawr_normal_test_, Counter)>          \
+	        {                                                                                                 \
+	            static constexpr auto name()       -> char const* { return #Name; }                           \
+	            static constexpr auto name_size()                 { char n[] = #Name; return sizeof(n) - 1; } \
+	                constexpr auto run_checks() -> void;                                                      \
+	        };                                                                                                \
+	    }                                                                                                     \
+	    RAWR_LINKER_SECTION_REGISTER(rawr_lib_test_section, ::rawr::lib::test::section, {                     \
+	        .run      = RAWR_TEST_CONCAT(rawr_normal_test_, Counter)::run,                                    \
+	        .get_info = RAWR_TEST_CONCAT(rawr_normal_test_, Counter)::get_info                                \
+	    });                                                                                                   \
+	    /* This function is defined out-of-line so that the source location actually properly reflects */     \
+	    /* the file lines, as it would point to the beggining of the macro if the function body was    */     \
+	    /* just __VA_ARGS__ expanded after run_checks().                                               */     \
 	    constexpr auto RAWR_TEST_CONCAT(rawr_normal_test_, Counter)::run_checks() -> void
 	
 	#define RAWR_TEST_CONCAT_(a, b) a##b
@@ -7609,10 +7922,12 @@
 	    export import rawr.lib.diag;
 	    export import rawr.lib.dummy_return;
 	    export import rawr.lib.fmt;
+	    export import rawr.lib.hash;
 	    export import rawr.lib.integer;
 	    export import rawr.lib.intrin;
 	    export import rawr.lib.linker_section;
 	    export import rawr.lib.rich_enum;
+	    export import rawr.lib.sass;
 	    export import rawr.lib.sync;
 	    export import rawr.lib.test;
 	    export import rawr.lib.type_name;
@@ -7624,10 +7939,12 @@
 	    //RAWR_AMALGAM_IGNORE #include "rawr/lib/diag.hpp"
 	    //RAWR_AMALGAM_IGNORE #include "rawr/lib/dummy_return.hpp"
 	    //RAWR_AMALGAM_IGNORE #include "rawr/lib/fmt.hpp"
+	    //RAWR_AMALGAM_IGNORE #include "rawr/lib/hash.hpp"
 	    //RAWR_AMALGAM_IGNORE #include "rawr/lib/integer.hpp"
 	    //RAWR_AMALGAM_IGNORE #include "rawr/lib/intrin.hpp"
 	    //RAWR_AMALGAM_IGNORE #include "rawr/lib/linker_section.hpp"
 	    //RAWR_AMALGAM_IGNORE #include "rawr/lib/rich_enum.hpp"
+	    //RAWR_AMALGAM_IGNORE #include "rawr/lib/sass.hpp"
 	    //RAWR_AMALGAM_IGNORE #include "rawr/lib/sync.hpp"
 	    //RAWR_AMALGAM_IGNORE #include "rawr/lib/test.hpp"
 	    //RAWR_AMALGAM_IGNORE #include "rawr/lib/type_name.hpp"
@@ -7895,9 +8212,9 @@
 	    [[nodiscard]] constexpr auto is_##canon() const noexcept { return is_error() && as_error() == error::canon; } \
 	    [[nodiscard]] constexpr auto is_##sem()   const noexcept { return is_error() && as_error() == error::sem; }
 	#define RAWR_PLATFORM_LINUX_SYSCALL_IS(epair) RAWR_PP_DISPATCH_PLIST_BY_ARITY(RAWR_PLATFORM_LINUX_SYSCALL_IS_, epair)
-	#define RAWR_PLATFORM_LINUX_SYSCALL_ON_2(canon, sem)                                         \
-	    constexpr auto on_##canon(auto&& callback) noexcept -> self& { if (is_##canon()) callback(); return *this; } \
-	    constexpr auto on_##sem(auto&& callback)   noexcept -> self& { if (is_##sem())   callback(); return *this; }
+	#define RAWR_PLATFORM_LINUX_SYSCALL_ON_2(canon, sem)                                                                                \
+	    template <typename T> constexpr auto on_##canon(T&& callback) noexcept -> self& { if (is_##canon()) callback(); return *this; } \
+	    template <typename T> constexpr auto on_##sem(T&& callback)   noexcept -> self& { if (is_##sem())   callback(); return *this; }
 	#define RAWR_PLATFORM_LINUX_SYSCALL_ON(epair) RAWR_PP_DISPATCH_PLIST_BY_ARITY(RAWR_PLATFORM_LINUX_SYSCALL_ON_, epair)
 	
 	RAWR_EXPORT namespace rawr::platform::linux::x64::syscall
@@ -7924,7 +8241,8 @@
 	        (edquot,  quota_exceeded)// user disk quota exhausted
 	    ), (rax < 0), (rax), ())
 	    template <compilers C = this_compiler, archs A = this_arch>
-	    RAWR_ALWAYS_INLINE auto write(fd_t file, char const* data, ruint auto size) -> write_r{
+	    RAWR_ALWAYS_INLINE auto write(fd_t file, char const* data, RUint auto size) -> write_r
+	    {
 	        reg_t rax = metadata::write.number;
 	        RAWR_PLATFORM_LINUX_X64_SYSCALL_GATED_BODY(
 	            // Microoptimization: Forces 32-bit register constraints (edx) for sizes <= 4 bytes
@@ -7955,7 +8273,8 @@
 	    // Explicit specialization for known sizes, better cloberring.
 	    // NOTE: this doesn't do any null-terminator stripping, it just outputs what it gets.
 	    template <rst Size, compilers C = this_compiler, archs A = this_arch>
-	    RAWR_ALWAYS_INLINE auto write(fd_t file, char const(&data)[Size]) -> write_r {
+	    RAWR_ALWAYS_INLINE auto write(fd_t file, char const(&data)[Size]) -> write_r
+	    {
 	        reg_t rax = metadata::write.number;
 	        RAWR_PLATFORM_LINUX_X64_SYSCALL_GATED_BODY(
 	            // Same microoptimization.
@@ -7981,7 +8300,8 @@
 	
 	    // Explicit specialization for chars.
 	    template <compilers C = this_compiler, archs A = this_arch>
-	    RAWR_ALWAYS_INLINE auto write(fd_t file, char data) -> write_r {
+	    RAWR_ALWAYS_INLINE auto write(fd_t file, char data) -> write_r
+	    {
 	        const char arr[] = { data };
 	        return write<1>(file, arr);
 	    }
@@ -7989,8 +8309,9 @@
 	    template <compilers C = this_compiler, archs A = this_arch>
 	    RAWR_ALWAYS_INLINE RAWR_NORETURN auto exit(ru8 code) -> void
 	    {
+	        reg_t rax = metadata::exit.number;
 	        RAWR_PLATFORM_LINUX_X64_SYSCALL_GATED_BODY(
-	            asm volatile("syscall" :: "a"(metadata::exit.number), "D"(code));
+	            asm volatile("syscall" :: "a"(rax), "D"(code));
 	            RAWR_UNREACHABLE;
 	        )
 	    }
@@ -8036,11 +8357,13 @@
 	#ifdef RAWR_MODULE
 	    //RAWR_AMALGAM_IGNORE export module rawr.san.asan;
 	    import rawr.lib.integer.raw;
+	    import rawr.lib.intrin.base;
 	
 	    //RAWR_AMALGAM_IGNORE #include "rawr/lib/dist/module.pp"
 	#else
 	    //RAWR_AMALGAM_IGNORE #pragma once
 	    //RAWR_AMALGAM_IGNORE #include "rawr/lib/integer/raw.hpp"
+	    //RAWR_AMALGAM_IGNORE #include "rawr/lib/intrin/base.hpp"
 	
 	    //RAWR_AMALGAM_IGNORE #include "rawr/lib/dist/header.pp"
 	#endif
@@ -8062,40 +8385,57 @@
 	{
 	    inline constexpr bool compiled = RAWR_SAN_ASAN != 0;
 	
-	    inline auto poison(
+	    constexpr auto poison(
 	        [[maybe_unused]] void const* address,
 	        [[maybe_unused]] rst size
 	    ) noexcept -> void
-	    { if constexpr(compiled) { detail::__asan_poison_memory_region(address, size); } }
-	
-	    inline auto unpoison(
-	        [[maybe_unused]] void const* address,
-	        [[maybe_unused]] rst size
-	    ) noexcept -> void
-	    { if constexpr(compiled) { detail::__asan_unpoison_memory_region(address, size); } }
-	
-	
-	    inline auto poisoned([[maybe_unused]] void const* address) noexcept -> bool
 	    {
-	        if constexpr(compiled) { return detail::__asan_address_is_poisoned(address) != 0; }
-	        else                   { return false; }
+	        if (intrin::is_consteval()) { return; }
+	        if constexpr(compiled)      { detail::__asan_poison_memory_region(address, size); }
 	    }
 	
-	    inline auto first_poisoned(
+	    constexpr auto unpoison(
+	        [[maybe_unused]] void const* address,
+	        [[maybe_unused]] rst size
+	    ) noexcept -> void
+	    {
+	        if (intrin::is_consteval()) { return; }
+	        if constexpr(compiled)      { detail::__asan_unpoison_memory_region(address, size); }
+	    }
+	
+	    constexpr auto poisoned(
+	        [[maybe_unused]] void const* address
+	    ) noexcept -> bool
+	    {
+	        if (intrin::is_consteval()) { return false; }
+	        if constexpr(compiled)      { return detail::__asan_address_is_poisoned(address) != 0; }
+	        else                        { return false; }
+	    }
+	
+	    constexpr auto first_poisoned(
 	        [[maybe_unused]] void* address,
 	        [[maybe_unused]] rst size
 	    ) noexcept -> void*
 	    {
-	        if constexpr(compiled) { return detail::__asan_region_is_poisoned(address, size); }
-	        else                   { return nullptr; }
+	        if (intrin::is_consteval()) { return nullptr; }
+	        if constexpr(compiled)      { return detail::__asan_region_is_poisoned(address, size); }
+	        else                        { return nullptr; }
 	    }
 	
-	    inline auto handle_no_return() noexcept -> void
-	    { if constexpr(compiled) { detail::__asan_handle_no_return(); } }
+	    constexpr auto handle_no_return() noexcept -> void
+	    {
+	        if (intrin::is_consteval()) { return; }
+	        if constexpr(compiled)      { detail::__asan_handle_no_return(); }
+	    }
 	
 	    using report_callback = void(*)(const char*);
-	    inline auto set_error_report_callback([[maybe_unused]] report_callback callback) noexcept -> void
-	    { if constexpr(compiled) { detail::__asan_set_error_report_callback(callback); } }
+	    constexpr auto set_error_report_callback(
+	        [[maybe_unused]] report_callback callback
+	    ) noexcept -> void
+	    {
+	        if (intrin::is_consteval()) { return; }
+	        if constexpr(compiled)      { detail::__asan_set_error_report_callback(callback); }
+	    }
 	}
 
 #pragma endregion "rawr/san/asan.hpp"

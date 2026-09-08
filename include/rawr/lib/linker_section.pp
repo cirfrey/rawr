@@ -18,9 +18,9 @@
 // and call it a day, with complete disregard for the underlying entry type.
 //
 // API:
-//   RAWR_LINKER_SECTION_DEFINE(section_name, tag_name, entry_type) — declare a section registry (namespace scope)
-//   RAWR_LINKER_SECTION_REGISTER(section_name, tag_name, ...)      — register one T entry; args brace-init T
-//   for (auto& e : tag_name) { ... }                               — iterate at runtime
+//   RAWR_LINKER_SECTION_DEFINE(section_name, tag_name, entry_type) - declare a section registry (namespace scope)
+//   RAWR_LINKER_SECTION_REGISTER(section_name, tag_name, ...)      - register one T entry; args brace-init T
+//   for (auto& e : tag_name) { ... }                               - iterate at runtime
 //
 // NOTE: On MSVC the tag_name iterators are forward iterators due to platform constraints.
 //       If you are just using the suggested iteration syntax you can ignore this limitation.
@@ -39,17 +39,17 @@
 // or file scope.
 //
 // -- Entry ordering ------------------------------------------------------------
-// Entries appear in link order — the order .o files are passed to the linker.
+// Entries appear in link order - the order .o files are passed to the linker.
 // This is a de-facto property of all major linkers, not a standard guarantee.
 // Do not build ordering-dependent logic on it silently. If a guaranteed order
 // is required, include an index field in T and sort in the runner.
 //
-// -- Section name constraint — all platforms -----------------------------------
+// -- Section name constraint - all platforms -----------------------------------
 // `tag` must be a valid C identifier (a-z A-Z 0-9 _). No dots, slashes, or $
 // characters. On ELF the __start_/__stop_ auto-symbols are derived from the
 // section name and must satisfy C identifier rules. Validated at compile time.
 //
-// -- Section name constraint — Mach-O additional -------------------------------
+// -- Section name constraint - Mach-O additional -------------------------------
 // Mach-O section names are stored in a 16-byte null-terminated field.
 // Names longer than 16 characters produce silent truncation or a linker error
 // depending on ld64 version. A separate static_assert enforces this limit.
@@ -63,22 +63,29 @@
 // If this code is ever backported to older compilers lacking `retain`, build
 // with -fno-lto or add KEEP(*(.section_name)) to your linker script.
 //
-// -- Empty sections — ELF -----------------------------------------------------
+// -- Empty sections - ELF -----------------------------------------------------
 // ld.bfd, lld, mold: emit __start_X / __stop_X for any section referenced by
 // an extern declaration, even with no REGISTER calls.
 // gold: may omit these symbols when no entries exist. The externs are declared
 // RAWR_ATTRIBUTE(weak) so that absent symbols resolve to null: start() ==
 // stop() == nullptr and the loop body never executes. No crash.
 //
-// -- Empty sections — Mach-O --------------------------------------------------
+// -- Empty sections - Mach-O --------------------------------------------------
 // ld64 does not emit section$start / section$end for sections with no entries.
 // RAWR_ATTRIBUTE(weak) on Darwin maps to Mach-O weak_import: absent symbols
 // resolve to null. start() == stop() == nullptr; loop body never executes.
 //
-// -- Empty sections — PE -------------------------------------------------------
-// Explicit $A / $Z sentinel objects bound the section. start() and stop() are
-// derived from sentinel addresses and are always valid regardless of whether
-// any REGISTER calls have been made.
+// -- Empty sections - PE -------------------------------------------------------
+// Unlike ELF/Mach-O, the PE implementation does not depend on linker-generated
+// start/stop symbols. The explicitly allocated $A and $Z sentinel objects are
+// themselves the boundaries of the range, so begin()/end() remain valid even
+// when no registrations exist.
+//
+// The $A/$Z contributions also establish the ordering envelope for $I:
+// section$A < section$I < section$Z.
+//
+// The iterator still has to tolerate linker-inserted padding inside $I; see
+// the MSVC implementation below.
 //
 // -- Bare-metal ELF -----------------------------------------------------------
 // __start_/__stop_ auto-symbols require a hosted linker with its default
@@ -94,10 +101,10 @@
 // appears empty rather than crashing.
 //
 // -- Supported targets ---------------------------------------------------------
-//   ELF    ld.bfd, lld, gold, mold — Linux, embedded ARM / RISC-V / Xtensa
-//   Mach-O ld64, lld/MachO        — macOS, iOS
-//   PE     MSVC link, lld-link    — Windows (MSVC and MinGW / Clang)
-//   WASM                          — not supported; no equivalent mechanism
+//   ELF    ld.bfd, lld, gold, mold - Linux, embedded ARM / RISC-V / Xtensa
+//   Mach-O ld64, lld/MachO        - macOS, iOS
+//   PE     MSVC link, lld-link    - Windows (MSVC and MinGW / Clang)
+//   WASM                          - not supported; no equivalent mechanism
 //
 // NOTE: For some more reference on how to properly use this, look at how rawr/lib/test.(h)pp
 //       declares a section with RAWR_LINKER_SECTION_DEFINE and how RAWR_TEST registers a
@@ -137,7 +144,7 @@
             return true;                                               \
         }(),                                                           \
         "rawr::linker_section: '" #section_name "'"                    \
-        " — section name must be a plain C identifier (a-z A-Z 0-9 _)" \
+        " - section name must be a plain C identifier (a-z A-Z 0-9 _)" \
     )
 
 // ============================================================================
@@ -145,17 +152,105 @@
 // ============================================================================
 #if RAWR_BIN_PE && RAWR_COMPILER_MSVC
 
-    // $A and $Z are necessary and used as sentinels, every register call is put into $I.
-    // Theres a bunch of workarounds needed to keep the symbols around and the compiler happy.
-    // TODO: document them.
+    // MSVC/COFF does not provide ELF-like __start_/__stop_ symbols for arbitrary
+    // user sections. Instead, we construct an ordered range using three COFF
+    // dollar-subsections:
     //
-    // Also theres some padding shenanigans so the sections cant contain T_ directly, but a pointer
-    // to it, and iteration needs to skip compiler injected padding.
-    // TODO: Explain this better, link relevant article.
+    //     section$A   begin sentinel
+    //     section$I   registered entries
+    //     section$Z   end sentinel
     //
-    // Theres also some stuff around macro expansion and thats why we need RAWR_LS_STR to stringify
-    // some stuff.
-    // TODO: document better.
+    // The PE linker groups dollar-subsections by the part before '$' and then
+    // sorts the suffixes lexicographically. Consequently $A < $I < $Z, giving
+    // us stable begin/end anchors regardless of the order in which individual
+    // object files and section contributions are encountered.
+    //
+    // We deliberately use $I rather than the base section name for registrations:
+    // it leaves the ordering scheme explicit and gives us a place between the two
+    // sentinels for all registered entries.
+    //
+    // Reference:
+    //   Raymond Chen, "Using linker segments and __declspec(allocate(...)) to
+    //   arrange data in a specific order"
+    //   https://devblogs.microsoft.com/oldnewthing/20181107-00/?p=100155
+    //
+    //
+    // MSVC's linker may insert padding between separate COFF section
+    // contributions. That means a section containing:
+    //
+    //     T, T, T, ...
+    //
+    // cannot safely be treated as one contiguous C++ array of T objects:
+    // pointer arithmetic through the range may encounter linker padding that
+    // is not part of any T object and need not be a multiple of sizeof(T).
+    //
+    // Instead, $I contains pointers to the actual T objects:
+    //
+    //     T const*, T const*, T const*, ...
+    //
+    // The iterator operates on those pointer slots and skips null slots,
+    // allowing linker-inserted padding to be ignored. This is also the pattern
+    // recommended for robust section walking on MSVC/COFF.
+    //
+    // The actual T objects remain ordinary TU-local objects; only pointers to
+    // them are allocated into the linker section.
+    //
+    // Reference:
+    //   Raymond Chen, "Gotchas when using linker sections to arrange data,
+    //   part 2"
+    //   https://devblogs.microsoft.com/oldnewthing/20181109-00/?p=100165
+    //
+    //
+    // Keeping a section contribution alive is a separate problem from placing it
+    // into the section. __declspec(allocate(...)) only specifies where an object
+    // is emitted; it does not by itself make an otherwise-unreferenced object
+    // survive compiler/linker dead-stripping.
+    //
+    // Each registration therefore gets a compiler-generated anchor function whose
+    // symbol is forced into the final link with:
+    //
+    //     #pragma comment(linker, "/include:<symbol>")
+    //
+    // The anchor takes the address of the corresponding pointer in $I. This gives
+    // the linker a live reference to the section entry, while the pointer itself
+    // keeps the underlying T object alive.
+    //
+    // The anchor's symbol must be externally linkable because /include operates
+    // on linker symbol names. A TU-local anonymous-namespace function cannot be
+    // used for this purpose.
+    //
+    // We therefore encode __FILE__ and __COUNTER__ into a template specialization
+    // of linker_anchor. __FILE__ is represented by a private fixed_string NTTP,
+    // producing a TU-specific external symbol without requiring build-system
+    // cooperation or another globally-generated identifier.
+    //
+    // __COUNTER__ only needs to be unique within the translation unit here; the
+    // file component supplies the cross-TU identity.
+    //
+    // The resulting chain is:
+    //
+    //     /include anchor
+    //          |
+    //          v
+    //     linker_anchor<file, counter>::fn()
+    //          |
+    //          v
+    //     rawr_ls_ptr_N
+    //          |
+    //          v
+    //     rawr_ls_item_N
+    //
+    // This is the MSVC equivalent of the used/retain mechanism used by the
+    // ELF and Mach-O implementations.
+    //
+    //
+    // RAWR_LS_STR(...) is needed around section names because
+    // section_name##$A / $I / $Z first has to undergo token pasting and then be
+    // converted into a string literal for __pragma(section(...)) and
+    // __declspec(allocate(...)).
+    //
+    // A single-level stringification macro would stringify the token-pasted
+    // spelling before macro expansion, producing the wrong section name.
     #define RAWR_LINKER_SECTION_DEFINE(section_name, tag_name, T_)                        \
         RAWR_LS_DETAIL_VALIDATE_NAME_(section_name);                                      \
         __pragma(section(RAWR_LS_STR(section_name##$A), read))                            \
@@ -224,12 +319,12 @@
         }
 
 // ============================================================================
-// PE / GNU — MinGW (GCC or Clang targeting Windows PE)
+// PE / GNU - MinGW (GCC or Clang targeting Windows PE)
 // ============================================================================
 // TODO: Validate non-msvc PE.
 #elif RAWR_BIN_PE
 
-    // MinGW sentinels use __attribute__(weak) for COMDAT deduplication — the linker
+    // MinGW sentinels use __attribute__(weak) for COMDAT deduplication - the linker
     // picks one definition across TUs.
     // Equivalent to __declspec(selectany) on this toolchain.
     #define RAWR_LINKER_SECTION_DEFINE(section_name, tag_name, T_)        \
@@ -266,7 +361,7 @@
         static const decltype(tag_name)::value_type RAWR_LS_CONCAT(rawr_ls_item_, ctr_) __VA_ARGS__
 
 // ============================================================================
-// Mach-O — macOS, iOS (ld64, lld/MachO)
+// Mach-O - macOS, iOS (ld64, lld/MachO)
 // ============================================================================
 // TODO: validate MACHO.
 #elif RAWR_BIN_MACHO
@@ -288,7 +383,7 @@
                 return n_ <= 16;                                        \
             }(),                                                        \
             "rawr::linker_section: '" #section_name "'"                 \
-            " — Mach-O section names are limited to 16 characters"      \
+            " - Mach-O section names are limited to 16 characters"      \
         );                                                              \
         namespace RAWR_LS_CONCAT(rawr_ls_, section_name) {              \
             extern const T_ begin_[]                                    \
@@ -316,7 +411,7 @@
         static const decltype(tag_name)::value_type RAWR_LS_CONCAT(rawr_ls_item_, ctr_) __VA_ARGS__
 
 // ============================================================================
-// ELF — Linux, bare-metal (any ELF toolchain)
+// ELF - Linux, bare-metal (any ELF toolchain)
 // ============================================================================
 #elif RAWR_BIN_ELF
 

@@ -7,18 +7,20 @@
 #ifdef RAWR_MODULE
     export module rawr.lib.diag.dwarf;
     import rawr.lib.detection;
+    import rawr.lib.sass;
 
     #include "rawr/lib/dist/module.pp"
 #else
     #pragma once
     #include "rawr/lib/detection.hpp"
+    #include "rawr/lib/sass.hpp"
 
     #include "rawr/lib/dist/header.pp"
 #endif
 #include "rawr/lib/detection.pp"
 #include "rawr/lib/attributes.pp"
 
-namespace rawr::inline lib::diag::dwarf
+RAWR_EXPORT namespace rawr::inline lib::diag::dwarf
 {
     enum class x64_reg : unsigned char {
         rax = 0,  rdx = 1,  rcx = 2,  rbx = 3,  rsi = 4,  rdi = 5,
@@ -62,7 +64,7 @@ namespace rawr::inline lib::diag::dwarf
                  if constexpr(A.is_x64())     { asm volatile(".cfi_undefined 16"); }
             else if constexpr(A.is_arm64())   { asm volatile(".cfi_undefined 30"); }
             else if constexpr(A.is_riscv64()) { asm volatile(".cfi_undefined 1"); }
-            else                              { static_assert(false, "Unimplemented"); }
+            else                              { static_assert(sass::fail<decltype(A)>, "Unimplemented"); }
         #endif
     }
 }

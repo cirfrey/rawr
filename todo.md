@@ -2,8 +2,7 @@
 # Short term - 07/09/26 - 13/09/26
 
 [ ] rawr::test
-    - [ ] write tests for rawr::test
-    - [ ] fix linker section on windows
+    - [~] write tests for rawr::test
 [ ] rawr::sync
     - [X] detection stuff
     - [~] arch::X::atomic
@@ -13,6 +12,12 @@
 [ ] detection.pp: optional error on unknown arch/bin/etc
 [ ] Distribution
     - [ ] Meson project version from rawr/lib/dist/version.(h)pp
+[ ] Unify dist/module.pp and dist/header.pp into dist/hpp.pp.
+
+## If theres time
+
+[ ] merge attributes.pp into compiler.pp
+[ ] rawr::lib::typing.
 
 # Longer term
 
@@ -53,6 +58,8 @@
 
 # Even longer term
 
+[ ] replace clang-scan-deps with bespoke script
+    - [ ] Also validates that #ifdef RAWR_MODULE import/include lists match.
 [ ] rawr::lib::numeric
     - [~] rawr::lib::numeric::strong_integer -> needs ::numeric
     - [ ] rawr::lib::numeric::strong_fixed

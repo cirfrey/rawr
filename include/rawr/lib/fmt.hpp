@@ -185,10 +185,10 @@ RAWR_EXPORT namespace rawr::inline lib::format
 RAWR_EXPORT namespace rawr::inline lib
 {
     template <typename Formatter>
-    concept compliant_formatter = requires(Formatter const& fmt, format::buf& buf, format::view specifier){
+    concept CompliantFormatter = requires(Formatter const& fmt, format::buf& buf, format::view specifier){
         typename Formatter::value_type;
 
-        { fmt.worst_case_buffer_size } -> intrin::convertible_to<format::st>;
+        { fmt.worst_case_buffer_size } -> intrin::ConvertibleTo<format::st>;
         // Commented for now, need to get a T from formatter.
         { fmt.format(
             buf,
@@ -228,7 +228,7 @@ RAWR_EXPORT namespace rawr::inline lib
 
     namespace format {
         template <typename T, template <typename> typename Formatter = formatter>
-        requires (compliant_formatter<Formatter<T>>)
+        requires (CompliantFormatter<Formatter<T>>)
         constexpr void erase_formatter(buf& b, void const* v, view s) {
             Formatter<T>::format(b, *static_cast<T const*>(v), s);
         }
@@ -239,7 +239,7 @@ RAWR_EXPORT namespace rawr::inline lib
             st worst_case_buffer_size;
 
             template <template <typename> typename Formatter = formatter, typename T>
-            requires (compliant_formatter<Formatter<T>>)
+            requires (CompliantFormatter<Formatter<T>>)
             constexpr erased_arg(T const& v)
                 : object{&v}
                 , format{ erase_formatter<T, Formatter> }
@@ -343,19 +343,27 @@ RAWR_EXPORT namespace rawr::inline lib::inline format_literals
 {
     template <format::fixed_str FS>
     struct fmt_lit {
-        [[nodiscard]] constexpr auto operator()(auto const&... args) const noexcept
+        template <typename... Args>
+        [[nodiscard]] constexpr auto operator()(Args const&... args) const noexcept
         { return rawr::fmt<FS>(args...); }
 
-        template <format::st BufSize = 0>
-        [[nodiscard]] consteval auto ct(auto const&... args) const noexcept
+        template <format::st BufSize = 0, typename... Args>
+        [[nodiscard]] consteval auto ct(Args const&... args) const noexcept
         { return  rawr::fmt_constant<FS, BufSize>(args...); }
 
-        template <format::st BufSize = 0>
-        [[nodiscard]] constexpr auto bufsize(auto const&... args) const noexcept
+        template <format::st BufSize = 0, typename... Args>
+        [[nodiscard]] constexpr auto bufsize(Args const&... args) const noexcept
         { return rawr::fmt<FS, BufSize>(args...); }
     };
 
-    template <format::fixed_str FS> consteval auto operator""_fmt() noexcept { return fmt_lit<FS>{}; }
+    #if RAWR_COMPILER_MSVC && _MSC_VER <= 1928
+        template <char... Cs> consteval auto operator""_fmt() noexcept {
+            constexpr char arr[] = {Cs..., '\0'};
+            return fmt_lit< format::fixed_str<sizeof...(Cs) + 1>{arr} >{};
+        }
+    #else
+        template <format::fixed_str FS> consteval auto operator""_fmt() noexcept { return fmt_lit<FS>{}; }
+    #endif
 }
 
 
@@ -435,12 +443,12 @@ RAWR_EXPORT namespace rawr::inline lib::format
         }
     }
 
-    template <aint T>
+    template <Aint T>
     struct number_formatter
     {
         using value_type = T;
 
-        static constexpr st worst_case_buffer_size = (bitsof<value_type>.val * 301) / 1000 + 1 + (sint<T>);
+        static constexpr st worst_case_buffer_size = (bitsof<value_type>.val * 301) / 1000 + 1 + (Sint<T>);
 
         static constexpr void format(
             buf& buf,
@@ -453,7 +461,7 @@ RAWR_EXPORT namespace rawr::inline lib::format
                 spec.data[0] == ':' &&
                 spec.data[1] == 'x';
 
-            if constexpr(sint<T>)
+            if constexpr(Sint<T>)
             {
                 auto v = static_cast<long long>(value);
                 auto magnitude = static_cast<unsigned long long>(v);

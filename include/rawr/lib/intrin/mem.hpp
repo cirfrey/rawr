@@ -94,7 +94,8 @@ RAWR_EXPORT namespace rawr::inline lib::intrin::inline mem
         }
     }
 
-    RAWR_ALWAYS_INLINE constexpr auto memcpy(auto* dst, auto const* src, rst n) noexcept -> void*
+    template <typename Dst, typename Src>
+    RAWR_ALWAYS_INLINE constexpr auto memcpy(Dst* dst, Src const* src, rst n) noexcept -> void*
     {
         if (intrin::is_consteval())                      { return soft::memcpy(dst, src, n); }
              if constexpr(this_compiler.is_family_gnu()) { return  gnu::memcpy(dst, src, n); }
