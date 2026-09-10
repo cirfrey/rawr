@@ -55,10 +55,53 @@ RAWR_EXPORT namespace rawr::inline lib::intrin::inline base
     { return __builtin_is_constant_evaluated(); }
 
     // MSVC is quite picky with __is_same.
-    template<typename T, typename... Us> concept is = (
-        RAWR_MSVC(soft::is_same<T, Us>::value) RAWR_NOT_MSVC(__is_same(T, Us))
-        || ...
-    );
+    template<typename T, typename... Us>
+    concept Is = (RAWR_MSVC(soft::is_same<T, Us>::value) RAWR_NOT_MSVC(__is_same(T, Us)) || ... );
+
+    template <typename T> concept Enum  = __is_enum(T);
+    template <typename T> concept Class = __is_class(T);
+    template <typename T> concept Empty = __is_empty(T);
+    template <typename T> concept Union = __is_union(T);
+
+    template <typename T> concept DefaultConstructible = __is_constructible(T);
+    template <typename T> concept CopyConstructible    = __is_constructible(T, const T&);
+    template <typename T> concept MoveConstructible    = __is_constructible(T, T&&);
+    template <typename T> concept CopyAssignable       = __is_assignable(T&, const T&);
+    template <typename T> concept MoveAssignable       = __is_assignable(T&, T&&);
+    template <typename T> concept Destructible         =
+        #if RAWR_COMPILER_MSVC || \
+            (RAWR_COMPILER_CLANG && RAWR_COMPILER_VERSION_MAJOR >= 16) || \
+            (RAWR_COMPILER_GCC && RAWR_COMPILER_VERSION_MAJOR >= 16)
+            __is_destructible(T);
+        #else
+            requires { declval<T&>().~T(); };
+        #endif
+
+    template <typename T> concept TriviallyDefaultConstructible = __is_trivially_constructible(T);
+    template <typename T> concept TriviallyCopyConstructible    = __is_trivially_constructible(T, const T&);
+    template <typename T> concept TriviallyMoveConstructible    = __is_trivially_constructible(T, T&&);
+    template <typename T> concept TriviallyCopyAssignable       = __is_trivially_assignable(T&, const T&);
+    template <typename T> concept TriviallyMoveAssignable       = __is_trivially_assignable(T&, T&&);
+    template <typename T> concept TriviallyDestructible         =
+        #if !RAWR_COMPILER_GCC || (RAWR_COMPILER_GCC && RAWR_COMPILER_VERSION_MAJOR >= 16)
+            __is_trivially_destructible(T);
+        #else
+            Destructible<T> && __has_trivial_destructor(T);
+        #endif
+
+    template <typename T> concept NoThrowDefaultConstructible = __is_nothrow_constructible(T);
+    template <typename T> concept NoThrowCopyConstructible    = __is_nothrow_constructible(T, const T&);
+    template <typename T> concept NoThrowMoveConstructible    = __is_nothrow_constructible(T, T&&);
+    template <typename T> concept NoThrowCopyAssignable       = __is_nothrow_assignable(T&, const T&);
+    template <typename T> concept NoThrowMoveAssignable       = __is_nothrow_assignable(T&, T&&);
+    template <typename T> concept NoThrowDestructible         =
+        #if RAWR_COMPILER_MSVC || \
+            (RAWR_COMPILER_CLANG && RAWR_COMPILER_VERSION_MAJOR >= 16) || \
+            (RAWR_COMPILER_GCC && RAWR_COMPILER_VERSION_MAJOR >= 16)
+            __is_nothrow_destructible(T);
+        #else
+            Destructible<T> && noexcept(declval<T&>().~T());
+        #endif
 
     template <typename T> concept TriviallyCopyable = __is_trivially_copyable(T);
     template <typename T> concept StandardLayout    = __is_standard_layout(T);

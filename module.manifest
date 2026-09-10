@@ -14,7 +14,7 @@ include/rawr/abi/sysv.hpp|rawr.abi.sysv|rawr.lib.detection,rawr.lib.integer.raw|
 include/rawr/abi.hpp|rawr.abi|rawr.abi.sysv,rawr.abi.win64|349|1788553785363407600|8251c4eba4ff214b1d1b59cbedc668156249ed4751d9ba5c3caca5767983d69d
 include/rawr/lib/hash/fnv1a.hpp|rawr.lib.hash.fnv1a|rawr.lib.integer.raw|1664|1788907150287462800|8b9d9102a1af469223ffd1a6f9d1ff9dde46639a41fe281dfcbda379d181d832
 include/rawr/lib/hash.hpp|rawr.lib.hash|rawr.lib.hash.fnv1a|231|1788875458615438600|ca6b368a625e5f1336a5db2c0f58d4d4d49d0e59603285ee0714146bcb762ef1
-include/rawr/lib/intrin/base.hpp|rawr.lib.intrin.base|rawr.lib.bits|3869|1788899109785780900|90321b877b4aa196e45cd0188839c4f1774825bcdefc82c595094b839eace763
+include/rawr/lib/intrin/base.hpp|rawr.lib.intrin.base|rawr.lib.bits|6545|1788989613396090700|7f0e1c9e04d555700f32facd28aa186851839e3acd10f60c9818da89e28ef9c8
 include/rawr/lib/bitfield.hpp|rawr.lib.bitfield|rawr.lib.bits,rawr.lib.integer.base,rawr.lib.intrin.base|4786|1788888972858712900|c7fbd54b76974dc673bb461b3e10780d3290f181f4c5f0bae11cc7c06b2b3e93
 include/rawr/arch/x64/cpuid.hpp|rawr.arch.x64.cpuid|rawr.lib.bitfield,rawr.lib.bits,rawr.lib.detection,rawr.lib.integer.base,rawr.lib.integer.raw|10948|1788736365383107700|fbb571dd4cf6a5f66095412d9c9837fb39263fa3d8d9c3109f384232b02ed60a
 include/rawr/lib/intrin/math.hpp|rawr.lib.intrin.math|rawr.lib.bits,rawr.lib.detection,rawr.lib.integer.base,rawr.lib.integer.raw,rawr.lib.intrin.base|30656|1788888820428398300|905e30cbbc9df59f3aef649b26e81433194853b1fd700bffbdfafdaa1de07429

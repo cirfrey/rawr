@@ -16,9 +16,6 @@ dir_scripts = meson.current_source_dir()/'scripts'
 dir_build   = meson.current_build_dir()
 dir_include_name = 'include'
 
-freestanding_cpp_args = []
-freestanding_link_args = []
-
 # Convenience dependency for injecting freestanding flags.
 freestanding_dep = ''
 if cpp.get_id() == 'msvc'
