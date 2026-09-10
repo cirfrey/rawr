@@ -1,8 +1,6 @@
 
 # Short term - 07/09/26 - 13/09/26
 
-[ ] rawr::test
-    - [~] write tests for rawr::test
 [ ] rawr::sync
     - [X] detection stuff
     - [~] arch::X::atomic
@@ -17,10 +15,21 @@
 ## If theres time
 
 [ ] merge attributes.pp into compiler.pp
-[ ] rawr::lib::typing.
+[~] rawr::lib::typing.
+[ ] Generic test runner.
+    - [ ] Also print environment on start -> detection.hpp -> renum
 
 # Longer term
 
+[ ] Ergonomic compiletime testing.
+[ ] rawr::test checks with messages.
+[ ] Tokenized logging facilities.
+    - [ ] Hashed source location -> linker section
+    - [ ] Hashed string -> linker section
+    - [ ] Hashed formatting -> linker section
+        - [ ] str hash + send arguments binarily (encode arg info in linker section too?)
+        - [ ] str hash + formatted argument string
+    - [ ] firmware identity.
 [ ] rawr::sync more complex primitives ?
 [ ] meson sanitizer integration
     - [ ] clang tidy the code
