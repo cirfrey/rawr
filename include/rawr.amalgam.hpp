@@ -6125,9 +6125,13 @@
 	
 	    inline namespace literals
 	    {
-	        // NOTE: These are NOT null-terminated terminated. Be wary of comparing against hashes of null-terminated strings.
+	        // NOTE: These do NOT include the null-terminator in the hash. Be wary of comparing against hashes of null-terminated strings.
 	        consteval auto operator ""_fnv1a32(char const* str, rst len) -> ru32 { return hash32(str, len); }
 	        consteval auto operator ""_fnv1a64(char const* str, rst len) -> ru64 { return hash64(str, len); }
+	
+	        // NOTE: These DO include the null-terminator in the hash.
+	        consteval auto operator ""_fnv1a32_nt(char const* str, rst len) -> ru32 { return hash32(str, len + 1); }
+	        consteval auto operator ""_fnv1a64_nt(char const* str, rst len) -> ru64 { return hash64(str, len + 1); }
 	    }
 	}
 
@@ -7819,7 +7823,7 @@
 	    concept TestSuite = requires(T t)
 	    {
 	        { T::name()      } -> intrin::ConvertibleTo<char const*>;
-	        { T::name_size() } -> intrin::ConvertibleTo<rst>;
+	        { T::name_size() } -> intrin::ConvertibleTo<rst>; // Expected to be view-like: NOT null-terminated.
 	        { t.run_checks() };
 	    };
 	
@@ -7830,12 +7834,13 @@
 	        constexpr auto check(
 	            bool cond,
 	            source_location const loc = source_location::current()
-	        ) {
+	        ) -> bool {
 	            if(check_callback) check_callback(test_suite_check{
 	                .cond = cond,
 	                .expr = nullptr,
 	                .loc  = loc
 	            }, userdata);
+	            return cond;
 	        }
 	
 	        template <decltype(sizeof(0)) Size>
@@ -7843,12 +7848,13 @@
 	            bool cond,
 	            char const (&expr)[Size],
 	            source_location const loc = source_location::current()
-	        ) {
+	        ) -> bool {
 	            if(check_callback) check_callback(test_suite_check{
 	                .cond = cond,
 	                .expr = expr,
 	                .loc  = loc
 	            }, userdata);
+	            return cond;
 	        }
 	
 	    public:

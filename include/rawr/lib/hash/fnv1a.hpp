@@ -48,8 +48,12 @@ RAWR_EXPORT namespace rawr::inline lib::inline hash::fnv1a
 
     inline namespace literals
     {
-        // NOTE: These are NOT null-terminated terminated. Be wary of comparing against hashes of null-terminated strings.
+        // NOTE: These do NOT include the null-terminator in the hash. Be wary of comparing against hashes of null-terminated strings.
         consteval auto operator ""_fnv1a32(char const* str, rst len) -> ru32 { return hash32(str, len); }
         consteval auto operator ""_fnv1a64(char const* str, rst len) -> ru64 { return hash64(str, len); }
+
+        // NOTE: These DO include the null-terminator in the hash.
+        consteval auto operator ""_fnv1a32_nt(char const* str, rst len) -> ru32 { return hash32(str, len + 1); }
+        consteval auto operator ""_fnv1a64_nt(char const* str, rst len) -> ru64 { return hash64(str, len + 1); }
     }
 }

@@ -73,7 +73,7 @@ RAWR_EXPORT namespace rawr::inline lib::inline test
     concept TestSuite = requires(T t)
     {
         { T::name()      } -> intrin::ConvertibleTo<char const*>;
-        { T::name_size() } -> intrin::ConvertibleTo<rst>;
+        { T::name_size() } -> intrin::ConvertibleTo<rst>; // Expected to be view-like: NOT null-terminated.
         { t.run_checks() };
     };
 
@@ -84,12 +84,13 @@ RAWR_EXPORT namespace rawr::inline lib::inline test
         constexpr auto check(
             bool cond,
             source_location const loc = source_location::current()
-        ) {
+        ) -> bool {
             if(check_callback) check_callback(test_suite_check{
                 .cond = cond,
                 .expr = nullptr,
                 .loc  = loc
             }, userdata);
+            return cond;
         }
 
         template <decltype(sizeof(0)) Size>
@@ -97,12 +98,13 @@ RAWR_EXPORT namespace rawr::inline lib::inline test
             bool cond,
             char const (&expr)[Size],
             source_location const loc = source_location::current()
-        ) {
+        ) -> bool {
             if(check_callback) check_callback(test_suite_check{
                 .cond = cond,
                 .expr = expr,
                 .loc  = loc
             }, userdata);
+            return cond;
         }
 
     public:
