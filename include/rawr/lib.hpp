@@ -19,6 +19,7 @@
     export import rawr.lib.sync;
     export import rawr.lib.test;
     export import rawr.lib.type_name;
+    export import rawr.lib.typing;
 #else
     #pragma once
     #include "rawr/lib/bitfield.hpp"
@@ -36,6 +37,7 @@
     #include "rawr/lib/sync.hpp"
     #include "rawr/lib/test.hpp"
     #include "rawr/lib/type_name.hpp"
+    #include "rawr/lib/typing.hpp"
 #endif
 #include "rawr/lib/attributes.pp"
 #include "rawr/lib/bitfield.pp"
