@@ -1,4 +1,8 @@
-#include "rawr/lib/test.pp"
+#ifdef RAWR_TESTMODE_AMALGAM
+    #include "rawr.amalgam.hpp"
+#else
+    #include "rawr/lib/test.pp"
+#endif
 
 // Meta-tests for rawr::lib::test — TU 2.
 // Expected results in expected.hpp. Comments reference expected[] indices.

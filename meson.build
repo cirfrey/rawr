@@ -10,11 +10,12 @@ python = import('python').find_installation('python3')
 cpp    = meson.get_compiler('cpp')
 cpp_id = cpp.get_id()
 
-dir_sources = meson.current_source_dir()/'src'
-dir_include = meson.current_source_dir()/'include'
-dir_scripts = meson.current_source_dir()/'scripts'
-dir_build   = meson.current_build_dir()
-dir_include_name = 'include'
+dir_sources              = meson.current_source_dir()/'src'
+dir_include              = meson.current_source_dir()/'include'/'headers'
+dir_scripts              = meson.current_source_dir()/'scripts'
+dir_build                = meson.current_build_dir()
+dir_include_name         = 'include'/'headers'
+dir_include_amalgam_name = 'include'/'amalgam'
 
 # Convenience dependency for injecting freestanding flags.
 freestanding_dep = ''
@@ -182,21 +183,40 @@ foreach o : module_manifest.split('\n')
     }
 endforeach
 
+#
+# The default dep is the core module.
+#
+rawr_dep = mod_deps['rawr']
 
 #
-# Amalgamation.
+# Then you can also depend on only the headers.
 #
-run_target(
-    'amalgam',
-    command: [
-        python,
-        dir_scripts/'amalgam.py',
-        '-I', dir_include,
-        dir_include/'rawr.hpp',
-        dir_include/'rawr.amalgam.hpp',
-    ],
+rawr_headeronly_dep = declare_dependency(include_directories: dir_include_name)
+
+#
+# Or on the amalgamation.
+#
+rawr_amalgam_dep = declare_dependency(
+    sources: custom_target(
+        'rawr.amalgam.hpp',
+        input:   dir_include/'rawr.hpp',
+        output:  'rawr.amalgam.hpp',
+        command: [
+            python,
+            dir_scripts/'amalgam.py',
+            '-I', dir_include,
+            '@INPUT@',
+            '@OUTPUT@',
+        ],
+        build_by_default: false,
+    ),
+    include_directories: dir_include_amalgam_name,
 )
 
+subdir('test')
+
+### TODO: sectioned off for now.
+subdir_done()
 
 clang_tidy = find_program('clang-tidy', required: false)
 if clang_tidy.found()
@@ -214,10 +234,6 @@ if clang_tidy.found()
         ]
     )
 endif
-
-subdir('test')
-
-### TODO: sectioned off for now.
 
 additional_cpp_args = []
 

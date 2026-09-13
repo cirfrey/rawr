@@ -13,14 +13,14 @@ echo "Generating module manifest..."
 
 "$PYTHON" scripts/manifest.py \
     clang++ \
-    -Iinclude \
+    -Iinclude/headers \
     -std=c++20 \
     -DRAWR_MODULE \
     --root . \
     --manifest module.manifest \
     --modules-- \
-    include/rawr.hpp \
-    include/rawr
+    include/headers/rawr.hpp \
+    include/headers/rawr
 
 git add module.manifest
 
