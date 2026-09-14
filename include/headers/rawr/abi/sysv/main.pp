@@ -1,4 +1,3 @@
-
 #ifndef RAWR_NO_SOURCE_MAPPING
     #line 3 "rawr/abi/sysv/main.pp"
 #endif
@@ -7,12 +6,10 @@
 #include "rawr/lib/dist/pp.pp"
 #if RAWR_PP_TRANSITIVE_AS_MODULE
     import rawr.abi.sysv.ctx;
-    import rawr.lib.detection;
     import rawr.lib.diag.dwarf;
 #endif
 #if RAWR_PP_TRANSITIVE_AS_HEADER
     #include "rawr/abi/sysv/ctx.hpp"
-    #include "rawr/lib/detection.hpp"
     #include "rawr/lib/diag/dwarf.hpp"
 #endif
 #include "rawr/abi/sysv/trampolines.pp"

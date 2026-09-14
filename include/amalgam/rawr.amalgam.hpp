@@ -2141,7 +2141,6 @@
 
 /* required by:
 	- rawr/abi/sysv/ctx.hpp
-	- rawr/abi/sysv/main.pp
 	- rawr/arch/x64/atomic.hpp
 	- rawr/arch/x64/cpuid.hpp
 	- rawr/arch/x64/simd.hpp
@@ -2879,7 +2878,6 @@
 	- rawr/lib/main.pp
 */
 #pragma region "rawr/abi/sysv/main.pp"
-	
 	#ifndef RAWR_NO_SOURCE_MAPPING
 	    #line 3 "rawr/abi/sysv/main.pp"
 	#endif
@@ -2888,12 +2886,10 @@
 	//RAWR_AMALGAM_IGNORE #include "rawr/lib/dist/pp.pp"
 	#if RAWR_PP_TRANSITIVE_AS_MODULE
 	    import rawr.abi.sysv.ctx;
-	    import rawr.lib.detection;
 	    import rawr.lib.diag.dwarf;
 	#endif
 	#if RAWR_PP_TRANSITIVE_AS_HEADER
 	    //RAWR_AMALGAM_IGNORE #include "rawr/abi/sysv/ctx.hpp"
-	    //RAWR_AMALGAM_IGNORE #include "rawr/lib/detection.hpp"
 	    //RAWR_AMALGAM_IGNORE #include "rawr/lib/diag/dwarf.hpp"
 	#endif
 	//RAWR_AMALGAM_IGNORE #include "rawr/abi/sysv/trampolines.pp"
@@ -7235,23 +7231,6 @@
 
 /* required by:
 	- rawr/lib.hpp
-*/
-#pragma region "rawr/lib/sync.hpp"
-	#ifndef RAWR_NO_SOURCE_MAPPING
-	    #line 3 "rawr/lib/sync.hpp"
-	#endif
-	
-	#ifdef RAWR_MODULE
-	    //RAWR_AMALGAM_IGNORE export module rawr.lib.sync;
-	    export import rawr.lib.sync.base;
-	#else
-	    //RAWR_AMALGAM_IGNORE #pragma once
-	    //RAWR_AMALGAM_IGNORE #include "rawr/lib/sync/base.hpp"
-	#endif
-
-#pragma endregion "rawr/lib/sync.hpp"
-
-/* required by:
 	- rawr/lib/test.hpp
 */
 #pragma region "rawr/lib/source_location.hpp"
@@ -7292,6 +7271,24 @@
 	}
 
 #pragma endregion "rawr/lib/source_location.hpp"
+
+/* required by:
+	- rawr/lib.hpp
+*/
+#pragma region "rawr/lib/sync.hpp"
+	#ifndef RAWR_NO_SOURCE_MAPPING
+	    #line 3 "rawr/lib/sync.hpp"
+	#endif
+	
+	#ifdef RAWR_MODULE
+	    //RAWR_AMALGAM_IGNORE export module rawr.lib.sync;
+	    export import rawr.lib.sync.base;
+	#else
+	    //RAWR_AMALGAM_IGNORE #pragma once
+	    //RAWR_AMALGAM_IGNORE #include "rawr/lib/sync/base.hpp"
+	#endif
+
+#pragma endregion "rawr/lib/sync.hpp"
 
 /* required by:
 	- rawr/lib.hpp
@@ -8247,6 +8244,7 @@
 	    export import rawr.lib.linker_section;
 	    export import rawr.lib.rich_enum;
 	    export import rawr.lib.sass;
+	    export import rawr.lib.source_location;
 	    export import rawr.lib.sync;
 	    export import rawr.lib.test;
 	    export import rawr.lib.type_name;
@@ -8265,6 +8263,7 @@
 	    //RAWR_AMALGAM_IGNORE #include "rawr/lib/linker_section.hpp"
 	    //RAWR_AMALGAM_IGNORE #include "rawr/lib/rich_enum.hpp"
 	    //RAWR_AMALGAM_IGNORE #include "rawr/lib/sass.hpp"
+	    //RAWR_AMALGAM_IGNORE #include "rawr/lib/source_location.hpp"
 	    //RAWR_AMALGAM_IGNORE #include "rawr/lib/sync.hpp"
 	    //RAWR_AMALGAM_IGNORE #include "rawr/lib/test.hpp"
 	    //RAWR_AMALGAM_IGNORE #include "rawr/lib/type_name.hpp"

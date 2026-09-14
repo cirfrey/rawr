@@ -1,0 +1,585 @@
+digraph rawr {
+    graph [
+        rankdir=LR,
+        newrank=true,
+        splines=polyline,
+        overlap=false,
+        concentrate=false,
+        nodesep=0.35,
+        ranksep=1.15,
+        pad=0.35,
+        outputorder=edgesfirst
+    ]
+
+    node [shape=box, fontsize=10, margin="0.08,0.04"]
+    edge [fontsize=8, arrowsize=0.6, penwidth=1.0]
+
+    "rawr.hpp" [penwidth=2, fontname=bold, fillcolor="#eee1ff", color="#7950a6", style=filled]
+    subgraph "cluster_rawr" {
+        label=""
+        color="#c9c9c9"
+        penwidth=1.2
+        style="rounded,filled"
+        fillcolor="#f3f3f3"
+        margin=18
+        "rawr/abi.hpp" [penwidth=2, fontname=bold, fillcolor="#eee1ff", color="#7950a6", style=filled]
+        "rawr/arch.hpp" [penwidth=2, fontname=bold, fillcolor="#eee1ff", color="#7950a6", style=filled]
+        "rawr/bin.hpp" [penwidth=2, fontname=bold, fillcolor="#eee1ff", color="#7950a6", style=filled]
+        "rawr/cxx_abi.hpp" [penwidth=2, fontname=bold, fillcolor="#eee1ff", color="#7950a6", style=filled]
+        "rawr/lib.hpp" [penwidth=2, fontname=bold, fillcolor="#eee1ff", color="#7950a6", style=filled]
+        "rawr/platform.hpp" [penwidth=2, fontname=bold, fillcolor="#eee1ff", color="#7950a6", style=filled]
+        "rawr/san.hpp" [penwidth=2, fontname=bold, fillcolor="#eee1ff", color="#7950a6", style=filled]
+        subgraph "cluster_rawr_abi" {
+            label=""
+            color="#c9c9c9"
+            penwidth=1.2
+            style="rounded,filled"
+            fillcolor="#f3f3f3"
+            margin=18
+            "rawr/abi/sysv.hpp" [penwidth=2, fontname=bold, fillcolor="#eee1ff", color="#7950a6", style=filled]
+            "rawr/abi/win64.hpp" [penwidth=2, fontname=bold, fillcolor="#eee1ff", color="#7950a6", style=filled]
+            subgraph "cluster_rawr_abi_sysv" {
+                label=""
+                color="#c9c9c9"
+                penwidth=1.2
+                style="rounded,filled"
+                fillcolor="#f3f3f3"
+                margin=18
+                "rawr/abi/sysv/ctx.hpp" [penwidth=2, fontname=bold, fillcolor="#e5f0ff", color="#4d78a8", style=filled]
+                "rawr/abi/sysv/main.pp" [penwidth=2, fontname=bold, shape=box3d, fillcolor="#fff0d8", color="#c47a00", style=filled]
+                "rawr/abi/sysv/trampolines.pp" [penwidth=2, fontname=bold, shape=box3d, fillcolor="#fff0d8", color="#c47a00", style=filled]
+            }
+            subgraph "cluster_rawr_abi_win64" {
+                label=""
+                color="#c9c9c9"
+                penwidth=1.2
+                style="rounded,filled"
+                fillcolor="#f3f3f3"
+                margin=18
+                "rawr/abi/win64/ctx.hpp" [penwidth=2, fontname=bold, fillcolor="#e5f0ff", color="#4d78a8", style=filled]
+                "rawr/abi/win64/main.pp" [penwidth=2, fontname=bold, shape=box3d, fillcolor="#fff0d8", color="#c47a00", style=filled]
+            }
+        }
+        subgraph "cluster_rawr_arch" {
+            label=""
+            color="#c9c9c9"
+            penwidth=1.2
+            style="rounded,filled"
+            fillcolor="#f3f3f3"
+            margin=18
+            "rawr/arch/x64.hpp" [penwidth=2, fontname=bold, fillcolor="#eee1ff", color="#7950a6", style=filled]
+            subgraph "cluster_rawr_arch_x64" {
+                label=""
+                color="#c9c9c9"
+                penwidth=1.2
+                style="rounded,filled"
+                fillcolor="#f3f3f3"
+                margin=18
+                "rawr/arch/x64/atomic.hpp" [penwidth=2, fontname=bold, fillcolor="#e5f0ff", color="#4d78a8", style=filled]
+                "rawr/arch/x64/cpuid.hpp" [penwidth=2, fontname=bold, fillcolor="#e5f0ff", color="#4d78a8", style=filled]
+                "rawr/arch/x64/simd.hpp" [penwidth=2, fontname=bold, fillcolor="#e5f0ff", color="#4d78a8", style=filled]
+            }
+        }
+        subgraph "cluster_rawr_bin" {
+            label=""
+            color="#c9c9c9"
+            penwidth=1.2
+            style="rounded,filled"
+            fillcolor="#f3f3f3"
+            margin=18
+            "rawr/bin/elf.hpp" [penwidth=2, fontname=bold, fillcolor="#e5f0ff", color="#4d78a8", style=filled]
+        }
+        subgraph "cluster_rawr_cxx_abi" {
+            label=""
+            color="#c9c9c9"
+            penwidth=1.2
+            style="rounded,filled"
+            fillcolor="#f3f3f3"
+            margin=18
+            "rawr/cxx_abi/itanium.hpp" [penwidth=2, fontname=bold, fillcolor="#e5f0ff", color="#4d78a8", style=filled]
+        }
+        subgraph "cluster_rawr_lib" {
+            label=""
+            color="#c9c9c9"
+            penwidth=1.2
+            style="rounded,filled"
+            fillcolor="#f3f3f3"
+            margin=18
+            "rawr/lib/attributes.pp" [penwidth=2, fontname=bold, shape=box3d, fillcolor="#fff0d8", color="#c47a00", style=filled]
+            "rawr/lib/bitfield.hpp" [penwidth=2, fontname=bold, fillcolor="#e5f0ff", color="#4d78a8", style=filled]
+            "rawr/lib/bitfield.pp" [penwidth=2, fontname=bold, shape=box3d, fillcolor="#fff0d8", color="#c47a00", style=filled]
+            "rawr/lib/bits.hpp" [penwidth=2, fontname=bold, fillcolor="#e5f0ff", color="#4d78a8", style=filled]
+            "rawr/lib/compiler.pp" [penwidth=2, fontname=bold, shape=box3d, fillcolor="#fff0d8", color="#c47a00", style=filled]
+            "rawr/lib/detection.hpp" [penwidth=2, fontname=bold, fillcolor="#e5f0ff", color="#4d78a8", style=filled]
+            "rawr/lib/detection.pp" [penwidth=2, fontname=bold, shape=box3d, fillcolor="#fff0d8", color="#c47a00", style=filled]
+            "rawr/lib/diag.hpp" [penwidth=2, fontname=bold, fillcolor="#eee1ff", color="#7950a6", style=filled]
+            "rawr/lib/dummy_return.hpp" [penwidth=2, fontname=bold, fillcolor="#e5f0ff", color="#4d78a8", style=filled]
+            "rawr/lib/fmt.hpp" [penwidth=2, fontname=bold, fillcolor="#e5f0ff", color="#4d78a8", style=filled]
+            "rawr/lib/hash.hpp" [penwidth=2, fontname=bold, fillcolor="#eee1ff", color="#7950a6", style=filled]
+            "rawr/lib/integer.hpp" [penwidth=2, fontname=bold, fillcolor="#eee1ff", color="#7950a6", style=filled]
+            "rawr/lib/intrin.hpp" [penwidth=2, fontname=bold, fillcolor="#eee1ff", color="#7950a6", style=filled]
+            "rawr/lib/linker_section.hpp" [penwidth=2, fontname=bold, fillcolor="#e5f0ff", color="#4d78a8", style=filled]
+            "rawr/lib/linker_section.pp" [penwidth=2, fontname=bold, shape=box3d, fillcolor="#fff0d8", color="#c47a00", style=filled]
+            "rawr/lib/main.pp" [penwidth=2, fontname=bold, shape=box3d, fillcolor="#fff0d8", color="#c47a00", style=filled]
+            "rawr/lib/pp.pp" [penwidth=2, fontname=bold, shape=box3d, fillcolor="#fff0d8", color="#c47a00", style=filled]
+            "rawr/lib/rich_enum.hpp" [penwidth=2, fontname=bold, fillcolor="#e5f0ff", color="#4d78a8", style=filled]
+            "rawr/lib/rich_enum.pp" [penwidth=2, fontname=bold, shape=box3d, fillcolor="#fff0d8", color="#c47a00", style=filled]
+            "rawr/lib/sass.hpp" [penwidth=2, fontname=bold, fillcolor="#e5f0ff", color="#4d78a8", style=filled]
+            "rawr/lib/source_location.hpp" [penwidth=2, fontname=bold, fillcolor="#e5f0ff", color="#4d78a8", style=filled]
+            "rawr/lib/sync.hpp" [penwidth=2, fontname=bold, fillcolor="#eee1ff", color="#7950a6", style=filled]
+            "rawr/lib/test.hpp" [penwidth=2, fontname=bold, fillcolor="#e5f0ff", color="#4d78a8", style=filled]
+            "rawr/lib/test.pp" [penwidth=2, fontname=bold, shape=box3d, fillcolor="#fff0d8", color="#c47a00", style=filled]
+            "rawr/lib/type_name.hpp" [penwidth=2, fontname=bold, fillcolor="#e5f0ff", color="#4d78a8", style=filled]
+            "rawr/lib/typing.hpp" [penwidth=2, fontname=bold, fillcolor="#e5f0ff", color="#4d78a8", style=filled]
+            subgraph "cluster_rawr_lib_diag" {
+                label=""
+                color="#c9c9c9"
+                penwidth=1.2
+                style="rounded,filled"
+                fillcolor="#f3f3f3"
+                margin=18
+                "rawr/lib/diag/dwarf.hpp" [penwidth=2, fontname=bold, fillcolor="#e5f0ff", color="#4d78a8", style=filled]
+            }
+            subgraph "cluster_rawr_lib_dist" {
+                label=""
+                color="#c9c9c9"
+                penwidth=1.2
+                style="rounded,filled"
+                fillcolor="#f3f3f3"
+                margin=18
+                "rawr/lib/dist/header.pp" [penwidth=2, fontname=bold, shape=box3d, fillcolor="#fff0d8", color="#c47a00", style=filled]
+                "rawr/lib/dist/module.pp" [penwidth=2, fontname=bold, shape=box3d, fillcolor="#fff0d8", color="#c47a00", style=filled]
+                "rawr/lib/dist/pp.pp" [penwidth=2, fontname=bold, shape=box3d, fillcolor="#fff0d8", color="#c47a00", style=filled]
+                "rawr/lib/dist/todo.pp" [penwidth=2, fontname=bold, shape=box3d, fillcolor="#fff0d8", color="#c47a00", style=filled]
+            }
+            subgraph "cluster_rawr_lib_hash" {
+                label=""
+                color="#c9c9c9"
+                penwidth=1.2
+                style="rounded,filled"
+                fillcolor="#f3f3f3"
+                margin=18
+                "rawr/lib/hash/fnv1a.hpp" [penwidth=2, fontname=bold, fillcolor="#e5f0ff", color="#4d78a8", style=filled]
+            }
+            subgraph "cluster_rawr_lib_integer" {
+                label=""
+                color="#c9c9c9"
+                penwidth=1.2
+                style="rounded,filled"
+                fillcolor="#f3f3f3"
+                margin=18
+                "rawr/lib/integer/base.hpp" [penwidth=2, fontname=bold, fillcolor="#e5f0ff", color="#4d78a8", style=filled]
+                "rawr/lib/integer/raw.hpp" [penwidth=2, fontname=bold, fillcolor="#e5f0ff", color="#4d78a8", style=filled]
+                "rawr/lib/integer/strong.hpp" [penwidth=2, fontname=bold, fillcolor="#e5f0ff", color="#4d78a8", style=filled]
+            }
+            subgraph "cluster_rawr_lib_intrin" {
+                label=""
+                color="#c9c9c9"
+                penwidth=1.2
+                style="rounded,filled"
+                fillcolor="#f3f3f3"
+                margin=18
+                "rawr/lib/intrin/base.hpp" [penwidth=2, fontname=bold, fillcolor="#e5f0ff", color="#4d78a8", style=filled]
+                "rawr/lib/intrin/math.hpp" [penwidth=2, fontname=bold, fillcolor="#e5f0ff", color="#4d78a8", style=filled]
+                "rawr/lib/intrin/mem.hpp" [penwidth=2, fontname=bold, fillcolor="#e5f0ff", color="#4d78a8", style=filled]
+            }
+            subgraph "cluster_rawr_lib_simd" {
+                label=""
+                color="#c9c9c9"
+                penwidth=1.2
+                style="rounded,filled"
+                fillcolor="#f3f3f3"
+                margin=18
+                "rawr/lib/simd/storage.hpp" [penwidth=2, fontname=bold, fillcolor="#e5f0ff", color="#4d78a8", style=filled]
+                "rawr/lib/simd/storage.pp" [penwidth=2, fontname=bold, shape=box3d, fillcolor="#fff0d8", color="#c47a00", style=filled]
+            }
+            subgraph "cluster_rawr_lib_sync" {
+                label=""
+                color="#c9c9c9"
+                penwidth=1.2
+                style="rounded,filled"
+                fillcolor="#f3f3f3"
+                margin=18
+                "rawr/lib/sync/base.hpp" [penwidth=2, fontname=bold, fillcolor="#e5f0ff", color="#4d78a8", style=filled]
+            }
+        }
+        subgraph "cluster_rawr_platform" {
+            label=""
+            color="#c9c9c9"
+            penwidth=1.2
+            style="rounded,filled"
+            fillcolor="#f3f3f3"
+            margin=18
+            "rawr/platform/linux.hpp" [penwidth=2, fontname=bold, fillcolor="#e5f0ff", color="#4d78a8", style=filled]
+        }
+        subgraph "cluster_rawr_san" {
+            label=""
+            color="#c9c9c9"
+            penwidth=1.2
+            style="rounded,filled"
+            fillcolor="#f3f3f3"
+            margin=18
+            "rawr/san/asan.hpp" [penwidth=2, fontname=bold, fillcolor="#e5f0ff", color="#4d78a8", style=filled]
+            "rawr/san/attributes.pp" [penwidth=2, fontname=bold, shape=box3d, fillcolor="#fff0d8", color="#c47a00", style=filled]
+            "rawr/san/lsan.hpp" [penwidth=2, fontname=bold, fillcolor="#e5f0ff", color="#4d78a8", style=filled]
+            "rawr/san/msan.hpp" [penwidth=2, fontname=bold, fillcolor="#e5f0ff", color="#4d78a8", style=filled]
+            "rawr/san/tsan.hpp" [penwidth=2, fontname=bold, fillcolor="#e5f0ff", color="#4d78a8", style=filled]
+        }
+    }
+
+    // directory depth 0
+    subgraph "rank_depth_0" {
+        rank=same
+        "rawr.hpp"
+    }
+
+    // directory depth 1
+    subgraph "rank_depth_1" {
+        rank=same
+        "rawr/abi.hpp"
+        "rawr/arch.hpp"
+        "rawr/bin.hpp"
+        "rawr/cxx_abi.hpp"
+        "rawr/lib.hpp"
+        "rawr/platform.hpp"
+        "rawr/san.hpp"
+    }
+
+    // directory depth 2
+    subgraph "rank_depth_2" {
+        rank=same
+        "rawr/abi/sysv.hpp"
+        "rawr/abi/win64.hpp"
+        "rawr/arch/x64.hpp"
+        "rawr/bin/elf.hpp"
+        "rawr/cxx_abi/itanium.hpp"
+        "rawr/lib/attributes.pp"
+        "rawr/lib/bitfield.hpp"
+        "rawr/lib/bitfield.pp"
+        "rawr/lib/bits.hpp"
+        "rawr/lib/compiler.pp"
+        "rawr/lib/detection.hpp"
+        "rawr/lib/detection.pp"
+        "rawr/lib/diag.hpp"
+        "rawr/lib/dummy_return.hpp"
+        "rawr/lib/fmt.hpp"
+        "rawr/lib/hash.hpp"
+        "rawr/lib/integer.hpp"
+        "rawr/lib/intrin.hpp"
+        "rawr/lib/linker_section.hpp"
+        "rawr/lib/linker_section.pp"
+        "rawr/lib/main.pp"
+        "rawr/lib/pp.pp"
+        "rawr/lib/rich_enum.hpp"
+        "rawr/lib/rich_enum.pp"
+        "rawr/lib/sass.hpp"
+        "rawr/lib/source_location.hpp"
+        "rawr/lib/sync.hpp"
+        "rawr/lib/test.hpp"
+        "rawr/lib/test.pp"
+        "rawr/lib/type_name.hpp"
+        "rawr/lib/typing.hpp"
+        "rawr/platform/linux.hpp"
+        "rawr/san/asan.hpp"
+        "rawr/san/attributes.pp"
+        "rawr/san/lsan.hpp"
+        "rawr/san/msan.hpp"
+        "rawr/san/tsan.hpp"
+    }
+
+    // directory depth 3
+    subgraph "rank_depth_3" {
+        rank=same
+        "rawr/abi/sysv/ctx.hpp"
+        "rawr/abi/sysv/main.pp"
+        "rawr/abi/sysv/trampolines.pp"
+        "rawr/abi/win64/ctx.hpp"
+        "rawr/abi/win64/main.pp"
+        "rawr/arch/x64/atomic.hpp"
+        "rawr/arch/x64/cpuid.hpp"
+        "rawr/arch/x64/simd.hpp"
+        "rawr/lib/diag/dwarf.hpp"
+        "rawr/lib/dist/header.pp"
+        "rawr/lib/dist/module.pp"
+        "rawr/lib/dist/pp.pp"
+        "rawr/lib/dist/todo.pp"
+        "rawr/lib/hash/fnv1a.hpp"
+        "rawr/lib/integer/base.hpp"
+        "rawr/lib/integer/raw.hpp"
+        "rawr/lib/integer/strong.hpp"
+        "rawr/lib/intrin/base.hpp"
+        "rawr/lib/intrin/math.hpp"
+        "rawr/lib/intrin/mem.hpp"
+        "rawr/lib/simd/storage.hpp"
+        "rawr/lib/simd/storage.pp"
+        "rawr/lib/sync/base.hpp"
+    }
+
+    "rawr.hpp" -> "rawr/abi.hpp" [style=solid]
+    "rawr.hpp" -> "rawr/arch.hpp" [style=solid]
+    "rawr.hpp" -> "rawr/bin.hpp" [style=solid]
+    "rawr.hpp" -> "rawr/cxx_abi.hpp" [style=solid]
+    "rawr.hpp" -> "rawr/lib.hpp" [style=solid]
+    "rawr.hpp" -> "rawr/platform.hpp" [style=solid]
+    "rawr.hpp" -> "rawr/san.hpp" [style=solid]
+    "rawr/abi.hpp" -> "rawr/abi/sysv.hpp" [style=solid]
+    "rawr/abi.hpp" -> "rawr/abi/win64.hpp" [style=solid]
+    "rawr/abi/sysv.hpp" -> "rawr/abi/sysv/ctx.hpp" [style=solid]
+    "rawr/abi/sysv.hpp" -> "rawr/abi/sysv/main.pp" [style=solid]
+    "rawr/abi/sysv.hpp" -> "rawr/abi/sysv/trampolines.pp" [style=solid]
+    "rawr/abi/sysv/ctx.hpp" -> "rawr/lib/attributes.pp" [style=solid]
+    "rawr/abi/sysv/ctx.hpp" -> "rawr/lib/detection.hpp" [style=solid]
+    "rawr/abi/sysv/ctx.hpp" -> "rawr/lib/dist/header.pp" [style=solid]
+    "rawr/abi/sysv/ctx.hpp" -> "rawr/lib/dist/module.pp" [style=solid]
+    "rawr/abi/sysv/ctx.hpp" -> "rawr/lib/dist/todo.pp" [style=solid]
+    "rawr/abi/sysv/ctx.hpp" -> "rawr/lib/integer/raw.hpp" [style=solid]
+    "rawr/abi/sysv/ctx.hpp" -> "rawr/lib/rich_enum.pp" [style=solid]
+    "rawr/abi/sysv/main.pp" -> "rawr/abi/sysv/ctx.hpp" [style=dashed, label="RAWR_PP_TRANSITIVE_AS_HEADER"]
+    "rawr/abi/sysv/main.pp" -> "rawr/abi/sysv/trampolines.pp" [style=solid]
+    "rawr/abi/sysv/main.pp" -> "rawr/lib/attributes.pp" [style=solid]
+    "rawr/abi/sysv/main.pp" -> "rawr/lib/detection.pp" [style=solid]
+    "rawr/abi/sysv/main.pp" -> "rawr/lib/diag/dwarf.hpp" [style=dashed, label="RAWR_PP_TRANSITIVE_AS_HEADER"]
+    "rawr/abi/sysv/main.pp" -> "rawr/lib/dist/pp.pp" [style=solid]
+    "rawr/abi/sysv/trampolines.pp" -> "rawr/lib/detection.pp" [style=solid]
+    "rawr/abi/win64.hpp" -> "rawr/abi/win64/ctx.hpp" [style=solid]
+    "rawr/abi/win64.hpp" -> "rawr/abi/win64/main.pp" [style=solid]
+    "rawr/abi/win64/ctx.hpp" -> "rawr/lib/dist/header.pp" [style=solid]
+    "rawr/abi/win64/ctx.hpp" -> "rawr/lib/dist/module.pp" [style=solid]
+    "rawr/abi/win64/ctx.hpp" -> "rawr/lib/dist/todo.pp" [style=solid]
+    "rawr/abi/win64/ctx.hpp" -> "rawr/lib/integer/raw.hpp" [style=solid]
+    "rawr/abi/win64/main.pp" -> "rawr/lib/attributes.pp" [style=solid]
+    "rawr/arch.hpp" -> "rawr/arch/x64.hpp" [style=solid]
+    "rawr/arch/x64.hpp" -> "rawr/arch/x64/atomic.hpp" [style=solid]
+    "rawr/arch/x64.hpp" -> "rawr/arch/x64/cpuid.hpp" [style=solid]
+    "rawr/arch/x64.hpp" -> "rawr/arch/x64/simd.hpp" [style=solid]
+    "rawr/arch/x64/atomic.hpp" -> "rawr/lib/attributes.pp" [style=solid]
+    "rawr/arch/x64/atomic.hpp" -> "rawr/lib/compiler.pp" [style=solid]
+    "rawr/arch/x64/atomic.hpp" -> "rawr/lib/detection.hpp" [style=solid]
+    "rawr/arch/x64/atomic.hpp" -> "rawr/lib/detection.pp" [style=solid]
+    "rawr/arch/x64/atomic.hpp" -> "rawr/lib/dist/header.pp" [style=solid]
+    "rawr/arch/x64/atomic.hpp" -> "rawr/lib/dist/module.pp" [style=solid]
+    "rawr/arch/x64/atomic.hpp" -> "rawr/lib/integer/base.hpp" [style=solid]
+    "rawr/arch/x64/atomic.hpp" -> "rawr/lib/integer/raw.hpp" [style=solid]
+    "rawr/arch/x64/atomic.hpp" -> "rawr/lib/sass.hpp" [style=solid]
+    "rawr/arch/x64/atomic.hpp" -> "rawr/lib/sync/base.hpp" [style=solid]
+    "rawr/arch/x64/cpuid.hpp" -> "rawr/lib/attributes.pp" [style=solid]
+    "rawr/arch/x64/cpuid.hpp" -> "rawr/lib/bitfield.hpp" [style=solid]
+    "rawr/arch/x64/cpuid.hpp" -> "rawr/lib/bitfield.pp" [style=solid]
+    "rawr/arch/x64/cpuid.hpp" -> "rawr/lib/bits.hpp" [style=solid]
+    "rawr/arch/x64/cpuid.hpp" -> "rawr/lib/compiler.pp" [style=solid]
+    "rawr/arch/x64/cpuid.hpp" -> "rawr/lib/detection.hpp" [style=solid]
+    "rawr/arch/x64/cpuid.hpp" -> "rawr/lib/detection.pp" [style=solid]
+    "rawr/arch/x64/cpuid.hpp" -> "rawr/lib/dist/header.pp" [style=solid]
+    "rawr/arch/x64/cpuid.hpp" -> "rawr/lib/dist/module.pp" [style=solid]
+    "rawr/arch/x64/cpuid.hpp" -> "rawr/lib/dist/todo.pp" [style=solid]
+    "rawr/arch/x64/cpuid.hpp" -> "rawr/lib/integer/base.hpp" [style=solid]
+    "rawr/arch/x64/cpuid.hpp" -> "rawr/lib/integer/raw.hpp" [style=solid]
+    "rawr/arch/x64/simd.hpp" -> "rawr/lib/attributes.pp" [style=solid]
+    "rawr/arch/x64/simd.hpp" -> "rawr/lib/compiler.pp" [style=solid]
+    "rawr/arch/x64/simd.hpp" -> "rawr/lib/detection.hpp" [style=solid]
+    "rawr/arch/x64/simd.hpp" -> "rawr/lib/detection.pp" [style=solid]
+    "rawr/arch/x64/simd.hpp" -> "rawr/lib/dist/header.pp" [style=solid]
+    "rawr/arch/x64/simd.hpp" -> "rawr/lib/dist/module.pp" [style=solid]
+    "rawr/arch/x64/simd.hpp" -> "rawr/lib/dummy_return.hpp" [style=solid]
+    "rawr/arch/x64/simd.hpp" -> "rawr/lib/integer/raw.hpp" [style=solid]
+    "rawr/arch/x64/simd.hpp" -> "rawr/lib/intrin.hpp" [style=solid]
+    "rawr/arch/x64/simd.hpp" -> "rawr/lib/simd/storage.hpp" [style=solid]
+    "rawr/bin.hpp" -> "rawr/bin/elf.hpp" [style=solid]
+    "rawr/bin/elf.hpp" -> "rawr/lib/attributes.pp" [style=solid]
+    "rawr/bin/elf.hpp" -> "rawr/lib/dist/header.pp" [style=solid]
+    "rawr/bin/elf.hpp" -> "rawr/lib/dist/module.pp" [style=solid]
+    "rawr/cxx_abi.hpp" -> "rawr/cxx_abi/itanium.hpp" [style=solid]
+    "rawr/cxx_abi/itanium.hpp" -> "rawr/lib/attributes.pp" [style=solid]
+    "rawr/cxx_abi/itanium.hpp" -> "rawr/lib/dist/header.pp" [style=solid]
+    "rawr/cxx_abi/itanium.hpp" -> "rawr/lib/dist/module.pp" [style=solid]
+    "rawr/lib.hpp" -> "rawr/lib/attributes.pp" [style=solid]
+    "rawr/lib.hpp" -> "rawr/lib/bitfield.hpp" [style=solid]
+    "rawr/lib.hpp" -> "rawr/lib/bitfield.pp" [style=solid]
+    "rawr/lib.hpp" -> "rawr/lib/bits.hpp" [style=solid]
+    "rawr/lib.hpp" -> "rawr/lib/compiler.pp" [style=solid]
+    "rawr/lib.hpp" -> "rawr/lib/detection.hpp" [style=solid]
+    "rawr/lib.hpp" -> "rawr/lib/detection.pp" [style=solid]
+    "rawr/lib.hpp" -> "rawr/lib/diag.hpp" [style=solid]
+    "rawr/lib.hpp" -> "rawr/lib/dummy_return.hpp" [style=solid]
+    "rawr/lib.hpp" -> "rawr/lib/fmt.hpp" [style=solid]
+    "rawr/lib.hpp" -> "rawr/lib/hash.hpp" [style=solid]
+    "rawr/lib.hpp" -> "rawr/lib/integer.hpp" [style=solid]
+    "rawr/lib.hpp" -> "rawr/lib/intrin.hpp" [style=solid]
+    "rawr/lib.hpp" -> "rawr/lib/linker_section.hpp" [style=solid]
+    "rawr/lib.hpp" -> "rawr/lib/linker_section.pp" [style=solid]
+    "rawr/lib.hpp" -> "rawr/lib/main.pp" [style=solid]
+    "rawr/lib.hpp" -> "rawr/lib/pp.pp" [style=solid]
+    "rawr/lib.hpp" -> "rawr/lib/rich_enum.hpp" [style=solid]
+    "rawr/lib.hpp" -> "rawr/lib/rich_enum.pp" [style=solid]
+    "rawr/lib.hpp" -> "rawr/lib/sass.hpp" [style=solid]
+    "rawr/lib.hpp" -> "rawr/lib/sync.hpp" [style=solid]
+    "rawr/lib.hpp" -> "rawr/lib/test.hpp" [style=solid]
+    "rawr/lib.hpp" -> "rawr/lib/test.pp" [style=solid]
+    "rawr/lib.hpp" -> "rawr/lib/type_name.hpp" [style=solid]
+    "rawr/lib.hpp" -> "rawr/lib/typing.hpp" [style=solid]
+    "rawr/lib/attributes.pp" -> "rawr/lib/detection.pp" [style=solid]
+    "rawr/lib/bitfield.hpp" -> "rawr/lib/bits.hpp" [style=solid]
+    "rawr/lib/bitfield.hpp" -> "rawr/lib/dist/header.pp" [style=solid]
+    "rawr/lib/bitfield.hpp" -> "rawr/lib/dist/module.pp" [style=solid]
+    "rawr/lib/bitfield.hpp" -> "rawr/lib/integer/base.hpp" [style=solid]
+    "rawr/lib/bitfield.hpp" -> "rawr/lib/intrin/base.hpp" [style=solid]
+    "rawr/lib/bitfield.pp" -> "rawr/lib/bitfield.hpp" [style=dashed, label="RAWR_PP_TRANSITIVE_AS_HEADER"]
+    "rawr/lib/bitfield.pp" -> "rawr/lib/bits.hpp" [style=dashed, label="RAWR_PP_TRANSITIVE_AS_HEADER"]
+    "rawr/lib/bitfield.pp" -> "rawr/lib/dist/pp.pp" [style=solid]
+    "rawr/lib/bitfield.pp" -> "rawr/lib/integer/base.hpp" [style=dashed, label="RAWR_PP_TRANSITIVE_AS_HEADER"]
+    "rawr/lib/bitfield.pp" -> "rawr/lib/pp.pp" [style=solid]
+    "rawr/lib/bits.hpp" -> "rawr/lib/detection.pp" [style=solid]
+    "rawr/lib/bits.hpp" -> "rawr/lib/dist/header.pp" [style=solid]
+    "rawr/lib/bits.hpp" -> "rawr/lib/dist/module.pp" [style=solid]
+    "rawr/lib/compiler.pp" -> "rawr/lib/attributes.pp" [style=solid]
+    "rawr/lib/compiler.pp" -> "rawr/lib/detection.pp" [style=solid]
+    "rawr/lib/compiler.pp" -> "rawr/lib/pp.pp" [style=solid]
+    "rawr/lib/detection.hpp" -> "rawr/lib/detection.pp" [style=solid]
+    "rawr/lib/detection.hpp" -> "rawr/lib/dist/header.pp" [style=solid]
+    "rawr/lib/detection.hpp" -> "rawr/lib/dist/module.pp" [style=solid]
+    "rawr/lib/detection.hpp" -> "rawr/lib/integer/raw.hpp" [style=solid]
+    "rawr/lib/detection.hpp" -> "rawr/lib/rich_enum.pp" [style=solid]
+    "rawr/lib/detection.pp" -> "rawr/lib/dist/todo.pp" [style=solid]
+    "rawr/lib/diag.hpp" -> "rawr/lib/diag/dwarf.hpp" [style=solid]
+    "rawr/lib/diag/dwarf.hpp" -> "rawr/lib/attributes.pp" [style=solid]
+    "rawr/lib/diag/dwarf.hpp" -> "rawr/lib/detection.hpp" [style=solid]
+    "rawr/lib/diag/dwarf.hpp" -> "rawr/lib/detection.pp" [style=solid]
+    "rawr/lib/diag/dwarf.hpp" -> "rawr/lib/dist/header.pp" [style=solid]
+    "rawr/lib/diag/dwarf.hpp" -> "rawr/lib/dist/module.pp" [style=solid]
+    "rawr/lib/diag/dwarf.hpp" -> "rawr/lib/dist/todo.pp" [style=solid]
+    "rawr/lib/diag/dwarf.hpp" -> "rawr/lib/sass.hpp" [style=solid]
+    "rawr/lib/dummy_return.hpp" -> "rawr/lib/dist/header.pp" [style=solid]
+    "rawr/lib/dummy_return.hpp" -> "rawr/lib/dist/module.pp" [style=solid]
+    "rawr/lib/fmt.hpp" -> "rawr/lib/bits.hpp" [style=solid]
+    "rawr/lib/fmt.hpp" -> "rawr/lib/dist/header.pp" [style=solid]
+    "rawr/lib/fmt.hpp" -> "rawr/lib/dist/module.pp" [style=solid]
+    "rawr/lib/fmt.hpp" -> "rawr/lib/integer/base.hpp" [style=solid]
+    "rawr/lib/fmt.hpp" -> "rawr/lib/intrin.hpp" [style=solid]
+    "rawr/lib/fmt.hpp" -> "rawr/lib/type_name.hpp" [style=solid]
+    "rawr/lib/hash.hpp" -> "rawr/lib/hash/fnv1a.hpp" [style=solid]
+    "rawr/lib/hash/fnv1a.hpp" -> "rawr/lib/dist/header.pp" [style=solid]
+    "rawr/lib/hash/fnv1a.hpp" -> "rawr/lib/dist/module.pp" [style=solid]
+    "rawr/lib/hash/fnv1a.hpp" -> "rawr/lib/integer/raw.hpp" [style=solid]
+    "rawr/lib/integer.hpp" -> "rawr/lib/integer/base.hpp" [style=solid]
+    "rawr/lib/integer.hpp" -> "rawr/lib/integer/raw.hpp" [style=solid]
+    "rawr/lib/integer.hpp" -> "rawr/lib/integer/strong.hpp" [style=solid]
+    "rawr/lib/integer/base.hpp" -> "rawr/lib/bits.hpp" [style=solid]
+    "rawr/lib/integer/base.hpp" -> "rawr/lib/detection.pp" [style=solid]
+    "rawr/lib/integer/base.hpp" -> "rawr/lib/dist/header.pp" [style=solid]
+    "rawr/lib/integer/base.hpp" -> "rawr/lib/dist/module.pp" [style=solid]
+    "rawr/lib/integer/raw.hpp" -> "rawr/lib/bits.hpp" [style=solid]
+    "rawr/lib/integer/raw.hpp" -> "rawr/lib/detection.pp" [style=solid]
+    "rawr/lib/integer/raw.hpp" -> "rawr/lib/dist/header.pp" [style=solid]
+    "rawr/lib/integer/raw.hpp" -> "rawr/lib/dist/module.pp" [style=solid]
+    "rawr/lib/integer/raw.hpp" -> "rawr/lib/integer/base.hpp" [style=solid]
+    "rawr/lib/integer/strong.hpp" -> "rawr/lib/bits.hpp" [style=solid]
+    "rawr/lib/integer/strong.hpp" -> "rawr/lib/dist/header.pp" [style=solid]
+    "rawr/lib/integer/strong.hpp" -> "rawr/lib/dist/module.pp" [style=solid]
+    "rawr/lib/integer/strong.hpp" -> "rawr/lib/dist/todo.pp" [style=solid]
+    "rawr/lib/integer/strong.hpp" -> "rawr/lib/integer/base.hpp" [style=solid]
+    "rawr/lib/integer/strong.hpp" -> "rawr/lib/integer/raw.hpp" [style=solid]
+    "rawr/lib/integer/strong.hpp" -> "rawr/lib/intrin.hpp" [style=solid]
+    "rawr/lib/intrin.hpp" -> "rawr/lib/intrin/base.hpp" [style=solid]
+    "rawr/lib/intrin.hpp" -> "rawr/lib/intrin/math.hpp" [style=solid]
+    "rawr/lib/intrin.hpp" -> "rawr/lib/intrin/mem.hpp" [style=solid]
+    "rawr/lib/intrin/base.hpp" -> "rawr/lib/attributes.pp" [style=solid]
+    "rawr/lib/intrin/base.hpp" -> "rawr/lib/bits.hpp" [style=solid]
+    "rawr/lib/intrin/base.hpp" -> "rawr/lib/compiler.pp" [style=solid]
+    "rawr/lib/intrin/base.hpp" -> "rawr/lib/detection.pp" [style=solid]
+    "rawr/lib/intrin/base.hpp" -> "rawr/lib/dist/header.pp" [style=solid]
+    "rawr/lib/intrin/base.hpp" -> "rawr/lib/dist/module.pp" [style=solid]
+    "rawr/lib/intrin/math.hpp" -> "rawr/lib/attributes.pp" [style=solid]
+    "rawr/lib/intrin/math.hpp" -> "rawr/lib/bits.hpp" [style=solid]
+    "rawr/lib/intrin/math.hpp" -> "rawr/lib/compiler.pp" [style=solid]
+    "rawr/lib/intrin/math.hpp" -> "rawr/lib/detection.hpp" [style=solid]
+    "rawr/lib/intrin/math.hpp" -> "rawr/lib/dist/header.pp" [style=solid]
+    "rawr/lib/intrin/math.hpp" -> "rawr/lib/dist/module.pp" [style=solid]
+    "rawr/lib/intrin/math.hpp" -> "rawr/lib/dist/todo.pp" [style=solid]
+    "rawr/lib/intrin/math.hpp" -> "rawr/lib/integer/base.hpp" [style=solid]
+    "rawr/lib/intrin/math.hpp" -> "rawr/lib/integer/raw.hpp" [style=solid]
+    "rawr/lib/intrin/math.hpp" -> "rawr/lib/intrin/base.hpp" [style=solid]
+    "rawr/lib/intrin/mem.hpp" -> "rawr/lib/attributes.pp" [style=solid]
+    "rawr/lib/intrin/mem.hpp" -> "rawr/lib/bits.hpp" [style=solid]
+    "rawr/lib/intrin/mem.hpp" -> "rawr/lib/compiler.pp" [style=solid]
+    "rawr/lib/intrin/mem.hpp" -> "rawr/lib/detection.hpp" [style=solid]
+    "rawr/lib/intrin/mem.hpp" -> "rawr/lib/dist/header.pp" [style=solid]
+    "rawr/lib/intrin/mem.hpp" -> "rawr/lib/dist/module.pp" [style=solid]
+    "rawr/lib/intrin/mem.hpp" -> "rawr/lib/dist/todo.pp" [style=solid]
+    "rawr/lib/intrin/mem.hpp" -> "rawr/lib/integer/base.hpp" [style=solid]
+    "rawr/lib/intrin/mem.hpp" -> "rawr/lib/integer/raw.hpp" [style=solid]
+    "rawr/lib/intrin/mem.hpp" -> "rawr/lib/intrin/base.hpp" [style=solid]
+    "rawr/lib/linker_section.hpp" -> "rawr/lib/dist/header.pp" [style=solid]
+    "rawr/lib/linker_section.hpp" -> "rawr/lib/dist/module.pp" [style=solid]
+    "rawr/lib/linker_section.pp" -> "rawr/lib/detection.pp" [style=solid]
+    "rawr/lib/linker_section.pp" -> "rawr/lib/dist/pp.pp" [style=solid]
+    "rawr/lib/linker_section.pp" -> "rawr/lib/linker_section.hpp" [style=dashed, label="RAWR_COMPILER_MSVC && RAWR_PP_TRANSITIVE_AS_HEADER"]
+    "rawr/lib/main.pp" -> "rawr/abi/sysv/main.pp" [style=dashed, label="RAWR_ABI_SYSV"]
+    "rawr/lib/main.pp" -> "rawr/abi/win64/main.pp" [style=dashed, label="RAWR_ABI_WIN64"]
+    "rawr/lib/main.pp" -> "rawr/lib/detection.pp" [style=solid]
+    "rawr/lib/rich_enum.hpp" -> "rawr/lib/dist/header.pp" [style=solid]
+    "rawr/lib/rich_enum.hpp" -> "rawr/lib/dist/module.pp" [style=solid]
+    "rawr/lib/rich_enum.pp" -> "rawr/lib/pp.pp" [style=solid]
+    "rawr/lib/sass.hpp" -> "rawr/lib/dist/header.pp" [style=solid]
+    "rawr/lib/sass.hpp" -> "rawr/lib/dist/module.pp" [style=solid]
+    "rawr/lib/simd/storage.hpp" -> "rawr/lib/dist/header.pp" [style=solid]
+    "rawr/lib/simd/storage.hpp" -> "rawr/lib/dist/module.pp" [style=solid]
+    "rawr/lib/simd/storage.hpp" -> "rawr/lib/integer/raw.hpp" [style=solid]
+    "rawr/lib/simd/storage.hpp" -> "rawr/lib/simd/storage.pp" [style=solid]
+    "rawr/lib/simd/storage.pp" -> "rawr/lib/detection.pp" [style=solid]
+    "rawr/lib/source_location.hpp" -> "rawr/lib/detection.pp" [style=solid]
+    "rawr/lib/source_location.hpp" -> "rawr/lib/dist/header.pp" [style=solid]
+    "rawr/lib/source_location.hpp" -> "rawr/lib/dist/module.pp" [style=solid]
+    "rawr/lib/sync.hpp" -> "rawr/lib/sync/base.hpp" [style=solid]
+    "rawr/lib/sync/base.hpp" -> "rawr/lib/dist/header.pp" [style=solid]
+    "rawr/lib/sync/base.hpp" -> "rawr/lib/dist/module.pp" [style=solid]
+    "rawr/lib/sync/base.hpp" -> "rawr/lib/integer/raw.hpp" [style=solid]
+    "rawr/lib/test.hpp" -> "rawr/lib/compiler.pp" [style=solid]
+    "rawr/lib/test.hpp" -> "rawr/lib/detection.pp" [style=solid]
+    "rawr/lib/test.hpp" -> "rawr/lib/dist/header.pp" [style=solid]
+    "rawr/lib/test.hpp" -> "rawr/lib/dist/module.pp" [style=solid]
+    "rawr/lib/test.hpp" -> "rawr/lib/integer/raw.hpp" [style=solid]
+    "rawr/lib/test.hpp" -> "rawr/lib/intrin.hpp" [style=solid]
+    "rawr/lib/test.hpp" -> "rawr/lib/linker_section.pp" [style=solid]
+    "rawr/lib/test.hpp" -> "rawr/lib/source_location.hpp" [style=solid]
+    "rawr/lib/test.pp" -> "rawr/lib/dist/pp.pp" [style=solid]
+    "rawr/lib/test.pp" -> "rawr/lib/linker_section.pp" [style=solid]
+    "rawr/lib/test.pp" -> "rawr/lib/test.hpp" [style=dashed, label="RAWR_PP_TRANSITIVE_AS_HEADER"]
+    "rawr/lib/type_name.hpp" -> "rawr/lib/detection.pp" [style=solid]
+    "rawr/lib/type_name.hpp" -> "rawr/lib/dist/header.pp" [style=solid]
+    "rawr/lib/type_name.hpp" -> "rawr/lib/dist/module.pp" [style=solid]
+    "rawr/lib/typing.hpp" -> "rawr/lib/compiler.pp" [style=solid]
+    "rawr/lib/typing.hpp" -> "rawr/lib/dist/header.pp" [style=solid]
+    "rawr/lib/typing.hpp" -> "rawr/lib/dist/module.pp" [style=solid]
+    "rawr/lib/typing.hpp" -> "rawr/lib/intrin/base.hpp" [style=solid]
+    "rawr/platform.hpp" -> "rawr/platform/linux.hpp" [style=solid]
+    "rawr/platform/linux.hpp" -> "rawr/lib/attributes.pp" [style=solid]
+    "rawr/platform/linux.hpp" -> "rawr/lib/detection.hpp" [style=solid]
+    "rawr/platform/linux.hpp" -> "rawr/lib/detection.pp" [style=solid]
+    "rawr/platform/linux.hpp" -> "rawr/lib/dist/header.pp" [style=solid]
+    "rawr/platform/linux.hpp" -> "rawr/lib/dist/module.pp" [style=solid]
+    "rawr/platform/linux.hpp" -> "rawr/lib/integer/base.hpp" [style=solid]
+    "rawr/platform/linux.hpp" -> "rawr/lib/integer/raw.hpp" [style=solid]
+    "rawr/platform/linux.hpp" -> "rawr/lib/pp.pp" [style=solid]
+    "rawr/platform/linux.hpp" -> "rawr/lib/rich_enum.pp" [style=solid]
+    "rawr/san.hpp" -> "rawr/san/asan.hpp" [style=solid]
+    "rawr/san.hpp" -> "rawr/san/attributes.pp" [style=solid]
+    "rawr/san.hpp" -> "rawr/san/lsan.hpp" [style=solid]
+    "rawr/san.hpp" -> "rawr/san/msan.hpp" [style=solid]
+    "rawr/san.hpp" -> "rawr/san/tsan.hpp" [style=solid]
+    "rawr/san/asan.hpp" -> "rawr/lib/detection.pp" [style=solid]
+    "rawr/san/asan.hpp" -> "rawr/lib/dist/header.pp" [style=solid]
+    "rawr/san/asan.hpp" -> "rawr/lib/dist/module.pp" [style=solid]
+    "rawr/san/asan.hpp" -> "rawr/lib/integer/raw.hpp" [style=solid]
+    "rawr/san/asan.hpp" -> "rawr/lib/intrin/base.hpp" [style=solid]
+    "rawr/san/attributes.pp" -> "rawr/lib/attributes.pp" [style=solid]
+    "rawr/san/lsan.hpp" -> "rawr/lib/detection.pp" [style=solid]
+    "rawr/san/lsan.hpp" -> "rawr/lib/dist/header.pp" [style=solid]
+    "rawr/san/lsan.hpp" -> "rawr/lib/dist/module.pp" [style=solid]
+    "rawr/san/msan.hpp" -> "rawr/lib/detection.pp" [style=solid]
+    "rawr/san/msan.hpp" -> "rawr/lib/dist/header.pp" [style=solid]
+    "rawr/san/msan.hpp" -> "rawr/lib/dist/module.pp" [style=solid]
+    "rawr/san/msan.hpp" -> "rawr/lib/integer/raw.hpp" [style=solid]
+    "rawr/san/tsan.hpp" -> "rawr/lib/detection.pp" [style=solid]
+    "rawr/san/tsan.hpp" -> "rawr/lib/dist/header.pp" [style=solid]
+    "rawr/san/tsan.hpp" -> "rawr/lib/dist/module.pp" [style=solid]
+}

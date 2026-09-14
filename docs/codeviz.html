@@ -1,0 +1,488 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>rawr codeviz</title>
+<style>
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;overflow:hidden;font:13px/1.4 system-ui,sans-serif;color:#1a1a1a}
+#app{display:grid;grid-template-columns:260px 1fr 280px;height:100%}
+#sidebar,#details{background:#fff;overflow-y:auto;padding:12px}
+#sidebar{border-right:1px solid #e0e0e0}
+#details{border-left:1px solid #e0e0e0}
+input#search{width:100%;padding:7px 9px;border:1px solid #bbb;border-radius:5px;font:inherit;margin-bottom:8px}
+.row{display:flex;gap:6px;margin-bottom:10px}
+.row button{flex:1;padding:6px 8px;border:1px solid #bbb;background:#fff;border-radius:5px;cursor:pointer;font:inherit;font-size:12px}
+.row button:hover{background:#f0f0f0}
+.legend{display:flex;flex-wrap:wrap;gap:6px;font-size:11px;color:#666;margin-bottom:10px}
+.legend span{display:flex;align-items:center;gap:4px}
+.swatch{width:10px;height:10px;border-radius:2px;border:1px solid;flex-shrink:0}
+.sec-lbl{font-weight:700;font-size:10px;text-transform:uppercase;color:#999;letter-spacing:.06em;margin:8px 0 4px}
+.file-item{padding:4px 6px;border-radius:3px;cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:11.5px;color:#333}
+.file-item:hover{background:#f0f0f0}
+.file-item.sel{background:#e8eeff;color:#1a2a6a;font-weight:600}
+#canvas{position:relative;overflow:hidden;background:#f6f6f6;cursor:grab;user-select:none;touch-action:none}
+#canvas.dragging{cursor:grabbing}
+#gwrap{position:absolute;transform-origin:0 0}
+.folder{position:absolute;border:1.5px solid #c2c2c2;border-radius:7px;background:#ececec}
+.folder-label{padding:3px 10px 0;font-size:9.5px;font-weight:700;color:#888;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;height:22px;line-height:19px;letter-spacing:.03em}
+.node{position:absolute;border-radius:4px;border:1.5px solid;font-size:10.5px;display:flex;align-items:center;padding:0 7px;cursor:pointer;white-space:nowrap;overflow:hidden;transition:opacity .1s,box-shadow .1s}
+.node:hover{z-index:2;box-shadow:0 0 0 2px rgba(0,0,0,.2)}
+.node.kind-hpp{background:#e5f0ff;border-color:#4d78a8;color:#1e3a5f}
+.node.kind-pp {background:#fff0d8;border-color:#c47a00;color:#6b3c00}
+.node.kind-agg{background:#eee1ff;border-color:#7950a6;color:#3d1670}
+.node.dim{opacity:.08}
+.node.selected{box-shadow:0 0 0 2.5px #3355cc;z-index:3;opacity:1!important}
+.node.rel-node{opacity:1!important;box-shadow:0 0 0 1.5px #4a904a}
+.edge-path{fill:none;stroke-width:1.3;transition:opacity .1s}
+.edge-path.dim{opacity:.04}
+.edge-path.fwd {stroke:#5077a8}
+.edge-path.back{stroke:#a86040}
+.edge-path.side{stroke:#888}
+.edge-path.soft{stroke-dasharray:4 3}
+.edge-path.hl{stroke-width:2.2;opacity:1!important}
+#zc{position:absolute;right:12px;top:12px;display:flex;gap:4px;background:rgba(255,255,255,.92);border:1px solid #ddd;border-radius:7px;padding:5px;z-index:10}
+#zc button{width:30px;height:30px;border:1px solid #ccc;background:#fff;border-radius:4px;cursor:pointer;font-size:15px;display:flex;align-items:center;justify-content:center}
+#zc button:hover{background:#eee}
+#zr{width:50px;display:flex;align-items:center;justify-content:center;font-size:11px;color:#666}
+.dtitle{font-size:13px;font-weight:700;word-break:break-all;margin-bottom:4px;line-height:1.4}
+.dhint{font-size:11px;color:#999;margin-bottom:10px;font-style:italic}
+.dempty{color:#aaa;font-size:12px;margin-top:16px}
+.dsec{margin:10px 0}
+.dsh{font-weight:700;font-size:10px;color:#555;margin-bottom:4px;text-transform:uppercase;letter-spacing:.04em}
+.dli{padding:3px 5px;font-size:11px;border-radius:3px;cursor:pointer;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#334}
+.dli:hover{background:#f0f0f0}
+.dli-none{font-size:11px;color:#ccc;padding:2px 5px}
+@media(max-width:900px){#app{grid-template-columns:220px 1fr}#details{display:none}}
+</style>
+</head>
+<body>
+<div id="app">
+<aside id="sidebar">
+  <input id="search" placeholder="Search files…" autocomplete="off">
+  <div class="row"><button id="resetBtn">Reset view</button></div>
+  <div class="legend">
+    <span><i class="swatch" style="background:#e5f0ff;border-color:#4d78a8"></i>.hpp</span>
+    <span><i class="swatch" style="background:#fff0d8;border-color:#c47a00"></i>.pp</span>
+    <span><i class="swatch" style="background:#eee1ff;border-color:#7950a6"></i>aggregator</span>
+    <span><i class="swatch" style="background:#5077a8;border-color:#5077a8"></i>→ dep</span>
+    <span><i class="swatch" style="background:#a86040;border-color:#a86040"></i>← back</span>
+  </div>
+  <div class="sec-lbl">Files</div>
+  <div id="file-list"></div>
+</aside>
+<main id="canvas">
+  <div id="gwrap"></div>
+  <div id="zc">
+    <button id="zOut">−</button>
+    <div id="zr">100%</div>
+    <button id="zIn">+</button>
+    <button id="zFit">Fit</button>
+  </div>
+</main>
+<aside id="details">
+  <div id="dc"><div class="dempty">Select or hover a file.</div></div>
+</aside>
+</div>
+<script>
+const DATA={"nodes":[{"id":"rawr.hpp","kind":"hpp","aggregator":true,"directory":"","root":true,"incoming":0,"outgoing":7},{"id":"rawr/abi.hpp","kind":"hpp","aggregator":true,"directory":"rawr","root":true,"incoming":1,"outgoing":2},{"id":"rawr/abi/sysv.hpp","kind":"hpp","aggregator":true,"directory":"rawr/abi","root":true,"incoming":1,"outgoing":3},{"id":"rawr/abi/sysv/ctx.hpp","kind":"hpp","aggregator":false,"directory":"rawr/abi/sysv","root":true,"incoming":2,"outgoing":7},{"id":"rawr/abi/sysv/main.pp","kind":"pp","aggregator":false,"directory":"rawr/abi/sysv","root":true,"incoming":2,"outgoing":6},{"id":"rawr/abi/sysv/trampolines.pp","kind":"pp","aggregator":false,"directory":"rawr/abi/sysv","root":true,"incoming":2,"outgoing":1},{"id":"rawr/abi/win64.hpp","kind":"hpp","aggregator":true,"directory":"rawr/abi","root":true,"incoming":1,"outgoing":2},{"id":"rawr/abi/win64/ctx.hpp","kind":"hpp","aggregator":false,"directory":"rawr/abi/win64","root":true,"incoming":1,"outgoing":4},{"id":"rawr/abi/win64/main.pp","kind":"pp","aggregator":false,"directory":"rawr/abi/win64","root":true,"incoming":2,"outgoing":1},{"id":"rawr/arch.hpp","kind":"hpp","aggregator":true,"directory":"rawr","root":true,"incoming":1,"outgoing":1},{"id":"rawr/arch/x64.hpp","kind":"hpp","aggregator":true,"directory":"rawr/arch","root":true,"incoming":1,"outgoing":3},{"id":"rawr/arch/x64/atomic.hpp","kind":"hpp","aggregator":false,"directory":"rawr/arch/x64","root":true,"incoming":1,"outgoing":10},{"id":"rawr/arch/x64/cpuid.hpp","kind":"hpp","aggregator":false,"directory":"rawr/arch/x64","root":true,"incoming":1,"outgoing":12},{"id":"rawr/arch/x64/simd.hpp","kind":"hpp","aggregator":false,"directory":"rawr/arch/x64","root":true,"incoming":1,"outgoing":10},{"id":"rawr/bin.hpp","kind":"hpp","aggregator":true,"directory":"rawr","root":true,"incoming":1,"outgoing":1},{"id":"rawr/bin/elf.hpp","kind":"hpp","aggregator":false,"directory":"rawr/bin","root":true,"incoming":1,"outgoing":3},{"id":"rawr/cxx_abi.hpp","kind":"hpp","aggregator":true,"directory":"rawr","root":true,"incoming":1,"outgoing":1},{"id":"rawr/cxx_abi/itanium.hpp","kind":"hpp","aggregator":false,"directory":"rawr/cxx_abi","root":true,"incoming":1,"outgoing":3},{"id":"rawr/lib.hpp","kind":"hpp","aggregator":true,"directory":"rawr","root":true,"incoming":1,"outgoing":25},{"id":"rawr/lib/attributes.pp","kind":"pp","aggregator":false,"directory":"rawr/lib","root":true,"incoming":16,"outgoing":1},{"id":"rawr/lib/bitfield.hpp","kind":"hpp","aggregator":false,"directory":"rawr/lib","root":true,"incoming":3,"outgoing":5},{"id":"rawr/lib/bitfield.pp","kind":"pp","aggregator":false,"directory":"rawr/lib","root":true,"incoming":2,"outgoing":5},{"id":"rawr/lib/bits.hpp","kind":"hpp","aggregator":false,"directory":"rawr/lib","root":true,"incoming":11,"outgoing":3},{"id":"rawr/lib/compiler.pp","kind":"pp","aggregator":false,"directory":"rawr/lib","root":true,"incoming":9,"outgoing":3},{"id":"rawr/lib/detection.hpp","kind":"hpp","aggregator":false,"directory":"rawr/lib","root":true,"incoming":9,"outgoing":5},{"id":"rawr/lib/detection.pp","kind":"pp","aggregator":false,"directory":"rawr/lib","root":true,"incoming":25,"outgoing":1},{"id":"rawr/lib/diag.hpp","kind":"hpp","aggregator":true,"directory":"rawr/lib","root":true,"incoming":1,"outgoing":1},{"id":"rawr/lib/diag/dwarf.hpp","kind":"hpp","aggregator":false,"directory":"rawr/lib/diag","root":true,"incoming":2,"outgoing":7},{"id":"rawr/lib/dist/header.pp","kind":"pp","aggregator":false,"directory":"rawr/lib/dist","root":true,"incoming":34,"outgoing":0},{"id":"rawr/lib/dist/module.pp","kind":"pp","aggregator":false,"directory":"rawr/lib/dist","root":true,"incoming":34,"outgoing":0},{"id":"rawr/lib/dist/pp.pp","kind":"pp","aggregator":false,"directory":"rawr/lib/dist","root":true,"incoming":4,"outgoing":0},{"id":"rawr/lib/dist/todo.pp","kind":"pp","aggregator":false,"directory":"rawr/lib/dist","root":true,"incoming":8,"outgoing":0},{"id":"rawr/lib/dummy_return.hpp","kind":"hpp","aggregator":false,"directory":"rawr/lib","root":true,"incoming":2,"outgoing":2},{"id":"rawr/lib/fmt.hpp","kind":"hpp","aggregator":false,"directory":"rawr/lib","root":true,"incoming":1,"outgoing":6},{"id":"rawr/lib/hash.hpp","kind":"hpp","aggregator":true,"directory":"rawr/lib","root":true,"incoming":1,"outgoing":1},{"id":"rawr/lib/hash/fnv1a.hpp","kind":"hpp","aggregator":false,"directory":"rawr/lib/hash","root":true,"incoming":1,"outgoing":3},{"id":"rawr/lib/integer.hpp","kind":"hpp","aggregator":true,"directory":"rawr/lib","root":true,"incoming":1,"outgoing":3},{"id":"rawr/lib/integer/base.hpp","kind":"hpp","aggregator":false,"directory":"rawr/lib/integer","root":true,"incoming":11,"outgoing":4},{"id":"rawr/lib/integer/raw.hpp","kind":"hpp","aggregator":false,"directory":"rawr/lib/integer","root":true,"incoming":17,"outgoing":5},{"id":"rawr/lib/integer/strong.hpp","kind":"hpp","aggregator":false,"directory":"rawr/lib/integer","root":true,"incoming":1,"outgoing":7},{"id":"rawr/lib/intrin.hpp","kind":"hpp","aggregator":true,"directory":"rawr/lib","root":true,"incoming":5,"outgoing":3},{"id":"rawr/lib/intrin/base.hpp","kind":"hpp","aggregator":false,"directory":"rawr/lib/intrin","root":true,"incoming":6,"outgoing":6},{"id":"rawr/lib/intrin/math.hpp","kind":"hpp","aggregator":false,"directory":"rawr/lib/intrin","root":true,"incoming":1,"outgoing":10},{"id":"rawr/lib/intrin/mem.hpp","kind":"hpp","aggregator":false,"directory":"rawr/lib/intrin","root":true,"incoming":1,"outgoing":10},{"id":"rawr/lib/linker_section.hpp","kind":"hpp","aggregator":false,"directory":"rawr/lib","root":true,"incoming":2,"outgoing":2},{"id":"rawr/lib/linker_section.pp","kind":"pp","aggregator":false,"directory":"rawr/lib","root":true,"incoming":3,"outgoing":3},{"id":"rawr/lib/main.pp","kind":"pp","aggregator":false,"directory":"rawr/lib","root":true,"incoming":1,"outgoing":3},{"id":"rawr/lib/pp.pp","kind":"pp","aggregator":false,"directory":"rawr/lib","root":true,"incoming":5,"outgoing":0},{"id":"rawr/lib/rich_enum.hpp","kind":"hpp","aggregator":false,"directory":"rawr/lib","root":true,"incoming":1,"outgoing":2},{"id":"rawr/lib/rich_enum.pp","kind":"pp","aggregator":false,"directory":"rawr/lib","root":true,"incoming":4,"outgoing":1},{"id":"rawr/lib/sass.hpp","kind":"hpp","aggregator":false,"directory":"rawr/lib","root":true,"incoming":3,"outgoing":2},{"id":"rawr/lib/simd/storage.hpp","kind":"hpp","aggregator":false,"directory":"rawr/lib/simd","root":true,"incoming":1,"outgoing":4},{"id":"rawr/lib/simd/storage.pp","kind":"pp","aggregator":false,"directory":"rawr/lib/simd","root":true,"incoming":1,"outgoing":1},{"id":"rawr/lib/source_location.hpp","kind":"hpp","aggregator":false,"directory":"rawr/lib","root":true,"incoming":1,"outgoing":3},{"id":"rawr/lib/sync.hpp","kind":"hpp","aggregator":true,"directory":"rawr/lib","root":true,"incoming":1,"outgoing":1},{"id":"rawr/lib/sync/base.hpp","kind":"hpp","aggregator":false,"directory":"rawr/lib/sync","root":true,"incoming":2,"outgoing":3},{"id":"rawr/lib/test.hpp","kind":"hpp","aggregator":false,"directory":"rawr/lib","root":true,"incoming":2,"outgoing":8},{"id":"rawr/lib/test.pp","kind":"pp","aggregator":false,"directory":"rawr/lib","root":true,"incoming":1,"outgoing":3},{"id":"rawr/lib/type_name.hpp","kind":"hpp","aggregator":false,"directory":"rawr/lib","root":true,"incoming":2,"outgoing":3},{"id":"rawr/lib/typing.hpp","kind":"hpp","aggregator":false,"directory":"rawr/lib","root":true,"incoming":1,"outgoing":4},{"id":"rawr/platform.hpp","kind":"hpp","aggregator":true,"directory":"rawr","root":true,"incoming":1,"outgoing":1},{"id":"rawr/platform/linux.hpp","kind":"hpp","aggregator":false,"directory":"rawr/platform","root":true,"incoming":1,"outgoing":9},{"id":"rawr/san.hpp","kind":"hpp","aggregator":true,"directory":"rawr","root":true,"incoming":1,"outgoing":5},{"id":"rawr/san/asan.hpp","kind":"hpp","aggregator":false,"directory":"rawr/san","root":true,"incoming":1,"outgoing":5},{"id":"rawr/san/attributes.pp","kind":"pp","aggregator":false,"directory":"rawr/san","root":true,"incoming":1,"outgoing":1},{"id":"rawr/san/lsan.hpp","kind":"hpp","aggregator":false,"directory":"rawr/san","root":true,"incoming":1,"outgoing":3},{"id":"rawr/san/msan.hpp","kind":"hpp","aggregator":false,"directory":"rawr/san","root":true,"incoming":1,"outgoing":4},{"id":"rawr/san/tsan.hpp","kind":"hpp","aggregator":false,"directory":"rawr/san","root":true,"incoming":1,"outgoing":3}],"edges":[{"source":"rawr.hpp","target":"rawr/abi.hpp","soft":false,"conditions":[]},{"source":"rawr.hpp","target":"rawr/arch.hpp","soft":false,"conditions":[]},{"source":"rawr.hpp","target":"rawr/bin.hpp","soft":false,"conditions":[]},{"source":"rawr.hpp","target":"rawr/cxx_abi.hpp","soft":false,"conditions":[]},{"source":"rawr.hpp","target":"rawr/lib.hpp","soft":false,"conditions":[]},{"source":"rawr.hpp","target":"rawr/platform.hpp","soft":false,"conditions":[]},{"source":"rawr.hpp","target":"rawr/san.hpp","soft":false,"conditions":[]},{"source":"rawr/abi.hpp","target":"rawr/abi/sysv.hpp","soft":false,"conditions":[]},{"source":"rawr/abi.hpp","target":"rawr/abi/win64.hpp","soft":false,"conditions":[]},{"source":"rawr/abi/sysv.hpp","target":"rawr/abi/sysv/ctx.hpp","soft":false,"conditions":[]},{"source":"rawr/abi/sysv.hpp","target":"rawr/abi/sysv/main.pp","soft":false,"conditions":[]},{"source":"rawr/abi/sysv.hpp","target":"rawr/abi/sysv/trampolines.pp","soft":false,"conditions":[]},{"source":"rawr/abi/sysv/ctx.hpp","target":"rawr/lib/attributes.pp","soft":false,"conditions":[]},{"source":"rawr/abi/sysv/ctx.hpp","target":"rawr/lib/detection.hpp","soft":false,"conditions":[]},{"source":"rawr/abi/sysv/ctx.hpp","target":"rawr/lib/dist/header.pp","soft":false,"conditions":[]},{"source":"rawr/abi/sysv/ctx.hpp","target":"rawr/lib/dist/module.pp","soft":false,"conditions":[]},{"source":"rawr/abi/sysv/ctx.hpp","target":"rawr/lib/dist/todo.pp","soft":false,"conditions":[]},{"source":"rawr/abi/sysv/ctx.hpp","target":"rawr/lib/integer/raw.hpp","soft":false,"conditions":[]},{"source":"rawr/abi/sysv/ctx.hpp","target":"rawr/lib/rich_enum.pp","soft":false,"conditions":[]},{"source":"rawr/abi/sysv/main.pp","target":"rawr/abi/sysv/ctx.hpp","soft":true,"conditions":["RAWR_PP_TRANSITIVE_AS_HEADER"]},{"source":"rawr/abi/sysv/main.pp","target":"rawr/abi/sysv/trampolines.pp","soft":false,"conditions":[]},{"source":"rawr/abi/sysv/main.pp","target":"rawr/lib/attributes.pp","soft":false,"conditions":[]},{"source":"rawr/abi/sysv/main.pp","target":"rawr/lib/detection.pp","soft":false,"conditions":[]},{"source":"rawr/abi/sysv/main.pp","target":"rawr/lib/diag/dwarf.hpp","soft":true,"conditions":["RAWR_PP_TRANSITIVE_AS_HEADER"]},{"source":"rawr/abi/sysv/main.pp","target":"rawr/lib/dist/pp.pp","soft":false,"conditions":[]},{"source":"rawr/abi/sysv/trampolines.pp","target":"rawr/lib/detection.pp","soft":false,"conditions":[]},{"source":"rawr/abi/win64.hpp","target":"rawr/abi/win64/ctx.hpp","soft":false,"conditions":[]},{"source":"rawr/abi/win64.hpp","target":"rawr/abi/win64/main.pp","soft":false,"conditions":[]},{"source":"rawr/abi/win64/ctx.hpp","target":"rawr/lib/dist/header.pp","soft":false,"conditions":[]},{"source":"rawr/abi/win64/ctx.hpp","target":"rawr/lib/dist/module.pp","soft":false,"conditions":[]},{"source":"rawr/abi/win64/ctx.hpp","target":"rawr/lib/dist/todo.pp","soft":false,"conditions":[]},{"source":"rawr/abi/win64/ctx.hpp","target":"rawr/lib/integer/raw.hpp","soft":false,"conditions":[]},{"source":"rawr/abi/win64/main.pp","target":"rawr/lib/attributes.pp","soft":false,"conditions":[]},{"source":"rawr/arch.hpp","target":"rawr/arch/x64.hpp","soft":false,"conditions":[]},{"source":"rawr/arch/x64.hpp","target":"rawr/arch/x64/atomic.hpp","soft":false,"conditions":[]},{"source":"rawr/arch/x64.hpp","target":"rawr/arch/x64/cpuid.hpp","soft":false,"conditions":[]},{"source":"rawr/arch/x64.hpp","target":"rawr/arch/x64/simd.hpp","soft":false,"conditions":[]},{"source":"rawr/arch/x64/atomic.hpp","target":"rawr/lib/attributes.pp","soft":false,"conditions":[]},{"source":"rawr/arch/x64/atomic.hpp","target":"rawr/lib/compiler.pp","soft":false,"conditions":[]},{"source":"rawr/arch/x64/atomic.hpp","target":"rawr/lib/detection.hpp","soft":false,"conditions":[]},{"source":"rawr/arch/x64/atomic.hpp","target":"rawr/lib/detection.pp","soft":false,"conditions":[]},{"source":"rawr/arch/x64/atomic.hpp","target":"rawr/lib/dist/header.pp","soft":false,"conditions":[]},{"source":"rawr/arch/x64/atomic.hpp","target":"rawr/lib/dist/module.pp","soft":false,"conditions":[]},{"source":"rawr/arch/x64/atomic.hpp","target":"rawr/lib/integer/base.hpp","soft":false,"conditions":[]},{"source":"rawr/arch/x64/atomic.hpp","target":"rawr/lib/integer/raw.hpp","soft":false,"conditions":[]},{"source":"rawr/arch/x64/atomic.hpp","target":"rawr/lib/sass.hpp","soft":false,"conditions":[]},{"source":"rawr/arch/x64/atomic.hpp","target":"rawr/lib/sync/base.hpp","soft":false,"conditions":[]},{"source":"rawr/arch/x64/cpuid.hpp","target":"rawr/lib/attributes.pp","soft":false,"conditions":[]},{"source":"rawr/arch/x64/cpuid.hpp","target":"rawr/lib/bitfield.hpp","soft":false,"conditions":[]},{"source":"rawr/arch/x64/cpuid.hpp","target":"rawr/lib/bitfield.pp","soft":false,"conditions":[]},{"source":"rawr/arch/x64/cpuid.hpp","target":"rawr/lib/bits.hpp","soft":false,"conditions":[]},{"source":"rawr/arch/x64/cpuid.hpp","target":"rawr/lib/compiler.pp","soft":false,"conditions":[]},{"source":"rawr/arch/x64/cpuid.hpp","target":"rawr/lib/detection.hpp","soft":false,"conditions":[]},{"source":"rawr/arch/x64/cpuid.hpp","target":"rawr/lib/detection.pp","soft":false,"conditions":[]},{"source":"rawr/arch/x64/cpuid.hpp","target":"rawr/lib/dist/header.pp","soft":false,"conditions":[]},{"source":"rawr/arch/x64/cpuid.hpp","target":"rawr/lib/dist/module.pp","soft":false,"conditions":[]},{"source":"rawr/arch/x64/cpuid.hpp","target":"rawr/lib/dist/todo.pp","soft":false,"conditions":[]},{"source":"rawr/arch/x64/cpuid.hpp","target":"rawr/lib/integer/base.hpp","soft":false,"conditions":[]},{"source":"rawr/arch/x64/cpuid.hpp","target":"rawr/lib/integer/raw.hpp","soft":false,"conditions":[]},{"source":"rawr/arch/x64/simd.hpp","target":"rawr/lib/attributes.pp","soft":false,"conditions":[]},{"source":"rawr/arch/x64/simd.hpp","target":"rawr/lib/compiler.pp","soft":false,"conditions":[]},{"source":"rawr/arch/x64/simd.hpp","target":"rawr/lib/detection.hpp","soft":false,"conditions":[]},{"source":"rawr/arch/x64/simd.hpp","target":"rawr/lib/detection.pp","soft":false,"conditions":[]},{"source":"rawr/arch/x64/simd.hpp","target":"rawr/lib/dist/header.pp","soft":false,"conditions":[]},{"source":"rawr/arch/x64/simd.hpp","target":"rawr/lib/dist/module.pp","soft":false,"conditions":[]},{"source":"rawr/arch/x64/simd.hpp","target":"rawr/lib/dummy_return.hpp","soft":false,"conditions":[]},{"source":"rawr/arch/x64/simd.hpp","target":"rawr/lib/integer/raw.hpp","soft":false,"conditions":[]},{"source":"rawr/arch/x64/simd.hpp","target":"rawr/lib/intrin.hpp","soft":false,"conditions":[]},{"source":"rawr/arch/x64/simd.hpp","target":"rawr/lib/simd/storage.hpp","soft":false,"conditions":[]},{"source":"rawr/bin.hpp","target":"rawr/bin/elf.hpp","soft":false,"conditions":[]},{"source":"rawr/bin/elf.hpp","target":"rawr/lib/attributes.pp","soft":false,"conditions":[]},{"source":"rawr/bin/elf.hpp","target":"rawr/lib/dist/header.pp","soft":false,"conditions":[]},{"source":"rawr/bin/elf.hpp","target":"rawr/lib/dist/module.pp","soft":false,"conditions":[]},{"source":"rawr/cxx_abi.hpp","target":"rawr/cxx_abi/itanium.hpp","soft":false,"conditions":[]},{"source":"rawr/cxx_abi/itanium.hpp","target":"rawr/lib/attributes.pp","soft":false,"conditions":[]},{"source":"rawr/cxx_abi/itanium.hpp","target":"rawr/lib/dist/header.pp","soft":false,"conditions":[]},{"source":"rawr/cxx_abi/itanium.hpp","target":"rawr/lib/dist/module.pp","soft":false,"conditions":[]},{"source":"rawr/lib.hpp","target":"rawr/lib/attributes.pp","soft":false,"conditions":[]},{"source":"rawr/lib.hpp","target":"rawr/lib/bitfield.hpp","soft":false,"conditions":[]},{"source":"rawr/lib.hpp","target":"rawr/lib/bitfield.pp","soft":false,"conditions":[]},{"source":"rawr/lib.hpp","target":"rawr/lib/bits.hpp","soft":false,"conditions":[]},{"source":"rawr/lib.hpp","target":"rawr/lib/compiler.pp","soft":false,"conditions":[]},{"source":"rawr/lib.hpp","target":"rawr/lib/detection.hpp","soft":false,"conditions":[]},{"source":"rawr/lib.hpp","target":"rawr/lib/detection.pp","soft":false,"conditions":[]},{"source":"rawr/lib.hpp","target":"rawr/lib/diag.hpp","soft":false,"conditions":[]},{"source":"rawr/lib.hpp","target":"rawr/lib/dummy_return.hpp","soft":false,"conditions":[]},{"source":"rawr/lib.hpp","target":"rawr/lib/fmt.hpp","soft":false,"conditions":[]},{"source":"rawr/lib.hpp","target":"rawr/lib/hash.hpp","soft":false,"conditions":[]},{"source":"rawr/lib.hpp","target":"rawr/lib/integer.hpp","soft":false,"conditions":[]},{"source":"rawr/lib.hpp","target":"rawr/lib/intrin.hpp","soft":false,"conditions":[]},{"source":"rawr/lib.hpp","target":"rawr/lib/linker_section.hpp","soft":false,"conditions":[]},{"source":"rawr/lib.hpp","target":"rawr/lib/linker_section.pp","soft":false,"conditions":[]},{"source":"rawr/lib.hpp","target":"rawr/lib/main.pp","soft":false,"conditions":[]},{"source":"rawr/lib.hpp","target":"rawr/lib/pp.pp","soft":false,"conditions":[]},{"source":"rawr/lib.hpp","target":"rawr/lib/rich_enum.hpp","soft":false,"conditions":[]},{"source":"rawr/lib.hpp","target":"rawr/lib/rich_enum.pp","soft":false,"conditions":[]},{"source":"rawr/lib.hpp","target":"rawr/lib/sass.hpp","soft":false,"conditions":[]},{"source":"rawr/lib.hpp","target":"rawr/lib/sync.hpp","soft":false,"conditions":[]},{"source":"rawr/lib.hpp","target":"rawr/lib/test.hpp","soft":false,"conditions":[]},{"source":"rawr/lib.hpp","target":"rawr/lib/test.pp","soft":false,"conditions":[]},{"source":"rawr/lib.hpp","target":"rawr/lib/type_name.hpp","soft":false,"conditions":[]},{"source":"rawr/lib.hpp","target":"rawr/lib/typing.hpp","soft":false,"conditions":[]},{"source":"rawr/lib/attributes.pp","target":"rawr/lib/detection.pp","soft":false,"conditions":[]},{"source":"rawr/lib/bitfield.hpp","target":"rawr/lib/bits.hpp","soft":false,"conditions":[]},{"source":"rawr/lib/bitfield.hpp","target":"rawr/lib/dist/header.pp","soft":false,"conditions":[]},{"source":"rawr/lib/bitfield.hpp","target":"rawr/lib/dist/module.pp","soft":false,"conditions":[]},{"source":"rawr/lib/bitfield.hpp","target":"rawr/lib/integer/base.hpp","soft":false,"conditions":[]},{"source":"rawr/lib/bitfield.hpp","target":"rawr/lib/intrin/base.hpp","soft":false,"conditions":[]},{"source":"rawr/lib/bitfield.pp","target":"rawr/lib/bitfield.hpp","soft":true,"conditions":["RAWR_PP_TRANSITIVE_AS_HEADER"]},{"source":"rawr/lib/bitfield.pp","target":"rawr/lib/bits.hpp","soft":true,"conditions":["RAWR_PP_TRANSITIVE_AS_HEADER"]},{"source":"rawr/lib/bitfield.pp","target":"rawr/lib/dist/pp.pp","soft":false,"conditions":[]},{"source":"rawr/lib/bitfield.pp","target":"rawr/lib/integer/base.hpp","soft":true,"conditions":["RAWR_PP_TRANSITIVE_AS_HEADER"]},{"source":"rawr/lib/bitfield.pp","target":"rawr/lib/pp.pp","soft":false,"conditions":[]},{"source":"rawr/lib/bits.hpp","target":"rawr/lib/detection.pp","soft":false,"conditions":[]},{"source":"rawr/lib/bits.hpp","target":"rawr/lib/dist/header.pp","soft":false,"conditions":[]},{"source":"rawr/lib/bits.hpp","target":"rawr/lib/dist/module.pp","soft":false,"conditions":[]},{"source":"rawr/lib/compiler.pp","target":"rawr/lib/attributes.pp","soft":false,"conditions":[]},{"source":"rawr/lib/compiler.pp","target":"rawr/lib/detection.pp","soft":false,"conditions":[]},{"source":"rawr/lib/compiler.pp","target":"rawr/lib/pp.pp","soft":false,"conditions":[]},{"source":"rawr/lib/detection.hpp","target":"rawr/lib/detection.pp","soft":false,"conditions":[]},{"source":"rawr/lib/detection.hpp","target":"rawr/lib/dist/header.pp","soft":false,"conditions":[]},{"source":"rawr/lib/detection.hpp","target":"rawr/lib/dist/module.pp","soft":false,"conditions":[]},{"source":"rawr/lib/detection.hpp","target":"rawr/lib/integer/raw.hpp","soft":false,"conditions":[]},{"source":"rawr/lib/detection.hpp","target":"rawr/lib/rich_enum.pp","soft":false,"conditions":[]},{"source":"rawr/lib/detection.pp","target":"rawr/lib/dist/todo.pp","soft":false,"conditions":[]},{"source":"rawr/lib/diag.hpp","target":"rawr/lib/diag/dwarf.hpp","soft":false,"conditions":[]},{"source":"rawr/lib/diag/dwarf.hpp","target":"rawr/lib/attributes.pp","soft":false,"conditions":[]},{"source":"rawr/lib/diag/dwarf.hpp","target":"rawr/lib/detection.hpp","soft":false,"conditions":[]},{"source":"rawr/lib/diag/dwarf.hpp","target":"rawr/lib/detection.pp","soft":false,"conditions":[]},{"source":"rawr/lib/diag/dwarf.hpp","target":"rawr/lib/dist/header.pp","soft":false,"conditions":[]},{"source":"rawr/lib/diag/dwarf.hpp","target":"rawr/lib/dist/module.pp","soft":false,"conditions":[]},{"source":"rawr/lib/diag/dwarf.hpp","target":"rawr/lib/dist/todo.pp","soft":false,"conditions":[]},{"source":"rawr/lib/diag/dwarf.hpp","target":"rawr/lib/sass.hpp","soft":false,"conditions":[]},{"source":"rawr/lib/dummy_return.hpp","target":"rawr/lib/dist/header.pp","soft":false,"conditions":[]},{"source":"rawr/lib/dummy_return.hpp","target":"rawr/lib/dist/module.pp","soft":false,"conditions":[]},{"source":"rawr/lib/fmt.hpp","target":"rawr/lib/bits.hpp","soft":false,"conditions":[]},{"source":"rawr/lib/fmt.hpp","target":"rawr/lib/dist/header.pp","soft":false,"conditions":[]},{"source":"rawr/lib/fmt.hpp","target":"rawr/lib/dist/module.pp","soft":false,"conditions":[]},{"source":"rawr/lib/fmt.hpp","target":"rawr/lib/integer/base.hpp","soft":false,"conditions":[]},{"source":"rawr/lib/fmt.hpp","target":"rawr/lib/intrin.hpp","soft":false,"conditions":[]},{"source":"rawr/lib/fmt.hpp","target":"rawr/lib/type_name.hpp","soft":false,"conditions":[]},{"source":"rawr/lib/hash.hpp","target":"rawr/lib/hash/fnv1a.hpp","soft":false,"conditions":[]},{"source":"rawr/lib/hash/fnv1a.hpp","target":"rawr/lib/dist/header.pp","soft":false,"conditions":[]},{"source":"rawr/lib/hash/fnv1a.hpp","target":"rawr/lib/dist/module.pp","soft":false,"conditions":[]},{"source":"rawr/lib/hash/fnv1a.hpp","target":"rawr/lib/integer/raw.hpp","soft":false,"conditions":[]},{"source":"rawr/lib/integer.hpp","target":"rawr/lib/integer/base.hpp","soft":false,"conditions":[]},{"source":"rawr/lib/integer.hpp","target":"rawr/lib/integer/raw.hpp","soft":false,"conditions":[]},{"source":"rawr/lib/integer.hpp","target":"rawr/lib/integer/strong.hpp","soft":false,"conditions":[]},{"source":"rawr/lib/integer/base.hpp","target":"rawr/lib/bits.hpp","soft":false,"conditions":[]},{"source":"rawr/lib/integer/base.hpp","target":"rawr/lib/detection.pp","soft":false,"conditions":[]},{"source":"rawr/lib/integer/base.hpp","target":"rawr/lib/dist/header.pp","soft":false,"conditions":[]},{"source":"rawr/lib/integer/base.hpp","target":"rawr/lib/dist/module.pp","soft":false,"conditions":[]},{"source":"rawr/lib/integer/raw.hpp","target":"rawr/lib/bits.hpp","soft":false,"conditions":[]},{"source":"rawr/lib/integer/raw.hpp","target":"rawr/lib/detection.pp","soft":false,"conditions":[]},{"source":"rawr/lib/integer/raw.hpp","target":"rawr/lib/dist/header.pp","soft":false,"conditions":[]},{"source":"rawr/lib/integer/raw.hpp","target":"rawr/lib/dist/module.pp","soft":false,"conditions":[]},{"source":"rawr/lib/integer/raw.hpp","target":"rawr/lib/integer/base.hpp","soft":false,"conditions":[]},{"source":"rawr/lib/integer/strong.hpp","target":"rawr/lib/bits.hpp","soft":false,"conditions":[]},{"source":"rawr/lib/integer/strong.hpp","target":"rawr/lib/dist/header.pp","soft":false,"conditions":[]},{"source":"rawr/lib/integer/strong.hpp","target":"rawr/lib/dist/module.pp","soft":false,"conditions":[]},{"source":"rawr/lib/integer/strong.hpp","target":"rawr/lib/dist/todo.pp","soft":false,"conditions":[]},{"source":"rawr/lib/integer/strong.hpp","target":"rawr/lib/integer/base.hpp","soft":false,"conditions":[]},{"source":"rawr/lib/integer/strong.hpp","target":"rawr/lib/integer/raw.hpp","soft":false,"conditions":[]},{"source":"rawr/lib/integer/strong.hpp","target":"rawr/lib/intrin.hpp","soft":false,"conditions":[]},{"source":"rawr/lib/intrin.hpp","target":"rawr/lib/intrin/base.hpp","soft":false,"conditions":[]},{"source":"rawr/lib/intrin.hpp","target":"rawr/lib/intrin/math.hpp","soft":false,"conditions":[]},{"source":"rawr/lib/intrin.hpp","target":"rawr/lib/intrin/mem.hpp","soft":false,"conditions":[]},{"source":"rawr/lib/intrin/base.hpp","target":"rawr/lib/attributes.pp","soft":false,"conditions":[]},{"source":"rawr/lib/intrin/base.hpp","target":"rawr/lib/bits.hpp","soft":false,"conditions":[]},{"source":"rawr/lib/intrin/base.hpp","target":"rawr/lib/compiler.pp","soft":false,"conditions":[]},{"source":"rawr/lib/intrin/base.hpp","target":"rawr/lib/detection.pp","soft":false,"conditions":[]},{"source":"rawr/lib/intrin/base.hpp","target":"rawr/lib/dist/header.pp","soft":false,"conditions":[]},{"source":"rawr/lib/intrin/base.hpp","target":"rawr/lib/dist/module.pp","soft":false,"conditions":[]},{"source":"rawr/lib/intrin/math.hpp","target":"rawr/lib/attributes.pp","soft":false,"conditions":[]},{"source":"rawr/lib/intrin/math.hpp","target":"rawr/lib/bits.hpp","soft":false,"conditions":[]},{"source":"rawr/lib/intrin/math.hpp","target":"rawr/lib/compiler.pp","soft":false,"conditions":[]},{"source":"rawr/lib/intrin/math.hpp","target":"rawr/lib/detection.hpp","soft":false,"conditions":[]},{"source":"rawr/lib/intrin/math.hpp","target":"rawr/lib/dist/header.pp","soft":false,"conditions":[]},{"source":"rawr/lib/intrin/math.hpp","target":"rawr/lib/dist/module.pp","soft":false,"conditions":[]},{"source":"rawr/lib/intrin/math.hpp","target":"rawr/lib/dist/todo.pp","soft":false,"conditions":[]},{"source":"rawr/lib/intrin/math.hpp","target":"rawr/lib/integer/base.hpp","soft":false,"conditions":[]},{"source":"rawr/lib/intrin/math.hpp","target":"rawr/lib/integer/raw.hpp","soft":false,"conditions":[]},{"source":"rawr/lib/intrin/math.hpp","target":"rawr/lib/intrin/base.hpp","soft":false,"conditions":[]},{"source":"rawr/lib/intrin/mem.hpp","target":"rawr/lib/attributes.pp","soft":false,"conditions":[]},{"source":"rawr/lib/intrin/mem.hpp","target":"rawr/lib/bits.hpp","soft":false,"conditions":[]},{"source":"rawr/lib/intrin/mem.hpp","target":"rawr/lib/compiler.pp","soft":false,"conditions":[]},{"source":"rawr/lib/intrin/mem.hpp","target":"rawr/lib/detection.hpp","soft":false,"conditions":[]},{"source":"rawr/lib/intrin/mem.hpp","target":"rawr/lib/dist/header.pp","soft":false,"conditions":[]},{"source":"rawr/lib/intrin/mem.hpp","target":"rawr/lib/dist/module.pp","soft":false,"conditions":[]},{"source":"rawr/lib/intrin/mem.hpp","target":"rawr/lib/dist/todo.pp","soft":false,"conditions":[]},{"source":"rawr/lib/intrin/mem.hpp","target":"rawr/lib/integer/base.hpp","soft":false,"conditions":[]},{"source":"rawr/lib/intrin/mem.hpp","target":"rawr/lib/integer/raw.hpp","soft":false,"conditions":[]},{"source":"rawr/lib/intrin/mem.hpp","target":"rawr/lib/intrin/base.hpp","soft":false,"conditions":[]},{"source":"rawr/lib/linker_section.hpp","target":"rawr/lib/dist/header.pp","soft":false,"conditions":[]},{"source":"rawr/lib/linker_section.hpp","target":"rawr/lib/dist/module.pp","soft":false,"conditions":[]},{"source":"rawr/lib/linker_section.pp","target":"rawr/lib/detection.pp","soft":false,"conditions":[]},{"source":"rawr/lib/linker_section.pp","target":"rawr/lib/dist/pp.pp","soft":false,"conditions":[]},{"source":"rawr/lib/linker_section.pp","target":"rawr/lib/linker_section.hpp","soft":true,"conditions":["RAWR_COMPILER_MSVC &amp;&amp; RAWR_PP_TRANSITIVE_AS_HEADER"]},{"source":"rawr/lib/main.pp","target":"rawr/abi/sysv/main.pp","soft":true,"conditions":["RAWR_ABI_SYSV"]},{"source":"rawr/lib/main.pp","target":"rawr/abi/win64/main.pp","soft":true,"conditions":["RAWR_ABI_WIN64"]},{"source":"rawr/lib/main.pp","target":"rawr/lib/detection.pp","soft":false,"conditions":[]},{"source":"rawr/lib/rich_enum.hpp","target":"rawr/lib/dist/header.pp","soft":false,"conditions":[]},{"source":"rawr/lib/rich_enum.hpp","target":"rawr/lib/dist/module.pp","soft":false,"conditions":[]},{"source":"rawr/lib/rich_enum.pp","target":"rawr/lib/pp.pp","soft":false,"conditions":[]},{"source":"rawr/lib/sass.hpp","target":"rawr/lib/dist/header.pp","soft":false,"conditions":[]},{"source":"rawr/lib/sass.hpp","target":"rawr/lib/dist/module.pp","soft":false,"conditions":[]},{"source":"rawr/lib/simd/storage.hpp","target":"rawr/lib/dist/header.pp","soft":false,"conditions":[]},{"source":"rawr/lib/simd/storage.hpp","target":"rawr/lib/dist/module.pp","soft":false,"conditions":[]},{"source":"rawr/lib/simd/storage.hpp","target":"rawr/lib/integer/raw.hpp","soft":false,"conditions":[]},{"source":"rawr/lib/simd/storage.hpp","target":"rawr/lib/simd/storage.pp","soft":false,"conditions":[]},{"source":"rawr/lib/simd/storage.pp","target":"rawr/lib/detection.pp","soft":false,"conditions":[]},{"source":"rawr/lib/source_location.hpp","target":"rawr/lib/detection.pp","soft":false,"conditions":[]},{"source":"rawr/lib/source_location.hpp","target":"rawr/lib/dist/header.pp","soft":false,"conditions":[]},{"source":"rawr/lib/source_location.hpp","target":"rawr/lib/dist/module.pp","soft":false,"conditions":[]},{"source":"rawr/lib/sync.hpp","target":"rawr/lib/sync/base.hpp","soft":false,"conditions":[]},{"source":"rawr/lib/sync/base.hpp","target":"rawr/lib/dist/header.pp","soft":false,"conditions":[]},{"source":"rawr/lib/sync/base.hpp","target":"rawr/lib/dist/module.pp","soft":false,"conditions":[]},{"source":"rawr/lib/sync/base.hpp","target":"rawr/lib/integer/raw.hpp","soft":false,"conditions":[]},{"source":"rawr/lib/test.hpp","target":"rawr/lib/compiler.pp","soft":false,"conditions":[]},{"source":"rawr/lib/test.hpp","target":"rawr/lib/detection.pp","soft":false,"conditions":[]},{"source":"rawr/lib/test.hpp","target":"rawr/lib/dist/header.pp","soft":false,"conditions":[]},{"source":"rawr/lib/test.hpp","target":"rawr/lib/dist/module.pp","soft":false,"conditions":[]},{"source":"rawr/lib/test.hpp","target":"rawr/lib/integer/raw.hpp","soft":false,"conditions":[]},{"source":"rawr/lib/test.hpp","target":"rawr/lib/intrin.hpp","soft":false,"conditions":[]},{"source":"rawr/lib/test.hpp","target":"rawr/lib/linker_section.pp","soft":false,"conditions":[]},{"source":"rawr/lib/test.hpp","target":"rawr/lib/source_location.hpp","soft":false,"conditions":[]},{"source":"rawr/lib/test.pp","target":"rawr/lib/dist/pp.pp","soft":false,"conditions":[]},{"source":"rawr/lib/test.pp","target":"rawr/lib/linker_section.pp","soft":false,"conditions":[]},{"source":"rawr/lib/test.pp","target":"rawr/lib/test.hpp","soft":true,"conditions":["RAWR_PP_TRANSITIVE_AS_HEADER"]},{"source":"rawr/lib/type_name.hpp","target":"rawr/lib/detection.pp","soft":false,"conditions":[]},{"source":"rawr/lib/type_name.hpp","target":"rawr/lib/dist/header.pp","soft":false,"conditions":[]},{"source":"rawr/lib/type_name.hpp","target":"rawr/lib/dist/module.pp","soft":false,"conditions":[]},{"source":"rawr/lib/typing.hpp","target":"rawr/lib/compiler.pp","soft":false,"conditions":[]},{"source":"rawr/lib/typing.hpp","target":"rawr/lib/dist/header.pp","soft":false,"conditions":[]},{"source":"rawr/lib/typing.hpp","target":"rawr/lib/dist/module.pp","soft":false,"conditions":[]},{"source":"rawr/lib/typing.hpp","target":"rawr/lib/intrin/base.hpp","soft":false,"conditions":[]},{"source":"rawr/platform.hpp","target":"rawr/platform/linux.hpp","soft":false,"conditions":[]},{"source":"rawr/platform/linux.hpp","target":"rawr/lib/attributes.pp","soft":false,"conditions":[]},{"source":"rawr/platform/linux.hpp","target":"rawr/lib/detection.hpp","soft":false,"conditions":[]},{"source":"rawr/platform/linux.hpp","target":"rawr/lib/detection.pp","soft":false,"conditions":[]},{"source":"rawr/platform/linux.hpp","target":"rawr/lib/dist/header.pp","soft":false,"conditions":[]},{"source":"rawr/platform/linux.hpp","target":"rawr/lib/dist/module.pp","soft":false,"conditions":[]},{"source":"rawr/platform/linux.hpp","target":"rawr/lib/integer/base.hpp","soft":false,"conditions":[]},{"source":"rawr/platform/linux.hpp","target":"rawr/lib/integer/raw.hpp","soft":false,"conditions":[]},{"source":"rawr/platform/linux.hpp","target":"rawr/lib/pp.pp","soft":false,"conditions":[]},{"source":"rawr/platform/linux.hpp","target":"rawr/lib/rich_enum.pp","soft":false,"conditions":[]},{"source":"rawr/san.hpp","target":"rawr/san/asan.hpp","soft":false,"conditions":[]},{"source":"rawr/san.hpp","target":"rawr/san/attributes.pp","soft":false,"conditions":[]},{"source":"rawr/san.hpp","target":"rawr/san/lsan.hpp","soft":false,"conditions":[]},{"source":"rawr/san.hpp","target":"rawr/san/msan.hpp","soft":false,"conditions":[]},{"source":"rawr/san.hpp","target":"rawr/san/tsan.hpp","soft":false,"conditions":[]},{"source":"rawr/san/asan.hpp","target":"rawr/lib/detection.pp","soft":false,"conditions":[]},{"source":"rawr/san/asan.hpp","target":"rawr/lib/dist/header.pp","soft":false,"conditions":[]},{"source":"rawr/san/asan.hpp","target":"rawr/lib/dist/module.pp","soft":false,"conditions":[]},{"source":"rawr/san/asan.hpp","target":"rawr/lib/integer/raw.hpp","soft":false,"conditions":[]},{"source":"rawr/san/asan.hpp","target":"rawr/lib/intrin/base.hpp","soft":false,"conditions":[]},{"source":"rawr/san/attributes.pp","target":"rawr/lib/attributes.pp","soft":false,"conditions":[]},{"source":"rawr/san/lsan.hpp","target":"rawr/lib/detection.pp","soft":false,"conditions":[]},{"source":"rawr/san/lsan.hpp","target":"rawr/lib/dist/header.pp","soft":false,"conditions":[]},{"source":"rawr/san/lsan.hpp","target":"rawr/lib/dist/module.pp","soft":false,"conditions":[]},{"source":"rawr/san/msan.hpp","target":"rawr/lib/detection.pp","soft":false,"conditions":[]},{"source":"rawr/san/msan.hpp","target":"rawr/lib/dist/header.pp","soft":false,"conditions":[]},{"source":"rawr/san/msan.hpp","target":"rawr/lib/dist/module.pp","soft":false,"conditions":[]},{"source":"rawr/san/msan.hpp","target":"rawr/lib/integer/raw.hpp","soft":false,"conditions":[]},{"source":"rawr/san/tsan.hpp","target":"rawr/lib/detection.pp","soft":false,"conditions":[]},{"source":"rawr/san/tsan.hpp","target":"rawr/lib/dist/header.pp","soft":false,"conditions":[]},{"source":"rawr/san/tsan.hpp","target":"rawr/lib/dist/module.pp","soft":false,"conditions":[]}]};
+
+// ── layout constants ─────────────────────────────────────────────────────────
+// NW/NH: node box size. NGX/NGY: gap between nodes within a folder.
+// FPX/FPY: folder padding (inner). FLH: folder label height.
+// FGY: gap between folders vertically within a column.
+// CGX: gap between columns. PAD: outer canvas padding.
+const NW=160, NH=34, NGX=8, NGY=6;
+const FPX=12,  FPY=10, FLH=22, FGY=14, CGX=60, PAD=28;
+
+// ── indices ──────────────────────────────────────────────────────────────────
+const nodeById=new Map(DATA.nodes.map(n=>[n.id,n]));
+const outEdges=new Map(), inEdges=new Map();
+for(const n of DATA.nodes){ outEdges.set(n.id,[]); inEdges.set(n.id,[]); }
+for(const e of DATA.edges){
+  outEdges.get(e.source)?.push(e);
+  inEdges.get(e.target)?.push(e);
+}
+
+// ── group nodes by directory; sort alphabetically within each folder ──────────
+const byDir=new Map();
+for(const n of DATA.nodes){
+  const d=n.directory||'';
+  if(!byDir.has(d)) byDir.set(d,[]);
+  byDir.get(d).push(n);
+}
+for(const arr of byDir.values()) arr.sort((a,b)=>a.id<b.id?-1:1);
+
+// ── assign directories to columns by depth (path segment count) ───────────────
+// All sibling directories appear in the same column, sorted alphabetically.
+function dirDepth(d){ return d ? d.split('/').length : 0; }
+const byDepth=new Map();
+for(const d of byDir.keys()){
+  const dep=dirDepth(d);
+  if(!byDepth.has(dep)) byDepth.set(dep,[]);
+  byDepth.get(dep).push(d);
+}
+for(const arr of byDepth.values()) arr.sort();
+const depths=[...byDepth.keys()].sort((a,b)=>a-b);
+
+// ── near-square grid layout for a folder containing n nodes ──────────────────
+// ceil(sqrt(n)) columns, enough rows to fit all nodes.
+function folderGrid(n){
+  if(n<=0) return{cols:0,rows:0};
+  const c=Math.max(1,Math.ceil(Math.sqrt(n)));
+  return{cols:c, rows:Math.ceil(n/c)};
+}
+function folderSize(n){
+  const{cols,rows}=folderGrid(n);
+  const iw=cols*NW + Math.max(0,cols-1)*NGX;
+  const ih=rows*NH + Math.max(0,rows-1)*NGY;
+  return{cols, rows, fw:iw+2*FPX, fh:ih+2*FPY+FLH};
+}
+
+// ── column widths: all folders in a column share the widest folder's width ────
+const colW=new Map();
+for(const[dep,dirs]of byDepth){
+  let mx=0;
+  for(const d of dirs){
+    const{fw}=folderSize((byDir.get(d)||[]).length);
+    mx=Math.max(mx,fw);
+  }
+  colW.set(dep,mx);
+}
+
+// ── column x positions (left edge of each column) ────────────────────────────
+const colX=new Map();
+let xCur=PAD;
+for(const dep of depths){ colX.set(dep,xCur); xCur+=colW.get(dep)+CGX; }
+const totalW=xCur-CGX+PAD;
+
+// ── folder positions: stacked vertically within each column ───────────────────
+const folderP=new Map(); // dir → {x,y,fw,fh,cols,rows,nodes}
+for(const[dep,dirs]of byDepth){
+  const cx=colX.get(dep), cw=colW.get(dep);
+  let yCur=PAD;
+  for(const dir of dirs){
+    const nodes=byDir.get(dir)||[];
+    const sz=folderSize(nodes.length);
+    // center narrower folders horizontally within the column
+    folderP.set(dir,{x:cx+(cw-sz.fw)/2, y:yCur, ...sz, nodes});
+    yCur+=sz.fh+FGY;
+  }
+}
+
+// ── absolute node positions within the graph canvas ──────────────────────────
+const nodeP=new Map(); // id → {x,y}  (top-left corner of the node box)
+for(const[,fp]of folderP){
+  fp.nodes.forEach((n,i)=>{
+    const col=i%fp.cols, row=Math.floor(i/fp.cols);
+    nodeP.set(n.id,{
+      x: fp.x + FPX + col*(NW+NGX),
+      y: fp.y + FLH + FPY + row*(NH+NGY),
+    });
+  });
+}
+
+const totalH=Math.max(PAD*2, ...[...folderP.values()].map(fp=>fp.y+fp.fh+PAD));
+
+// ── DOM: graph wrapper ────────────────────────────────────────────────────────
+const gwrap=document.getElementById('gwrap');
+gwrap.style.width =totalW+'px';
+gwrap.style.height=totalH+'px';
+
+// SVG edge layer appended first so folder divs render on top of it.
+const NS='http://www.w3.org/2000/svg';
+const edgeSvg=document.createElementNS(NS,'svg');
+edgeSvg.style.cssText='position:absolute;top:0;left:0;overflow:visible;pointer-events:none';
+edgeSvg.setAttribute('width', totalW);
+edgeSvg.setAttribute('height',totalH);
+gwrap.appendChild(edgeSvg);
+
+// Arrow-head markers — one per edge direction so the arrowhead color matches.
+const defs=document.createElementNS(NS,'defs');
+for(const[id,fill]of[['arr-fwd','#5077a8'],['arr-back','#a86040'],['arr-side','#888']]){
+  const m=document.createElementNS(NS,'marker');
+  m.setAttribute('id',id); m.setAttribute('markerWidth','7'); m.setAttribute('markerHeight','7');
+  m.setAttribute('refX','6'); m.setAttribute('refY','3.5'); m.setAttribute('orient','auto');
+  const poly=document.createElementNS(NS,'polygon');
+  poly.setAttribute('points','0,0.5 6.5,3.5 0,6.5'); poly.setAttribute('fill',fill);
+  m.appendChild(poly); defs.appendChild(m);
+}
+edgeSvg.appendChild(defs);
+
+// ── DOM: folder boxes and node divs ──────────────────────────────────────────
+const nodeEls=new Map(); // id → HTMLElement
+for(const[dir,fp]of folderP){
+  const fdiv=document.createElement('div');
+  fdiv.className='folder';
+  fdiv.style.cssText=`left:${fp.x}px;top:${fp.y}px;width:${fp.fw}px;height:${fp.fh}px`;
+
+  const lbl=document.createElement('div');
+  lbl.className='folder-label';
+  lbl.textContent=dir||'(root)';
+  lbl.title=dir||'(root)';
+  fdiv.appendChild(lbl);
+
+  for(const n of fp.nodes){
+    const pos=nodeP.get(n.id);
+    const el=document.createElement('div');
+    el.className=`node kind-${n.aggregator?'agg':n.kind}`;
+    el.dataset.id=n.id;
+    el.textContent=n.id.split('/').pop();  // filename only; full path in tooltip
+    el.title=n.id;
+    el.style.cssText=`left:${pos.x-fp.x}px;top:${pos.y-fp.y}px;width:${NW}px;height:${NH}px`;
+    el.addEventListener('click', e=>{ e.stopPropagation(); onNodeClick(n.id); });
+    el.addEventListener('mouseenter', ()=>onHover(n.id));
+    el.addEventListener('mouseleave', ()=>onHover(null));
+    fdiv.appendChild(el);
+    nodeEls.set(n.id,el);
+  }
+  gwrap.appendChild(fdiv);
+}
+
+// ── edge path geometry ────────────────────────────────────────────────────────
+// forward : right of source → left of target   (S-curve, blue)
+// backward: left of source  → right of target  (arc above,  rust)
+// side    : same column     → loop right side  (grey)
+function edgePath(sid,tid){
+  const s=nodeP.get(sid), t=nodeP.get(tid);
+  if(!s||!t) return null;
+  const gap=(t.x+NW/2)-(s.x+NW/2);
+  if(gap > NW*0.4){
+    const x1=s.x+NW, y1=s.y+NH/2, x2=t.x, y2=t.y+NH/2;
+    const cx=Math.max(28, gap*0.4);
+    return{d:`M${x1},${y1} C${x1+cx},${y1} ${x2-cx},${y2} ${x2},${y2}`, dir:'fwd'};
+  } else if(gap < -NW*0.4){
+    const x1=s.x,    y1=s.y+NH/2, x2=t.x+NW, y2=t.y+NH/2;
+    const ty=Math.min(s.y,t.y)-38;
+    return{d:`M${x1},${y1} C${x1},${ty} ${x2},${ty} ${x2},${y2}`, dir:'back'};
+  } else {
+    const x1=s.x+NW, y1=s.y+NH/2, x2=t.x+NW, y2=t.y+NH/2;
+    const ox=28+Math.abs(y2-y1)*0.12;
+    return{d:`M${x1},${y1} C${x1+ox},${y1} ${x2+ox},${y2} ${x2},${y2}`, dir:'side'};
+  }
+}
+
+// ── DOM: edge paths ───────────────────────────────────────────────────────────
+const edgeEls=[];
+for(const e of DATA.edges){
+  const ep=edgePath(e.source,e.target);
+  if(!ep) continue;
+  const path=document.createElementNS(NS,'path');
+  path.setAttribute('d', ep.d);
+  path.setAttribute('marker-end', `url(#arr-${ep.dir})`);
+  path.setAttribute('class', `edge-path ${ep.dir}${e.soft?' soft':''}`);
+  path.dataset.source=e.source;
+  path.dataset.target=e.target;
+  edgeSvg.appendChild(path);
+  edgeEls.push(path);
+}
+
+// ── interaction state ─────────────────────────────────────────────────────────
+// clickSt: null  |  { id: string, mode: 'deps' | 'dependants' }
+// hoverSt: null  |  id string   (only active when clickSt is null)
+let clickSt=null, hoverSt=null;
+
+// Click state machine:
+//   unselected → click → deps mode
+//   deps mode  → click → dependants mode
+//   dependants → click → deselected
+function onNodeClick(id){
+  if(!clickSt || clickSt.id!==id) clickSt={id, mode:'deps'};
+  else if(clickSt.mode==='deps')  clickSt={id, mode:'dependants'};
+  else                            clickSt=null;
+  hoverSt=null;
+  applyHL();
+  renderDetails(clickSt?.id??null, clickSt?.mode??null);
+  rebuildFileList();
+}
+
+function onHover(id){
+  if(clickSt) return;  // click takes priority over hover
+  hoverSt=id;
+  applyHL();
+  renderDetails(id, id?'deps':null);
+}
+
+function clearSel(){
+  clickSt=null; hoverSt=null;
+  applyHL();
+  renderDetails(null,null);
+  rebuildFileList();
+}
+
+// ── highlight / dim ───────────────────────────────────────────────────────────
+function applyHL(){
+  for(const el of nodeEls.values()) el.classList.remove('dim','selected','rel-node');
+  for(const el of edgeEls)         el.classList.remove('dim','hl');
+
+  const st=clickSt ?? (hoverSt ? {id:hoverSt, mode:'deps'} : null);
+  if(!st) return;
+
+  const{id,mode}=st;
+  const keep=new Set([id]);
+  const hlEK=new Set();
+
+  for(const e of DATA.edges){
+    if(mode==='deps'       && e.source===id){ keep.add(e.target); hlEK.add(e.source+' '+e.target); }
+    if(mode==='dependants' && e.target===id){ keep.add(e.source); hlEK.add(e.source+' '+e.target); }
+  }
+  for(const[nid,el]of nodeEls){
+    if(!keep.has(nid)) el.classList.add('dim');
+    if(nid===id)       el.classList.add('selected');
+    else if(keep.has(nid)) el.classList.add('rel-node');
+  }
+  for(const el of edgeEls){
+    const k=el.dataset.source+' '+el.dataset.target;
+    if(!hlEK.has(k)) el.classList.add('dim'); else el.classList.add('hl');
+  }
+}
+
+// ── details panel ─────────────────────────────────────────────────────────────
+function xe(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+function renderDetails(id,mode){
+  const dc=document.getElementById('dc');
+  if(!id){ dc.innerHTML='<div class="dempty">Select or hover a file.</div>'; return; }
+  const n=nodeById.get(id); if(!n) return;
+
+  const out=outEdges.get(id)||[];
+  const inp=inEdges.get(id)||[];
+
+  // Click hint only shown when a node is actively selected (not just hovered).
+  const hint=clickSt&&clickSt.id===id
+    ? (clickSt.mode==='deps'
+        ? 'Click again → dependants'
+        : 'Click again → deselect')
+    : '';
+
+  const listOf=(edges,getOther)=>edges.length
+    ? edges.map(e=>`<div class="dli" data-jump="${xe(getOther(e))}">${xe(getOther(e))}</div>`).join('')
+    : '<div class="dli-none">none</div>';
+
+  dc.innerHTML=
+    `<div class="dtitle">${xe(id)}</div>`+
+    (hint?`<div class="dhint">${xe(hint)}</div>`:'')+
+    `<div class="dsec"><div class="dsh">Dependencies (${out.length})</div>${listOf(out,e=>e.target)}</div>`+
+    `<div class="dsec"><div class="dsh">Dependants (${inp.length})</div>${listOf(inp,e=>e.source)}</div>`;
+
+  dc.querySelectorAll('[data-jump]').forEach(el=>
+    el.addEventListener('click',()=>onNodeClick(el.dataset.jump))
+  );
+}
+
+// ── sidebar file list ─────────────────────────────────────────────────────────
+const fileListEl=document.getElementById('file-list');
+function rebuildFileList(){
+  const q=document.getElementById('search').value.trim().toLowerCase();
+  fileListEl.innerHTML='';
+  for(const n of DATA.nodes){
+    if(q&&!n.id.toLowerCase().includes(q)) continue;
+    const el=document.createElement('div');
+    el.className='file-item'+(clickSt?.id===n.id?' sel':'');
+    el.textContent=n.id; el.title=n.id;
+    el.addEventListener('click',()=>onNodeClick(n.id));
+    fileListEl.appendChild(el);
+  }
+}
+rebuildFileList();
+document.getElementById('search').addEventListener('input',rebuildFileList);
+
+// ── pan / zoom ────────────────────────────────────────────────────────────────
+let scale=1, panX=0, panY=0;
+let dragging=null, pointers=new Map(), pinchSt=null, suppressClick=false;
+const canvas=document.getElementById('canvas');
+
+function applyXform(){
+  gwrap.style.transform=`translate(${panX}px,${panY}px) scale(${scale})`;
+  document.getElementById('zr').textContent=Math.round(scale*100)+'%';
+}
+function setScale(next,cx,cy){
+  const old=scale;
+  scale=Math.min(6,Math.max(0.08,next));
+  const k=scale/old;
+  panX=cx-(cx-panX)*k; panY=cy-(cy-panY)*k;
+  applyXform();
+}
+function fitView(){
+  const cw=canvas.clientWidth, ch=canvas.clientHeight, pad=40;
+  scale=Math.min((cw-pad*2)/totalW, (ch-pad*2)/totalH, 1.5);
+  panX=(cw-totalW*scale)/2; panY=(ch-totalH*scale)/2;
+  applyXform();
+}
+
+canvas.addEventListener('click',e=>{
+  if(suppressClick){ suppressClick=false; return; }
+  if(e.target.closest('.node')) return;
+  clearSel();
+});
+canvas.addEventListener('wheel',e=>{
+  e.preventDefault();
+  const r=canvas.getBoundingClientRect();
+  setScale(scale*Math.exp(-e.deltaY*.001), e.clientX-r.left, e.clientY-r.top);
+},{passive:false});
+canvas.addEventListener('pointerdown',e=>{
+  if(e.target.closest('.node')) return;
+  canvas.setPointerCapture(e.pointerId);
+  pointers.set(e.pointerId,e);
+  if(pointers.size===1){
+    dragging={id:e.pointerId, x:e.clientX, y:e.clientY, px:panX, py:panY, moved:false};
+    canvas.classList.add('dragging');
+  } else if(pointers.size===2){
+    dragging=null;
+    const[a,b]=[...pointers.values()];
+    pinchSt={dist:Math.hypot(a.clientX-b.clientX,a.clientY-b.clientY),
+             scale,panX,panY,
+             mx:(a.clientX+b.clientX)/2, my:(a.clientY+b.clientY)/2};
+    suppressClick=true;
+  }
+});
+canvas.addEventListener('pointermove',e=>{
+  if(!pointers.has(e.pointerId)) return;
+  pointers.set(e.pointerId,e);
+  if(pointers.size===2&&pinchSt){
+    const[a,b]=[...pointers.values()];
+    const d=Math.hypot(a.clientX-b.clientX,a.clientY-b.clientY);
+    const mx=(a.clientX+b.clientX)/2, my=(a.clientY+b.clientY)/2;
+    const nxt=Math.min(6,Math.max(0.08,pinchSt.scale*d/pinchSt.dist));
+    const k=nxt/pinchSt.scale;
+    panX=mx-(pinchSt.mx-pinchSt.panX)*k;
+    panY=my-(pinchSt.my-pinchSt.panY)*k;
+    scale=nxt; applyXform();
+  } else if(dragging){
+    const dx=e.clientX-dragging.x, dy=e.clientY-dragging.y;
+    if(Math.hypot(dx,dy)>3){ dragging.moved=true; suppressClick=true; }
+    panX=dragging.px+dx; panY=dragging.py+dy; applyXform();
+  }
+});
+function relPtr(e){
+  pointers.delete(e.pointerId);
+  if(pointers.size<2) pinchSt=null;
+  if(dragging?.id===e.pointerId){
+    if(dragging.moved) suppressClick=true;
+    dragging=null; canvas.classList.remove('dragging');
+  }
+}
+canvas.addEventListener('pointerup',   relPtr);
+canvas.addEventListener('pointercancel',relPtr);
+
+document.getElementById('zIn') .addEventListener('click',()=>setScale(scale*1.25,canvas.clientWidth/2,canvas.clientHeight/2));
+document.getElementById('zOut').addEventListener('click',()=>setScale(scale/1.25,canvas.clientWidth/2,canvas.clientHeight/2));
+document.getElementById('zFit').addEventListener('click',fitView);
+document.getElementById('resetBtn').addEventListener('click',()=>{
+  clearSel();
+  document.getElementById('search').value='';
+  rebuildFileList();
+  fitView();
+});
+document.addEventListener('keydown',e=>{
+  if(e.key==='Escape') clearSel();
+  if(e.key==='/'&&document.activeElement!==document.getElementById('search')){
+    e.preventDefault(); document.getElementById('search').focus();
+  }
+});
+
+requestAnimationFrame(fitView);
+</script>
+</body>
+</html>

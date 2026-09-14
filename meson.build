@@ -199,13 +199,13 @@ rawr_headeronly_dep = declare_dependency(include_directories: dir_include_name)
 rawr_amalgam_dep = declare_dependency(
     sources: custom_target(
         'rawr.amalgam.hpp',
-        input:   dir_include/'rawr.hpp',
+        input:   dir_include/'rawr.hpp', # This needs every file as an input actually.
         output:  'rawr.amalgam.hpp',
         command: [
             python,
             dir_scripts/'amalgam.py',
             '-I', dir_include,
-            '@INPUT@',
+            '@INPUT@', # And hardcode rawr.hpp here.
             '@OUTPUT@',
         ],
         build_by_default: false,

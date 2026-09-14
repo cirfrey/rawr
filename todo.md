@@ -5,8 +5,6 @@
     - [X] detection stuff
     - [~] arch::X::atomic
     - [ ] guard<>
-[ ] README.md
-[ ] LICENSE.md
 [ ] detection.pp: optional error on unknown arch/bin/etc
 [ ] Distribution
     - [ ] Meson project version from rawr/lib/dist/version.(h)pp
@@ -21,6 +19,9 @@
 
 # Longer term
 
+[ ] compile time signaling/error module.
+[ ] rawr::maybe<T, typename NonValue=Nil> (encodes optional<> and expected<>)
+[ ] RAWR_TAGGED_UNION (ergonomic variant)
 [ ] Ergonomic compiletime testing.
 [ ] rawr::test checks with messages.
 [ ] Tokenized logging facilities.
