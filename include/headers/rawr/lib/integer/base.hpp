@@ -13,6 +13,7 @@
 
     #include "rawr/lib/dist/header.pp"
 #endif
+#include "rawr/lib/compiler.pp"
 #include "rawr/lib/detection.pp"
 
 namespace rawr::inline lib::inline integer::inline base::detail
@@ -50,6 +51,16 @@ namespace rawr::inline lib::inline integer::inline base::detail
     template <bitwidth Bits, typename... Types>
     using select_type_by_size = decltype(select_type_by_size_helper<Bits, Types...>());
 
+    // Silence warning: ISO C++ does not support '__int128' for 'type name' [-Wpedantic]
+    #if RAWR_HAS_INT128
+        RAWR_GCC_PRAGMA(GCC diagnostic push)
+        RAWR_GCC_PRAGMA(GCC diagnostic ignored "-Wpedantic")
+        using int128_t = __int128;
+        using int128_t  = __int128;
+        using uint128_t = unsigned __int128;
+        RAWR_GCC_PRAGMA(GCC diagnostic pop)
+    #endif
+
     template <bitwidth Bits>
     struct rsint_exact
     {
@@ -60,7 +71,7 @@ namespace rawr::inline lib::inline integer::inline base::detail
             signed long,
             signed long long
             #if RAWR_HAS_INT128
-                , __int128
+                , int128_t
             #endif
         >;
     };
@@ -74,7 +85,7 @@ namespace rawr::inline lib::inline integer::inline base::detail
             unsigned long,
             unsigned long long
             #if RAWR_HAS_INT128
-                , unsigned __int128
+                , uint128_t
             #endif
         >;
     };
@@ -120,13 +131,13 @@ RAWR_EXPORT namespace rawr::inline lib::inline integer::inline base
         template <typename T, bitwidth Bits = biw0> concept RSint = (
             __is_same(T, signed   char) || __is_same(T, signed   short) || __is_same(T, signed   int) || __is_same(T, signed   long) || __is_same(T, signed long long)
             #if RAWR_HAS_INT128
-                || __is_same(T, __int128)
+                || __is_same(T, detail::int128_t)
             #endif
             ) && (Bits == biw0 || bitsof<T> == Bits);
         template <typename T, bitwidth Bits = biw0> concept RUint = (
             __is_same(T, unsigned char) || __is_same(T, unsigned short) || __is_same(T, unsigned int) || __is_same(T, unsigned long) || __is_same(T, unsigned long long)
             #if RAWR_HAS_INT128
-                || __is_same(T, unsigned __int128)
+                || __is_same(T, detail::uint128_t)
             #endif
             )  && (Bits == biw0 || bitsof<T> == Bits);
     #endif

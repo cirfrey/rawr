@@ -31,8 +31,7 @@
 //     {
 //         struct section_entry { ... };
 //         RAWR_LINKER_SECTION_DEFINE(rawr_lib_test_section, section, section_entry)
-//         #define RAWR_REGISTER_TEST(Test) \
-//             RAWR_LINKER_SECTION_REGISTER(rawr_lib_test_section, ::rawr::lib::test::section, Test)
+//         #define RAWR_REGISTER_TEST(Test) RAWR_LINKER_SECTION_REGISTER(rawr_lib_test_section, ::rawr::lib::test::section, Test)
 //     }
 //
 // Its also best practice to define a section in a namespace and not in the global

@@ -145,9 +145,11 @@ RAWR_EXPORT namespace rawr::platform::linux
         using reg_t = rs64;
         using fd_t  = rs32;
 
-        constexpr fd_t stdin  = 0;
-        constexpr fd_t stdout = 1;
-        constexpr fd_t stderr = 2;
+        // fd_* since some MSVC headers apparently define macros stdin, stdout, stderr.
+        // MSVC, forever the ugly duckling.
+        constexpr fd_t fd_stdin  = 0;
+        constexpr fd_t fd_stdout = 1;
+        constexpr fd_t fd_stderr = 2;
 
         constexpr char const* syscall_register = "rax";
         constexpr char const* return_register  = "rax";

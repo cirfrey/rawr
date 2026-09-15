@@ -77,6 +77,7 @@
 	- rawr/lib/integer/raw.hpp
 	- rawr/lib/integer/strong.hpp
 	- rawr/lib/intrin/base.hpp
+	- rawr/lib/intrin/construct_at.hpp
 	- rawr/lib/intrin/math.hpp
 	- rawr/lib/intrin/mem.hpp
 	- rawr/lib/linker_section.hpp
@@ -125,6 +126,7 @@
 	- rawr/lib/integer/raw.hpp
 	- rawr/lib/integer/strong.hpp
 	- rawr/lib/intrin/base.hpp
+	- rawr/lib/intrin/construct_at.hpp
 	- rawr/lib/intrin/math.hpp
 	- rawr/lib/intrin/mem.hpp
 	- rawr/lib/linker_section.hpp
@@ -169,6 +171,7 @@
 	- rawr/lib/integer/base.hpp
 	- rawr/lib/integer/raw.hpp
 	- rawr/lib/intrin/base.hpp
+	- rawr/lib/intrin/construct_at.hpp
 	- rawr/lib/linker_section.pp
 	- rawr/lib/main.pp
 	- rawr/lib/simd/storage.pp
@@ -1180,383 +1183,92 @@
 #pragma endregion "rawr/lib/bits.hpp"
 
 /* required by:
-	- rawr/arch/x64/atomic.hpp
-	- rawr/arch/x64/cpuid.hpp
-	- rawr/lib/bitfield.hpp
-	- rawr/lib/bitfield.pp
-	- rawr/lib/fmt.hpp
-	- rawr/lib/integer.hpp
-	- rawr/lib/integer/raw.hpp
-	- rawr/lib/integer/strong.hpp
-	- rawr/lib/intrin/math.hpp
-	- rawr/lib/intrin/mem.hpp
-	- rawr/platform/linux.hpp
-*/
-#pragma region "rawr/lib/integer/base.hpp"
-	#ifndef RAWR_NO_SOURCE_MAPPING
-	    #line 3 "rawr/lib/integer/base.hpp"
-	#endif
-	
-	#ifdef RAWR_MODULE
-	    //RAWR_AMALGAM_IGNORE export module rawr.lib.integer.base;
-	    import rawr.lib.bits;
-	
-	    //RAWR_AMALGAM_IGNORE #include "rawr/lib/dist/module.pp"
-	#else
-	    //RAWR_AMALGAM_IGNORE #pragma once
-	    //RAWR_AMALGAM_IGNORE #include "rawr/lib/bits.hpp"
-	
-	    //RAWR_AMALGAM_IGNORE #include "rawr/lib/dist/header.pp"
-	#endif
-	//RAWR_AMALGAM_IGNORE #include "rawr/lib/detection.pp"
-	
-	namespace rawr::inline lib::inline integer::inline base::detail
-	{
-	    // Prefer aint_[max|min] to using these directly, those dont need a call (are constexpr variables),
-	    // are type safe(r) via the Aint concept and
-	    constexpr auto uint_max(bitwidth const bits) noexcept -> unsigned long long { return bits == biw64 ? ~0ULL : (1ULL << bits.val) - 1ULL; }
-	    constexpr auto sint_max(bitwidth const bits) noexcept -> long long          { return static_cast<long long>(uint_max(bits) >> 1U); }
-	    constexpr auto sint_min(bitwidth const bits) noexcept -> long long          { return ~sint_max(bits); } // two's complement bitwise NOT, defined in C++20.
-	
-	    // Same as above for ruint_capable, prefer rawr::ruint_capable<>.
-	    // Correctly handles types with overlapping sizes. Choosing the first match.
-	    template <unsigned long long Num>
-	    consteval auto ruint_capable()
-	    {
-	             if constexpr(Num > uint_max(bitsof<unsigned long>))  { return Num; }
-	        else if constexpr(Num > uint_max(bitsof<unsigned int>))   { return static_cast<unsigned long>(Num); }
-	        else if constexpr(Num > uint_max(bitsof<unsigned short>)) { return static_cast<unsigned int>(Num); }
-	        else if constexpr(Num > uint_max(bitsof<unsigned char>))  { return static_cast<unsigned short>(Num); }
-	        else                                                      { return static_cast<unsigned char>(Num); }
-	    }
-	
-	    // This specific formulation of a type selector works on GCC <= 13, the previous one would crash the compiler.
-	    // Likely due to bodged requires() implementation.
-	    template <bitwidth Bits, typename Type, typename... Rest>
-	    constexpr auto select_type_by_size_helper()
-	    {
-	             if constexpr (bitsof<Type> == Bits) { return static_cast<Type>(0);}
-	        else if constexpr (sizeof...(Rest) > 0)  { return select_type_by_size_helper<Bits, Rest...>();}
-	        else {
-	            static_assert(Bits == biw0, "No type of this size");
-	            return char{0};
-	        }
-	    }
-	    template <bitwidth Bits, typename... Types>
-	    using select_type_by_size = decltype(select_type_by_size_helper<Bits, Types...>());
-	
-	    template <bitwidth Bits>
-	    struct rsint_exact
-	    {
-	        using type = typename detail::select_type_by_size<Bits,
-	            signed char,
-	            signed short,
-	            signed int,
-	            signed long,
-	            signed long long
-	            #if RAWR_HAS_INT128
-	                , __int128
-	            #endif
-	        >;
-	    };
-	    template <bitwidth Bits>
-	    struct ruint_exact
-	    {
-	        using type = typename detail::select_type_by_size<Bits,
-	            unsigned char,
-	            unsigned short,
-	            unsigned int,
-	            unsigned long,
-	            unsigned long long
-	            #if RAWR_HAS_INT128
-	                , unsigned __int128
-	            #endif
-	        >;
-	    };
-	    template <bitwidth Bits>
-	    struct rfloat_exact
-	    {
-	        using type = typename detail::select_type_by_size<Bits,
-	            float,
-	            double,
-	            long double
-	        >;
-	    };
-	
-	    // Needed by the int_from_literal function. Do not define these.
-		#if RAWR_COMPILER_GCC || (RAWR_COMPILER_CLANG && RAWR_COMPILER_VERSION_MAJOR >= 14)
-	        [[gnu::error("Literal underflows target type")]]      void lit_underflows_target_min() noexcept;
-	        [[gnu::error("Literal overflows target type")]]       void lit_overflows_target_max()  noexcept;
-	        [[gnu::error("Negative literal to unsigned target")]] void lit_negative_to_unsigned()  noexcept;
-	    #else
-	        void lit_underflows_target_min() noexcept;
-	        void lit_overflows_target_max() noexcept;
-	        void lit_negative_to_unsigned() noexcept;
-	    #endif
-	
-	    // MSVC is quite picky with __is_same.
-	    #if RAWR_COMPILER_MSVC
-	        template <typename T, typename U> struct is_same       { static constexpr auto value = false; };
-	        template <typename T>             struct is_same<T, T> { static constexpr auto value = true; };
-	    #endif
-	}
-	
-	RAWR_EXPORT namespace rawr::inline lib::inline integer::inline base
-	{
-	    // These encode only RAW integer types.
-	    // NOTE: We use raw intrinsics since intrin:: actually depends on integer.base.
-	    // NOTE: raint32, raint64, rsint32, etc, still make some sort of sense since it could feasibly be referring
-	    //       to two (or more) different types.
-	    //       For example, for RSint: int and long sometimes are the same size on some architectures.
-	    #if RAWR_COMPILER_MSVC
-	        template <typename T, bitwidth Bits = biw0> concept RSint = (detail::is_same<T, signed   char>::value || detail::is_same<T, signed   short>::value || detail::is_same<T, signed   int>::value || detail::is_same<T, signed   long>::value || detail::is_same<T, signed   long long>::value) && (Bits == biw0 || bitsof<T> == Bits);
-	        template <typename T, bitwidth Bits = biw0> concept RUint = (detail::is_same<T, unsigned char>::value || detail::is_same<T, unsigned short>::value || detail::is_same<T, unsigned int>::value || detail::is_same<T, unsigned long>::value || detail::is_same<T, unsigned long long>::value) && (Bits == biw0 || bitsof<T> == Bits);
-	    #else
-	        template <typename T, bitwidth Bits = biw0> concept RSint = (
-	            __is_same(T, signed   char) || __is_same(T, signed   short) || __is_same(T, signed   int) || __is_same(T, signed   long) || __is_same(T, signed long long)
-	            #if RAWR_HAS_INT128
-	                || __is_same(T, __int128)
-	            #endif
-	            ) && (Bits == biw0 || bitsof<T> == Bits);
-	        template <typename T, bitwidth Bits = biw0> concept RUint = (
-	            __is_same(T, unsigned char) || __is_same(T, unsigned short) || __is_same(T, unsigned int) || __is_same(T, unsigned long) || __is_same(T, unsigned long long)
-	            #if RAWR_HAS_INT128
-	                || __is_same(T, unsigned __int128)
-	            #endif
-	            )  && (Bits == biw0 || bitsof<T> == Bits);
-	    #endif
-	    template <typename T> concept RUint8   = RUint<T, biw8>;
-	    template <typename T> concept RUint16  = RUint<T, biw16>;
-	    template <typename T> concept RUint32  = RUint<T, biw32>;
-	    template <typename T> concept RUint64  = RUint<T, biw64>;
-	    template <typename T> concept RUint128 = RUint<T, biw128>;
-	    template <typename T> concept RSint8   = RSint<T, biw8>;
-	    template <typename T> concept RSint16  = RSint<T, biw16>;
-	    template <typename T> concept RSint32  = RSint<T, biw32>;
-	    template <typename T> concept RSint64  = RSint<T, biw64>;
-	    template <typename T> concept RSint128 = RSint<T, biw128>;
-	    template <typename T, bitwidth Bits = biw0> concept RAint = RSint<T, Bits> || RUint<T, Bits>;
-	    template <typename T> concept RAint8   = RAint<T, biw8>;
-	    template <typename T> concept RAint16  = RAint<T, biw16>;
-	    template <typename T> concept RAint32  = RAint<T, biw32>;
-	    template <typename T> concept RAint64  = RAint<T, biw64>;
-	    template <typename T> concept RAint128 = RAint<T, biw128>;
-	
-	    // Uint and Sint are opt-in. Specialize as needed.
-	    namespace trait
-	    {
-	        template <typename T> struct uint { static constexpr auto value = false; };
-	        template <typename T> struct sint { static constexpr auto value = false; };
-	    }
-	    // Such as (specializing for the raw integer types):
-	    template <RUint T> struct trait::uint<T> { static constexpr auto value = true; };
-	    template <RSint T> struct trait::sint<T> { static constexpr auto value = true; };
-	
-	    // These encode any integer type, raw or custom.
-	    template <typename T, bitwidth Bits = biw0> concept Uint = trait::uint<T>::value && (Bits == biw0 || bitsof<T> == Bits);
-	    template <typename T> concept Uint8   = Uint<T, biw8>;
-	    template <typename T> concept Uint16  = Uint<T, biw16>;
-	    template <typename T> concept Uint32  = Uint<T, biw32>;
-	    template <typename T> concept Uint64  = Uint<T, biw64>;
-	    template <typename T> concept Uint128 = Uint<T, biw128>;
-	    template <typename T, bitwidth Bits = biw0> concept Sint = trait::sint<T>::value && (Bits == biw0 || bitsof<T> == Bits);
-	    template <typename T> concept Sint8   = Sint<T, biw8>;
-	    template <typename T> concept Sint16  = Sint<T, biw16>;
-	    template <typename T> concept Sint32  = Sint<T, biw32>;
-	    template <typename T> concept Sint64  = Sint<T, biw64>;
-	    template <typename T> concept Sint128 = Sint<T, biw128>;
-	    template <typename T, bitwidth Bits = biw0> concept Aint = Uint<T, Bits> || Sint<T, Bits>;
-	    template <typename T> concept Aint8   = Aint<T, biw8>;
-	    template <typename T> concept Aint16  = Aint<T, biw16>;
-	    template <typename T> concept Aint32  = Aint<T, biw32>;
-	    template <typename T> concept Aint64  = Aint<T, biw64>;
-	    template <typename T> concept Aint128 = Aint<T, biw128>;
-	
-	    // For completeness, heres how you detect ONLY custom integer types.
-	    template <typename T, bitwidth Bits = biw0> concept CUint = (!RUint<T> && trait::uint<T>::value) && (Bits == biw0 || bitsof<T> == Bits);
-	    template <typename T> concept CUint8   = CUint<T, biw8>;
-	    template <typename T> concept CUint16  = CUint<T, biw16>;
-	    template <typename T> concept CUint32  = CUint<T, biw32>;
-	    template <typename T> concept CUint64  = CUint<T, biw64>;
-	    template <typename T> concept CUint128 = CUint<T, biw128>;
-	    template <typename T, bitwidth Bits = biw0> concept CSint = (!RSint<T> && trait::sint<T>::value) && (Bits == biw0 || bitsof<T> == Bits);
-	    template <typename T> concept CSint8   = CSint<T, biw8>;
-	    template <typename T> concept CSint16  = CSint<T, biw16>;
-	    template <typename T> concept CSint32  = CSint<T, biw32>;
-	    template <typename T> concept CSint64  = CSint<T, biw64>;
-	    template <typename T> concept CSint128 = CSint<T, biw128>;
-	    template <typename T, bitwidth Bits = biw0> concept CAint = CUint<T, Bits> || CSint<T, Bits>;
-	    template <typename T> concept CAint8   = CAint<T, biw8>;
-	    template <typename T> concept CAint16  = CAint<T, biw16>;
-	    template <typename T> concept CAint32  = CAint<T, biw32>;
-	    template <typename T> concept CAint64  = CAint<T, biw64>;
-	    template <typename T> concept CAint128 = CAint<T, biw128>;
-	
-	    template <Aint T>
-	    constexpr T aint_max = Sint<T>
-	        ? static_cast<T>(detail::sint_max(bitsof<T>))
-	        : static_cast<T>(detail::uint_max(bitsof<T>));
-	    template <Aint T>
-	    constexpr T aint_min = Sint<T>
-	        ? static_cast<T>(detail::sint_min(bitsof<T>))
-	        : T{0};
-	
-		template <bitwidth Bits>     using rsint_exact   = typename detail::rsint_exact<Bits>::type;
-		template <bitwidth Bits>     using ruint_exact   = typename detail::ruint_exact<Bits>::type;
-		template <bitwidth Bits>     using rfloat_exact  = typename detail::rfloat_exact<Bits>::type;
-		template <unsigned long Num> using ruint_capable = decltype(detail::ruint_capable<Num>());
-	}
-	
-	namespace rawr::inline lib::inline integer::inline base::detail
-	{
-	    template <Aint T> struct raint_of_t;
-	    template <Sint T> struct raint_of_t<T> { using type = base::rsint_exact<bitsof<T>>; };
-	    template <Uint T> struct raint_of_t<T> { using type = base::ruint_exact<bitsof<T>>; };
-	}
-	
-	RAWR_EXPORT namespace rawr::inline lib::inline integer::inline base
-	{
-	    // Gets the corresponding RAW integer type for a given T.
-	    template <Aint T> using ruint_of = ruint_exact<bitsof<T>>;
-	    template <Aint T> using rsint_of = rsint_exact<bitsof<T>>;
-	    // Automatically gets the correspoding ru* or rs* for a given Aint of the same size.
-	    // Behaves like a std::conditional_t<Sint<T>, rsint_exact<sizeof(T)>, ruint_exact<sizeof(T)>.
-	    template <Aint T> using raint_of = typename detail::raint_of_t<T>::type;
-	
-	    // Safely construct an integer of a Target type from an arbitrary literal.
-	    template <Aint Target>
-	    consteval auto aint_from_literal(auto val) noexcept -> Target
-	    {
-	        constexpr bool v_signed = Sint<decltype(val)>;
-	        constexpr bool t_signed = Sint<Target>;
-	
-	        if constexpr (v_signed == t_signed) {
-	            if (val < aint_min<Target>) { detail::lit_underflows_target_min(); }
-	            if (val > aint_max<Target>) { detail::lit_overflows_target_max(); }
-	        }
-	        else if constexpr (v_signed && !t_signed) {
-	            if (val < 0)                                                                                  { detail::lit_negative_to_unsigned(); }
-	            if (static_cast<unsigned long long>(val) < static_cast<unsigned long long>(aint_min<Target>)) { detail::lit_underflows_target_min(); }
-	            if (static_cast<unsigned long long>(val) > static_cast<unsigned long long>(aint_max<Target>)) { detail::lit_overflows_target_max(); }
-	        }
-	        else {
-	            if constexpr (aint_min<Target> >= 0) {
-	                if (static_cast<unsigned long long>(val) < static_cast<unsigned long long>(aint_min<Target>))
-	                { detail::lit_underflows_target_min(); }
-	            }
-	            if constexpr (aint_max<Target> < 0) { detail::lit_overflows_target_max();
-	            } else {
-	                if (static_cast<unsigned long long>(val) > static_cast<unsigned long long>(aint_max<Target>))
-	                { detail::lit_overflows_target_max(); }
-	            }
-	        }
-	
-	        return static_cast<Target>(val);
-	    }
-	
-	    template <Aint Target>
-	    constexpr auto aint_saturating_cast(auto val) noexcept -> Target
-	    {
-	        using V = decltype(val);
-	        constexpr auto v_signed = Sint<decltype(val)>;
-	        constexpr auto t_signed = Sint<Target>;
-	
-	        if constexpr (v_signed && !t_signed) {
-	            if (val < V{0}) { return aint_min<Target>; }
-	            if constexpr (sizeof(V) > sizeof(Target)) {
-	                if (val > static_cast<V>(aint_max<Target>)) { return aint_max<Target>; }
-	            }
-	        } else if constexpr (!v_signed && t_signed) {
-	            if constexpr (sizeof(V) >= sizeof(Target)) {
-	                if (val > static_cast<V>(aint_max<Target>)) { return aint_max<Target>; }
-	            }
-	        } else {
-	            if (val > static_cast<V>(aint_max<Target>)) { return aint_max<Target>; }
-	            if (val < static_cast<V>(aint_min<Target>)) { return aint_min<Target>; }
-	        }
-	        return static_cast<Target>(val);
-	    }
-	}
-
-#pragma endregion "rawr/lib/integer/base.hpp"
-
-/* required by:
 	- rawr/abi/sysv/ctx.hpp
-	- rawr/abi/win64/ctx.hpp
+	- rawr/abi/sysv/main.pp
+	- rawr/abi/win64/main.pp
 	- rawr/arch/x64/atomic.hpp
 	- rawr/arch/x64/cpuid.hpp
 	- rawr/arch/x64/simd.hpp
-	- rawr/lib/detection.hpp
-	- rawr/lib/hash/fnv1a.hpp
-	- rawr/lib/integer.hpp
-	- rawr/lib/integer/strong.hpp
+	- rawr/bin/elf.hpp
+	- rawr/cxx_abi/itanium.hpp
+	- rawr/lib.hpp
+	- rawr/lib/compiler.pp
+	- rawr/lib/diag/dwarf.hpp
+	- rawr/lib/intrin/base.hpp
 	- rawr/lib/intrin/math.hpp
 	- rawr/lib/intrin/mem.hpp
-	- rawr/lib/simd/storage.hpp
-	- rawr/lib/sync/base.hpp
-	- rawr/lib/test.hpp
 	- rawr/platform/linux.hpp
-	- rawr/san/asan.hpp
-	- rawr/san/msan.hpp
+	- rawr/san/attributes.pp
 */
-#pragma region "rawr/lib/integer/raw.hpp"
+#pragma region "rawr/lib/attributes.pp"
 	#ifndef RAWR_NO_SOURCE_MAPPING
-	    #line 3 "rawr/lib/integer/raw.hpp"
+	    #line 3 "rawr/lib/attributes.pp"
 	#endif
+	// The macros in this file are defined as the lower level constructs
+	// directly instead of defining, say, RAWR_FLATTEN as RAWR_ATTIBUTE(flatten),
+	// so that theres less expansions and more consistent and readable errors.
+	// No one likes macro expansion puke.
+	//RAWR_AMALGAM_IGNORE #pragma once
 	
-	#ifdef RAWR_MODULE
-	    //RAWR_AMALGAM_IGNORE export module rawr.lib.integer.raw;
-	    import rawr.lib.integer.base;
-	    import rawr.lib.bits;
-	
-	    //RAWR_AMALGAM_IGNORE #include "rawr/lib/dist/module.pp"
-	#else
-	    //RAWR_AMALGAM_IGNORE #pragma once
-	    //RAWR_AMALGAM_IGNORE #include "rawr/lib/integer/base.hpp"
-	    //RAWR_AMALGAM_IGNORE #include "rawr/lib/bits.hpp"
-	
-	    //RAWR_AMALGAM_IGNORE #include "rawr/lib/dist/header.pp"
-	#endif
 	//RAWR_AMALGAM_IGNORE #include "rawr/lib/detection.pp"
 	
-	// Just in case you need the actual underlying type aliases. Prefer the strong
-	// wrapped versions instead.
-	RAWR_EXPORT namespace rawr::inline lib::inline integer::inline raw
-	{
-	    using ru8   = ruint_exact<biw8>;   using rs8   = rsint_exact<biw8>;
-	    using ru16  = ruint_exact<biw16>;  using rs16  = rsint_exact<biw16>;
-	    using ru32  = ruint_exact<biw32>;  using rs32  = rsint_exact<biw32>;
-	    using ru64  = ruint_exact<biw64>;  using rs64  = rsint_exact<biw64>;
-	    using rf32  = rfloat_exact<biw32>; using rf64  = rfloat_exact<biw64>;
+	#define RAWR_RAW_PRAGMA(x) _Pragma(#x)
+	// Clang-cl and mingw support __declspec, if you want to use
+	// it, here it is. These are the escape hatches for special cases.
+	// Note that:
+	//     RAWR_DECLSPEC  = __declspec    -> Only defined on MSVC
+	//     RAWR_ATTRIBUTE = __attribute__ -> Only defined outside of MSVC.
+	// While these (RAWR_RAW_) are always defined any may expand into invalid things
+	// if you don't know what you're doing.
+	#define RAWR_RAW_DECLSPEC(x)  __declspec(x)
+	#define RAWR_RAW_ATTRIBUTE(x) __attribute__((x))
 	
-	    #if RAWR_HAS_INT128
-	        using ru128 = ruint_exact<biw128>; using rs128 = rsint_exact<biw128>;
-	    #endif
+	#if RAWR_COMPILER_MSVC
+	    #define RAWR_DECLSPEC(x)   __declspec(x)
+	    #define RAWR_ATTRIBUTE(x)
+	    #define RAWR_PRAGMA(x)     __pragma(x) // Can use __pragma directly without stringification.
 	
-	    // Our very own free-range std::size_t.
-	    using rst  = decltype(sizeof(0));
-	    // Corresponds to std::intptr_t.
-	    using ript = decltype(static_cast<char*>(nullptr) - static_cast<char*>(nullptr));
-	    // Corresponds to std::uintptr_t.
-	    using rupt = ruint_exact<bitsof<ript>>;
+	    #define RAWR_UNREACHABLE   __assume(false)
+	    #define RAWR_NORETURN      __declspec(noreturn)
+	    #define RAWR_HIDDEN
+	    #define RAWR_ALWAYS_INLINE __forceinline
+	    #define RAWR_FLATTEN       // no MSVC equivalent — accept the cost
+	    #define RAWR_NAKED         // not supported on x64 MSVC at all
+	    #define RAWR_WEAK
 	
-	    inline namespace literals
-	    {
-	        constexpr auto operator""_ru8(unsigned long long val)  noexcept { return static_cast<ru8>(val);  }
-	        constexpr auto operator""_ru16(unsigned long long val) noexcept { return static_cast<ru16>(val); }
-	        constexpr auto operator""_ru32(unsigned long long val) noexcept { return static_cast<ru32>(val); }
-	        constexpr auto operator""_ru64(unsigned long long val) noexcept { return static_cast<ru64>(val); }
-	        constexpr auto operator""_rs8(unsigned long long val)  noexcept { return static_cast<rs8>(val);  }
-	        constexpr auto operator""_rs16(unsigned long long val) noexcept { return static_cast<rs16>(val); }
-	        constexpr auto operator""_rs32(unsigned long long val) noexcept { return static_cast<rs32>(val); }
-	        constexpr auto operator""_rs64(unsigned long long val) noexcept { return static_cast<rs64>(val); }
-	        constexpr auto operator""_rst(unsigned long long val)  noexcept { return static_cast<rst>(val);  }
-	        constexpr auto operator""_ript(unsigned long long val) noexcept { return static_cast<ript>(val); }
-	        constexpr auto operator""_rupt(unsigned long long val) noexcept { return static_cast<rupt>(val); }
-	    }
-	}
+	    #define RAWR_ASM(...)
+	    #define RAWR_ASMV(...)
+	    // /alternatename is the MSVC linker-level symbol alias mechanism.
+	    // Usage: RAWR_ASM("target") on the declaration,
+	    //        then RAWR_ALTERNATENAME("cname", "target") at namespace scope.
+	    #define RAWR_ALTERNATENAME(from, to) __pragma(comment(linker, "/alternatename:" from "=" to))
+	#else
+	    #define RAWR_DECLSPEC(x)
+	    #define RAWR_ATTRIBUTE(x)  __attribute__((x))
+	    #define RAWR_PRAGMA(x)     RAWR_RAW_PRAGMA(x) // Needs deffered resolution.
+	
+	    #define RAWR_UNREACHABLE   __builtin_unreachable()
+	    #define RAWR_NORETURN      __attribute__((noreturn))
+	    #define RAWR_HIDDEN        __attribute__((visibility("hidden")))
+	    #define RAWR_ALWAYS_INLINE __attribute__((always_inline)) inline
+	    #define RAWR_FLATTEN       __attribute__((flatten))
+	    #define RAWR_NAKED         __attribute__((naked))
+	    #define RAWR_WEAK          __attribute__((weak))
+	
+	    #define RAWR_ASM(...)  __asm__(__VA_ARGS__)
+	    #define RAWR_ASMV(...) __asm__ volatile(__VA_ARGS__)
+	    #define RAWR_ALTERNATENAME(from, to)
+	#endif
+	
+	#if RAWR_COMPILER_CLANG
+	    #define RAWR_ASSUME(cond) __builtin_assume(cond)
+	#elif RAWR_COMPILER_GCC
+	    #define RAWR_ASSUME(cond) do { if (!(cond)) __builtin_unreachable(); } while(0)
+	#elif RAWR_COMPILER_MSVC
+	    #define RAWR_ASSUME(cond) __assume(cond)
+	#endif
 
-#pragma endregion "rawr/lib/integer/raw.hpp"
+#pragma endregion "rawr/lib/attributes.pp"
 
 /* required by:
 	- rawr/lib.hpp
@@ -1931,6 +1643,486 @@
 	#define RAWR_PP_CAT(M, N, ...)  RAWR_PP_CAT_(M, N)
 
 #pragma endregion "rawr/lib/pp.pp"
+
+/* required by:
+	- rawr/arch/x64/atomic.hpp
+	- rawr/arch/x64/cpuid.hpp
+	- rawr/arch/x64/simd.hpp
+	- rawr/lib.hpp
+	- rawr/lib/integer/base.hpp
+	- rawr/lib/intrin/base.hpp
+	- rawr/lib/intrin/construct_at.hpp
+	- rawr/lib/intrin/math.hpp
+	- rawr/lib/intrin/mem.hpp
+	- rawr/lib/test.hpp
+	- rawr/lib/typing.hpp
+*/
+#pragma region "rawr/lib/compiler.pp"
+	#ifndef RAWR_NO_SOURCE_MAPPING
+	    #line 3 "rawr/lib/compiler.pp"
+	#endif
+	// Macro utilities for ergonomic compiler gating.
+	//RAWR_AMALGAM_IGNORE #pragma once
+	
+	//RAWR_AMALGAM_IGNORE #include "rawr/lib/detection.pp"
+	//RAWR_AMALGAM_IGNORE #include "rawr/lib/attributes.pp"
+	//RAWR_AMALGAM_IGNORE #include "rawr/lib/pp.pp"
+	
+	#if RAWR_COMPILER_MSVC
+	    #define RAWR_MSVC(...)                    __VA_ARGS__
+	    #define RAWR_NOT_MSVC(...)
+	    #define RAWR_MSVC_ELSE(MSVC, NotMSVC)     MSVC
+	    #define RAWR_MSVC_AND(Cond, ...)          RAWR_PP_WHEN(Cond, __VA_ARGS__)
+	    #define RAWR_MSVC_PRAGMA(...)             __pragma(__VA_ARGS__)
+	
+	    #define RAWR_MSVC_INTRIN(Cond, Name, ...) \
+	        RAWR_PP_IF(Cond, \
+	            extern "C" { auto Name __VA_ARGS__; } __pragma(intrinsic(Name)), \
+	                         auto Name __VA_ARGS__ \
+	        )
+	#else
+	    #define RAWR_MSVC(...)
+	    #define RAWR_NOT_MSVC(...)                __VA_ARGS__
+	    #define RAWR_MSVC_ELSE(MSVC, NotMSVC)     NotMSVC
+	    #define RAWR_MSVC_AND(Cond, ...)
+	    #define RAWR_MSVC_PRAGMA(...)
+	
+	    #define RAWR_MSVC_INTRIN(Cond, Name, ...) auto Name __VA_ARGS__
+	#endif
+	
+	#if RAWR_COMPILER_FAMILY_GNU
+	    #define RAWR_GNU(...)              __VA_ARGS__
+	    #define RAWR_NOT_GNU(...)
+	    #define RAWR_GNU_ELSE(GNU, NotGNU) GNU
+	    #define RAWR_GNU_AND(Cond, ...)    RAWR_PP_WHEN(Cond, __VA_ARGS__)
+	    #define RAWR_GNU_PRAGMA(...)       RAWR_RAW_PRAGMA(__VA_ARGS__)
+	#else
+	    #define RAWR_GNU(...)
+	    #define RAWR_NOT_GNU(...)          __VA_ARGS__
+	    #define RAWR_GNU_ELSE(GNU, NotGNU) NotGnu
+	    #define RAWR_GNU_AND(Cond, ...)
+	    #define RAWR_GNU_PRAGMA(...)
+	#endif
+	
+	#if RAWR_COMPILER_CLANG
+	    #define RAWR_CLANG(...)                  __VA_ARGS__
+	    #define RAWR_NOT_CLANG(...)
+	    #define RAWR_CLANG_ELSE(Clang, NotClang) Clang
+	    #define RAWR_CLANG_AND(Cond, ...)        RAWR_PP_WHEN(Cond, __VA_ARGS__)
+	    #define RAWR_CLANG_PRAGMA(...)           RAWR_RAW_PRAGMA(__VA_ARGS__)
+	#else
+	    #define RAWR_CLANG(...)
+	    #define RAWR_NOT_CLANG(...)              __VA_ARGS__
+	    #define RAWR_CLANG_ELSE(Clang, NotClang) NotClang
+	    #define RAWR_CLANG_AND(Cond, ...)
+	    #define RAWR_CLANG_PRAGMA(...)
+	#endif
+	
+	#if RAWR_COMPILER_GCC
+	    #define RAWR_GCC(...)              __VA_ARGS__
+	    #define RAWR_NOT_GCC(...)
+	    #define RAWR_GCC_ELSE(GCC, NotGCC) GCC
+	    #define RAWR_GCC_AND(Cond, ...)    RAWR_PP_WHEN(Cond, __VA_ARGS__)
+	    #define RAWR_GCC_PRAGMA(...)       RAWR_RAW_PRAGMA(__VA_ARGS__)
+	#else
+	    #define RAWR_GCC(...)
+	    #define RAWR_NOT_GCC(...)          __VA_ARGS__
+	    #define RAWR_GCC_ELSE(GCC, NotGCC) NotGCC
+	    #define RAWR_GCC_AND(Cond, ...)
+	    #define RAWR_GCC_PRAGMA(...)
+	#endif
+
+#pragma endregion "rawr/lib/compiler.pp"
+
+/* required by:
+	- rawr/arch/x64/atomic.hpp
+	- rawr/arch/x64/cpuid.hpp
+	- rawr/lib/bitfield.hpp
+	- rawr/lib/bitfield.pp
+	- rawr/lib/fmt.hpp
+	- rawr/lib/integer.hpp
+	- rawr/lib/integer/raw.hpp
+	- rawr/lib/integer/strong.hpp
+	- rawr/lib/intrin/math.hpp
+	- rawr/lib/intrin/mem.hpp
+	- rawr/platform/linux.hpp
+*/
+#pragma region "rawr/lib/integer/base.hpp"
+	#ifndef RAWR_NO_SOURCE_MAPPING
+	    #line 3 "rawr/lib/integer/base.hpp"
+	#endif
+	
+	#ifdef RAWR_MODULE
+	    //RAWR_AMALGAM_IGNORE export module rawr.lib.integer.base;
+	    import rawr.lib.bits;
+	
+	    //RAWR_AMALGAM_IGNORE #include "rawr/lib/dist/module.pp"
+	#else
+	    //RAWR_AMALGAM_IGNORE #pragma once
+	    //RAWR_AMALGAM_IGNORE #include "rawr/lib/bits.hpp"
+	
+	    //RAWR_AMALGAM_IGNORE #include "rawr/lib/dist/header.pp"
+	#endif
+	//RAWR_AMALGAM_IGNORE #include "rawr/lib/compiler.pp"
+	//RAWR_AMALGAM_IGNORE #include "rawr/lib/detection.pp"
+	
+	namespace rawr::inline lib::inline integer::inline base::detail
+	{
+	    // Prefer aint_[max|min] to using these directly, those dont need a call (are constexpr variables),
+	    // are type safe(r) via the Aint concept and
+	    constexpr auto uint_max(bitwidth const bits) noexcept -> unsigned long long { return bits == biw64 ? ~0ULL : (1ULL << bits.val) - 1ULL; }
+	    constexpr auto sint_max(bitwidth const bits) noexcept -> long long          { return static_cast<long long>(uint_max(bits) >> 1U); }
+	    constexpr auto sint_min(bitwidth const bits) noexcept -> long long          { return ~sint_max(bits); } // two's complement bitwise NOT, defined in C++20.
+	
+	    // Same as above for ruint_capable, prefer rawr::ruint_capable<>.
+	    // Correctly handles types with overlapping sizes. Choosing the first match.
+	    template <unsigned long long Num>
+	    consteval auto ruint_capable()
+	    {
+	             if constexpr(Num > uint_max(bitsof<unsigned long>))  { return Num; }
+	        else if constexpr(Num > uint_max(bitsof<unsigned int>))   { return static_cast<unsigned long>(Num); }
+	        else if constexpr(Num > uint_max(bitsof<unsigned short>)) { return static_cast<unsigned int>(Num); }
+	        else if constexpr(Num > uint_max(bitsof<unsigned char>))  { return static_cast<unsigned short>(Num); }
+	        else                                                      { return static_cast<unsigned char>(Num); }
+	    }
+	
+	    // This specific formulation of a type selector works on GCC <= 13, the previous one would crash the compiler.
+	    // Likely due to bodged requires() implementation.
+	    template <bitwidth Bits, typename Type, typename... Rest>
+	    constexpr auto select_type_by_size_helper()
+	    {
+	             if constexpr (bitsof<Type> == Bits) { return static_cast<Type>(0);}
+	        else if constexpr (sizeof...(Rest) > 0)  { return select_type_by_size_helper<Bits, Rest...>();}
+	        else {
+	            static_assert(Bits == biw0, "No type of this size");
+	            return char{0};
+	        }
+	    }
+	    template <bitwidth Bits, typename... Types>
+	    using select_type_by_size = decltype(select_type_by_size_helper<Bits, Types...>());
+	
+	    // Silence warning: ISO C++ does not support '__int128' for 'type name' [-Wpedantic]
+	    #if RAWR_HAS_INT128
+	        RAWR_GCC_PRAGMA(GCC diagnostic push)
+	        RAWR_GCC_PRAGMA(GCC diagnostic ignored "-Wpedantic")
+	        using int128_t = __int128;
+	        using int128_t  = __int128;
+	        using uint128_t = unsigned __int128;
+	        RAWR_GCC_PRAGMA(GCC diagnostic pop)
+	    #endif
+	
+	    template <bitwidth Bits>
+	    struct rsint_exact
+	    {
+	        using type = typename detail::select_type_by_size<Bits,
+	            signed char,
+	            signed short,
+	            signed int,
+	            signed long,
+	            signed long long
+	            #if RAWR_HAS_INT128
+	                , int128_t
+	            #endif
+	        >;
+	    };
+	    template <bitwidth Bits>
+	    struct ruint_exact
+	    {
+	        using type = typename detail::select_type_by_size<Bits,
+	            unsigned char,
+	            unsigned short,
+	            unsigned int,
+	            unsigned long,
+	            unsigned long long
+	            #if RAWR_HAS_INT128
+	                , uint128_t
+	            #endif
+	        >;
+	    };
+	    template <bitwidth Bits>
+	    struct rfloat_exact
+	    {
+	        using type = typename detail::select_type_by_size<Bits,
+	            float,
+	            double,
+	            long double
+	        >;
+	    };
+	
+	    // Needed by the int_from_literal function. Do not define these.
+		#if RAWR_COMPILER_GCC || (RAWR_COMPILER_CLANG && RAWR_COMPILER_VERSION_MAJOR >= 14)
+	        [[gnu::error("Literal underflows target type")]]      void lit_underflows_target_min() noexcept;
+	        [[gnu::error("Literal overflows target type")]]       void lit_overflows_target_max()  noexcept;
+	        [[gnu::error("Negative literal to unsigned target")]] void lit_negative_to_unsigned()  noexcept;
+	    #else
+	        void lit_underflows_target_min() noexcept;
+	        void lit_overflows_target_max() noexcept;
+	        void lit_negative_to_unsigned() noexcept;
+	    #endif
+	
+	    // MSVC is quite picky with __is_same.
+	    #if RAWR_COMPILER_MSVC
+	        template <typename T, typename U> struct is_same       { static constexpr auto value = false; };
+	        template <typename T>             struct is_same<T, T> { static constexpr auto value = true; };
+	    #endif
+	}
+	
+	RAWR_EXPORT namespace rawr::inline lib::inline integer::inline base
+	{
+	    // These encode only RAW integer types.
+	    // NOTE: We use raw intrinsics since intrin:: actually depends on integer.base.
+	    // NOTE: raint32, raint64, rsint32, etc, still make some sort of sense since it could feasibly be referring
+	    //       to two (or more) different types.
+	    //       For example, for RSint: int and long sometimes are the same size on some architectures.
+	    #if RAWR_COMPILER_MSVC
+	        template <typename T, bitwidth Bits = biw0> concept RSint = (detail::is_same<T, signed   char>::value || detail::is_same<T, signed   short>::value || detail::is_same<T, signed   int>::value || detail::is_same<T, signed   long>::value || detail::is_same<T, signed   long long>::value) && (Bits == biw0 || bitsof<T> == Bits);
+	        template <typename T, bitwidth Bits = biw0> concept RUint = (detail::is_same<T, unsigned char>::value || detail::is_same<T, unsigned short>::value || detail::is_same<T, unsigned int>::value || detail::is_same<T, unsigned long>::value || detail::is_same<T, unsigned long long>::value) && (Bits == biw0 || bitsof<T> == Bits);
+	    #else
+	        template <typename T, bitwidth Bits = biw0> concept RSint = (
+	            __is_same(T, signed   char) || __is_same(T, signed   short) || __is_same(T, signed   int) || __is_same(T, signed   long) || __is_same(T, signed long long)
+	            #if RAWR_HAS_INT128
+	                || __is_same(T, detail::int128_t)
+	            #endif
+	            ) && (Bits == biw0 || bitsof<T> == Bits);
+	        template <typename T, bitwidth Bits = biw0> concept RUint = (
+	            __is_same(T, unsigned char) || __is_same(T, unsigned short) || __is_same(T, unsigned int) || __is_same(T, unsigned long) || __is_same(T, unsigned long long)
+	            #if RAWR_HAS_INT128
+	                || __is_same(T, detail::uint128_t)
+	            #endif
+	            )  && (Bits == biw0 || bitsof<T> == Bits);
+	    #endif
+	    template <typename T> concept RUint8   = RUint<T, biw8>;
+	    template <typename T> concept RUint16  = RUint<T, biw16>;
+	    template <typename T> concept RUint32  = RUint<T, biw32>;
+	    template <typename T> concept RUint64  = RUint<T, biw64>;
+	    template <typename T> concept RUint128 = RUint<T, biw128>;
+	    template <typename T> concept RSint8   = RSint<T, biw8>;
+	    template <typename T> concept RSint16  = RSint<T, biw16>;
+	    template <typename T> concept RSint32  = RSint<T, biw32>;
+	    template <typename T> concept RSint64  = RSint<T, biw64>;
+	    template <typename T> concept RSint128 = RSint<T, biw128>;
+	    template <typename T, bitwidth Bits = biw0> concept RAint = RSint<T, Bits> || RUint<T, Bits>;
+	    template <typename T> concept RAint8   = RAint<T, biw8>;
+	    template <typename T> concept RAint16  = RAint<T, biw16>;
+	    template <typename T> concept RAint32  = RAint<T, biw32>;
+	    template <typename T> concept RAint64  = RAint<T, biw64>;
+	    template <typename T> concept RAint128 = RAint<T, biw128>;
+	
+	    // Uint and Sint are opt-in. Specialize as needed.
+	    namespace trait
+	    {
+	        template <typename T> struct uint { static constexpr auto value = false; };
+	        template <typename T> struct sint { static constexpr auto value = false; };
+	    }
+	    // Such as (specializing for the raw integer types):
+	    template <RUint T> struct trait::uint<T> { static constexpr auto value = true; };
+	    template <RSint T> struct trait::sint<T> { static constexpr auto value = true; };
+	
+	    // These encode any integer type, raw or custom.
+	    template <typename T, bitwidth Bits = biw0> concept Uint = trait::uint<T>::value && (Bits == biw0 || bitsof<T> == Bits);
+	    template <typename T> concept Uint8   = Uint<T, biw8>;
+	    template <typename T> concept Uint16  = Uint<T, biw16>;
+	    template <typename T> concept Uint32  = Uint<T, biw32>;
+	    template <typename T> concept Uint64  = Uint<T, biw64>;
+	    template <typename T> concept Uint128 = Uint<T, biw128>;
+	    template <typename T, bitwidth Bits = biw0> concept Sint = trait::sint<T>::value && (Bits == biw0 || bitsof<T> == Bits);
+	    template <typename T> concept Sint8   = Sint<T, biw8>;
+	    template <typename T> concept Sint16  = Sint<T, biw16>;
+	    template <typename T> concept Sint32  = Sint<T, biw32>;
+	    template <typename T> concept Sint64  = Sint<T, biw64>;
+	    template <typename T> concept Sint128 = Sint<T, biw128>;
+	    template <typename T, bitwidth Bits = biw0> concept Aint = Uint<T, Bits> || Sint<T, Bits>;
+	    template <typename T> concept Aint8   = Aint<T, biw8>;
+	    template <typename T> concept Aint16  = Aint<T, biw16>;
+	    template <typename T> concept Aint32  = Aint<T, biw32>;
+	    template <typename T> concept Aint64  = Aint<T, biw64>;
+	    template <typename T> concept Aint128 = Aint<T, biw128>;
+	
+	    // For completeness, heres how you detect ONLY custom integer types.
+	    template <typename T, bitwidth Bits = biw0> concept CUint = (!RUint<T> && trait::uint<T>::value) && (Bits == biw0 || bitsof<T> == Bits);
+	    template <typename T> concept CUint8   = CUint<T, biw8>;
+	    template <typename T> concept CUint16  = CUint<T, biw16>;
+	    template <typename T> concept CUint32  = CUint<T, biw32>;
+	    template <typename T> concept CUint64  = CUint<T, biw64>;
+	    template <typename T> concept CUint128 = CUint<T, biw128>;
+	    template <typename T, bitwidth Bits = biw0> concept CSint = (!RSint<T> && trait::sint<T>::value) && (Bits == biw0 || bitsof<T> == Bits);
+	    template <typename T> concept CSint8   = CSint<T, biw8>;
+	    template <typename T> concept CSint16  = CSint<T, biw16>;
+	    template <typename T> concept CSint32  = CSint<T, biw32>;
+	    template <typename T> concept CSint64  = CSint<T, biw64>;
+	    template <typename T> concept CSint128 = CSint<T, biw128>;
+	    template <typename T, bitwidth Bits = biw0> concept CAint = CUint<T, Bits> || CSint<T, Bits>;
+	    template <typename T> concept CAint8   = CAint<T, biw8>;
+	    template <typename T> concept CAint16  = CAint<T, biw16>;
+	    template <typename T> concept CAint32  = CAint<T, biw32>;
+	    template <typename T> concept CAint64  = CAint<T, biw64>;
+	    template <typename T> concept CAint128 = CAint<T, biw128>;
+	
+	    template <Aint T>
+	    constexpr T aint_max = Sint<T>
+	        ? static_cast<T>(detail::sint_max(bitsof<T>))
+	        : static_cast<T>(detail::uint_max(bitsof<T>));
+	    template <Aint T>
+	    constexpr T aint_min = Sint<T>
+	        ? static_cast<T>(detail::sint_min(bitsof<T>))
+	        : T{0};
+	
+		template <bitwidth Bits>     using rsint_exact   = typename detail::rsint_exact<Bits>::type;
+		template <bitwidth Bits>     using ruint_exact   = typename detail::ruint_exact<Bits>::type;
+		template <bitwidth Bits>     using rfloat_exact  = typename detail::rfloat_exact<Bits>::type;
+		template <unsigned long Num> using ruint_capable = decltype(detail::ruint_capable<Num>());
+	}
+	
+	namespace rawr::inline lib::inline integer::inline base::detail
+	{
+	    template <Aint T> struct raint_of_t;
+	    template <Sint T> struct raint_of_t<T> { using type = base::rsint_exact<bitsof<T>>; };
+	    template <Uint T> struct raint_of_t<T> { using type = base::ruint_exact<bitsof<T>>; };
+	}
+	
+	RAWR_EXPORT namespace rawr::inline lib::inline integer::inline base
+	{
+	    // Gets the corresponding RAW integer type for a given T.
+	    template <Aint T> using ruint_of = ruint_exact<bitsof<T>>;
+	    template <Aint T> using rsint_of = rsint_exact<bitsof<T>>;
+	    // Automatically gets the correspoding ru* or rs* for a given Aint of the same size.
+	    // Behaves like a std::conditional_t<Sint<T>, rsint_exact<sizeof(T)>, ruint_exact<sizeof(T)>.
+	    template <Aint T> using raint_of = typename detail::raint_of_t<T>::type;
+	
+	    // Safely construct an integer of a Target type from an arbitrary literal.
+	    template <Aint Target>
+	    consteval auto aint_from_literal(auto val) noexcept -> Target
+	    {
+	        constexpr bool v_signed = Sint<decltype(val)>;
+	        constexpr bool t_signed = Sint<Target>;
+	
+	        if constexpr (v_signed == t_signed) {
+	            if (val < aint_min<Target>) { detail::lit_underflows_target_min(); }
+	            if (val > aint_max<Target>) { detail::lit_overflows_target_max(); }
+	        }
+	        else if constexpr (v_signed && !t_signed) {
+	            if (val < 0)                                                                                  { detail::lit_negative_to_unsigned(); }
+	            if (static_cast<unsigned long long>(val) < static_cast<unsigned long long>(aint_min<Target>)) { detail::lit_underflows_target_min(); }
+	            if (static_cast<unsigned long long>(val) > static_cast<unsigned long long>(aint_max<Target>)) { detail::lit_overflows_target_max(); }
+	        }
+	        else {
+	            if constexpr (aint_min<Target> >= 0) {
+	                if (static_cast<unsigned long long>(val) < static_cast<unsigned long long>(aint_min<Target>))
+	                { detail::lit_underflows_target_min(); }
+	            }
+	            if constexpr (aint_max<Target> < 0) { detail::lit_overflows_target_max();
+	            } else {
+	                if (static_cast<unsigned long long>(val) > static_cast<unsigned long long>(aint_max<Target>))
+	                { detail::lit_overflows_target_max(); }
+	            }
+	        }
+	
+	        return static_cast<Target>(val);
+	    }
+	
+	    template <Aint Target>
+	    constexpr auto aint_saturating_cast(auto val) noexcept -> Target
+	    {
+	        using V = decltype(val);
+	        constexpr auto v_signed = Sint<decltype(val)>;
+	        constexpr auto t_signed = Sint<Target>;
+	
+	        if constexpr (v_signed && !t_signed) {
+	            if (val < V{0}) { return aint_min<Target>; }
+	            if constexpr (sizeof(V) > sizeof(Target)) {
+	                if (val > static_cast<V>(aint_max<Target>)) { return aint_max<Target>; }
+	            }
+	        } else if constexpr (!v_signed && t_signed) {
+	            if constexpr (sizeof(V) >= sizeof(Target)) {
+	                if (val > static_cast<V>(aint_max<Target>)) { return aint_max<Target>; }
+	            }
+	        } else {
+	            if (val > static_cast<V>(aint_max<Target>)) { return aint_max<Target>; }
+	            if (val < static_cast<V>(aint_min<Target>)) { return aint_min<Target>; }
+	        }
+	        return static_cast<Target>(val);
+	    }
+	}
+
+#pragma endregion "rawr/lib/integer/base.hpp"
+
+/* required by:
+	- rawr/abi/sysv/ctx.hpp
+	- rawr/abi/win64/ctx.hpp
+	- rawr/arch/x64/atomic.hpp
+	- rawr/arch/x64/cpuid.hpp
+	- rawr/arch/x64/simd.hpp
+	- rawr/lib/detection.hpp
+	- rawr/lib/hash/fnv1a.hpp
+	- rawr/lib/integer.hpp
+	- rawr/lib/integer/strong.hpp
+	- rawr/lib/intrin/math.hpp
+	- rawr/lib/intrin/mem.hpp
+	- rawr/lib/simd/storage.hpp
+	- rawr/lib/sync/base.hpp
+	- rawr/lib/test.hpp
+	- rawr/platform/linux.hpp
+	- rawr/san/asan.hpp
+	- rawr/san/msan.hpp
+*/
+#pragma region "rawr/lib/integer/raw.hpp"
+	#ifndef RAWR_NO_SOURCE_MAPPING
+	    #line 3 "rawr/lib/integer/raw.hpp"
+	#endif
+	
+	#ifdef RAWR_MODULE
+	    //RAWR_AMALGAM_IGNORE export module rawr.lib.integer.raw;
+	    import rawr.lib.integer.base;
+	    import rawr.lib.bits;
+	
+	    //RAWR_AMALGAM_IGNORE #include "rawr/lib/dist/module.pp"
+	#else
+	    //RAWR_AMALGAM_IGNORE #pragma once
+	    //RAWR_AMALGAM_IGNORE #include "rawr/lib/integer/base.hpp"
+	    //RAWR_AMALGAM_IGNORE #include "rawr/lib/bits.hpp"
+	
+	    //RAWR_AMALGAM_IGNORE #include "rawr/lib/dist/header.pp"
+	#endif
+	//RAWR_AMALGAM_IGNORE #include "rawr/lib/detection.pp"
+	
+	// Just in case you need the actual underlying type aliases. Prefer the strong
+	// wrapped versions instead.
+	RAWR_EXPORT namespace rawr::inline lib::inline integer::inline raw
+	{
+	    using ru8   = ruint_exact<biw8>;   using rs8   = rsint_exact<biw8>;
+	    using ru16  = ruint_exact<biw16>;  using rs16  = rsint_exact<biw16>;
+	    using ru32  = ruint_exact<biw32>;  using rs32  = rsint_exact<biw32>;
+	    using ru64  = ruint_exact<biw64>;  using rs64  = rsint_exact<biw64>;
+	    using rf32  = rfloat_exact<biw32>; using rf64  = rfloat_exact<biw64>;
+	
+	    #if RAWR_HAS_INT128
+	        using ru128 = ruint_exact<biw128>; using rs128 = rsint_exact<biw128>;
+	    #endif
+	
+	    // Our very own free-range std::size_t.
+	    using rst  = decltype(sizeof(0));
+	    // Corresponds to std::intptr_t.
+	    using ript = decltype(static_cast<char*>(nullptr) - static_cast<char*>(nullptr));
+	    // Corresponds to std::uintptr_t.
+	    using rupt = ruint_exact<bitsof<ript>>;
+	
+	    inline namespace literals
+	    {
+	        constexpr auto operator""_ru8(unsigned long long val)  noexcept { return static_cast<ru8>(val);  }
+	        constexpr auto operator""_ru16(unsigned long long val) noexcept { return static_cast<ru16>(val); }
+	        constexpr auto operator""_ru32(unsigned long long val) noexcept { return static_cast<ru32>(val); }
+	        constexpr auto operator""_ru64(unsigned long long val) noexcept { return static_cast<ru64>(val); }
+	        constexpr auto operator""_rs8(unsigned long long val)  noexcept { return static_cast<rs8>(val);  }
+	        constexpr auto operator""_rs16(unsigned long long val) noexcept { return static_cast<rs16>(val); }
+	        constexpr auto operator""_rs32(unsigned long long val) noexcept { return static_cast<rs32>(val); }
+	        constexpr auto operator""_rs64(unsigned long long val) noexcept { return static_cast<rs64>(val); }
+	        constexpr auto operator""_rst(unsigned long long val)  noexcept { return static_cast<rst>(val);  }
+	        constexpr auto operator""_ript(unsigned long long val) noexcept { return static_cast<ript>(val); }
+	        constexpr auto operator""_rupt(unsigned long long val) noexcept { return static_cast<rupt>(val); }
+	    }
+	}
+
+#pragma endregion "rawr/lib/integer/raw.hpp"
 
 /* required by:
 	- rawr/abi/sysv/ctx.hpp
@@ -2399,94 +2591,6 @@
 	}
 
 #pragma endregion "rawr/lib/detection.hpp"
-
-/* required by:
-	- rawr/abi/sysv/ctx.hpp
-	- rawr/abi/sysv/main.pp
-	- rawr/abi/win64/main.pp
-	- rawr/arch/x64/atomic.hpp
-	- rawr/arch/x64/cpuid.hpp
-	- rawr/arch/x64/simd.hpp
-	- rawr/bin/elf.hpp
-	- rawr/cxx_abi/itanium.hpp
-	- rawr/lib.hpp
-	- rawr/lib/compiler.pp
-	- rawr/lib/diag/dwarf.hpp
-	- rawr/lib/intrin/base.hpp
-	- rawr/lib/intrin/math.hpp
-	- rawr/lib/intrin/mem.hpp
-	- rawr/platform/linux.hpp
-	- rawr/san/attributes.pp
-*/
-#pragma region "rawr/lib/attributes.pp"
-	#ifndef RAWR_NO_SOURCE_MAPPING
-	    #line 3 "rawr/lib/attributes.pp"
-	#endif
-	// The macros in this file are defined as the lower level constructs
-	// directly instead of defining, say, RAWR_FLATTEN as RAWR_ATTIBUTE(flatten),
-	// so that theres less expansions and more consistent and readable errors.
-	// No one likes macro expansion puke.
-	//RAWR_AMALGAM_IGNORE #pragma once
-	
-	//RAWR_AMALGAM_IGNORE #include "rawr/lib/detection.pp"
-	
-	#define RAWR_RAW_PRAGMA(x) _Pragma(#x)
-	// Clang-cl and mingw support __declspec, if you want to use
-	// it, here it is. These are the escape hatches for special cases.
-	// Note that:
-	//     RAWR_DECLSPEC  = __declspec    -> Only defined on MSVC
-	//     RAWR_ATTRIBUTE = __attribute__ -> Only defined outside of MSVC.
-	// While these (RAWR_RAW_) are always defined any may expand into invalid things
-	// if you don't know what you're doing.
-	#define RAWR_RAW_DECLSPEC(x)  __declspec(x)
-	#define RAWR_RAW_ATTRIBUTE(x) __attribute__((x))
-	
-	#if RAWR_COMPILER_MSVC
-	    #define RAWR_DECLSPEC(x)   __declspec(x)
-	    #define RAWR_ATTRIBUTE(x)
-	    #define RAWR_PRAGMA(x)     __pragma(x) // Can use __pragma directly without stringification.
-	
-	    #define RAWR_UNREACHABLE   __assume(false)
-	    #define RAWR_NORETURN      __declspec(noreturn)
-	    #define RAWR_HIDDEN
-	    #define RAWR_ALWAYS_INLINE __forceinline
-	    #define RAWR_FLATTEN       // no MSVC equivalent — accept the cost
-	    #define RAWR_NAKED         // not supported on x64 MSVC at all
-	    #define RAWR_WEAK
-	
-	    #define RAWR_ASM(...)
-	    #define RAWR_ASMV(...)
-	    // /alternatename is the MSVC linker-level symbol alias mechanism.
-	    // Usage: RAWR_ASM("target") on the declaration,
-	    //        then RAWR_ALTERNATENAME("cname", "target") at namespace scope.
-	    #define RAWR_ALTERNATENAME(from, to) __pragma(comment(linker, "/alternatename:" from "=" to))
-	#else
-	    #define RAWR_DECLSPEC(x)
-	    #define RAWR_ATTRIBUTE(x)  __attribute__((x))
-	    #define RAWR_PRAGMA(x)     RAWR_RAW_PRAGMA(x) // Needs deffered resolution.
-	
-	    #define RAWR_UNREACHABLE   __builtin_unreachable()
-	    #define RAWR_NORETURN      __attribute__((noreturn))
-	    #define RAWR_HIDDEN        __attribute__((visibility("hidden")))
-	    #define RAWR_ALWAYS_INLINE __attribute__((always_inline)) inline
-	    #define RAWR_FLATTEN       __attribute__((flatten))
-	    #define RAWR_NAKED         __attribute__((naked))
-	    #define RAWR_WEAK          __attribute__((weak))
-	
-	    #define RAWR_ASM(...)  __asm__(__VA_ARGS__)
-	    #define RAWR_ASMV(...) __asm__ volatile(__VA_ARGS__)
-	    #define RAWR_ALTERNATENAME(from, to)
-	#endif
-	
-	#if RAWR_COMPILER_CLANG
-	    #define RAWR_ASSUME(cond) __builtin_assume(cond)
-	#elif RAWR_COMPILER_GCC
-	    #define RAWR_ASSUME(cond) do { if (!(cond)) __builtin_unreachable(); } while(0)
-	#elif RAWR_COMPILER_MSVC
-	    #define RAWR_ASSUME(cond) __assume(cond)
-	#endif
-
-#pragma endregion "rawr/lib/attributes.pp"
 
 /* required by:
 	- rawr/abi/sysv.hpp
@@ -3154,94 +3258,6 @@
 	}
 
 #pragma endregion "rawr/lib/sync/base.hpp"
-
-/* required by:
-	- rawr/arch/x64/atomic.hpp
-	- rawr/arch/x64/cpuid.hpp
-	- rawr/arch/x64/simd.hpp
-	- rawr/lib.hpp
-	- rawr/lib/intrin/base.hpp
-	- rawr/lib/intrin/math.hpp
-	- rawr/lib/intrin/mem.hpp
-	- rawr/lib/test.hpp
-	- rawr/lib/typing.hpp
-*/
-#pragma region "rawr/lib/compiler.pp"
-	#ifndef RAWR_NO_SOURCE_MAPPING
-	    #line 3 "rawr/lib/compiler.pp"
-	#endif
-	// Macro utilities for ergonomic compiler gating.
-	//RAWR_AMALGAM_IGNORE #pragma once
-	
-	//RAWR_AMALGAM_IGNORE #include "rawr/lib/detection.pp"
-	//RAWR_AMALGAM_IGNORE #include "rawr/lib/attributes.pp"
-	//RAWR_AMALGAM_IGNORE #include "rawr/lib/pp.pp"
-	
-	#if RAWR_COMPILER_MSVC
-	    #define RAWR_MSVC(...)                    __VA_ARGS__
-	    #define RAWR_NOT_MSVC(...)
-	    #define RAWR_MSVC_ELSE(MSVC, NotMSVC)     MSVC
-	    #define RAWR_MSVC_AND(Cond, ...)          RAWR_PP_WHEN(Cond, __VA_ARGS__)
-	    #define RAWR_MSVC_PRAGMA(...)             __pragma(__VA_ARGS__)
-	
-	    #define RAWR_MSVC_INTRIN(Cond, Name, ...) \
-	        RAWR_PP_IF(Cond, \
-	            extern "C" { auto Name __VA_ARGS__; } __pragma(intrinsic(Name)), \
-	                         auto Name __VA_ARGS__ \
-	        )
-	#else
-	    #define RAWR_MSVC(...)
-	    #define RAWR_NOT_MSVC(...)                __VA_ARGS__
-	    #define RAWR_MSVC_ELSE(MSVC, NotMSVC)     NotMSVC
-	    #define RAWR_MSVC_AND(Cond, ...)
-	    #define RAWR_MSVC_PRAGMA(...)
-	
-	    #define RAWR_MSVC_INTRIN(Cond, Name, ...) auto Name __VA_ARGS__
-	#endif
-	
-	#if RAWR_COMPILER_FAMILY_GNU
-	    #define RAWR_GNU(...)              __VA_ARGS__
-	    #define RAWR_NOT_GNU(...)
-	    #define RAWR_GNU_ELSE(GNU, NotGNU) GNU
-	    #define RAWR_GNU_AND(Cond, ...)    RAWR_PP_WHEN(Cond, __VA_ARGS__)
-	    #define RAWR_GNU_PRAGMA(...)       RAWR_RAW_PRAGMA(__VA_ARGS__)
-	#else
-	    #define RAWR_GNU(...)
-	    #define RAWR_NOT_GNU(...)          __VA_ARGS__
-	    #define RAWR_GNU_ELSE(GNU, NotGNU) NotGnu
-	    #define RAWR_GNU_AND(Cond, ...)
-	    #define RAWR_GNU_PRAGMA(...)
-	#endif
-	
-	#if RAWR_COMPILER_CLANG
-	    #define RAWR_CLANG(...)                  __VA_ARGS__
-	    #define RAWR_NOT_CLANG(...)
-	    #define RAWR_CLANG_ELSE(Clang, NotClang) Clang
-	    #define RAWR_CLANG_AND(Cond, ...)        RAWR_PP_WHEN(Cond, __VA_ARGS__)
-	    #define RAWR_CLANG_PRAGMA(...)           RAWR_RAW_PRAGMA(__VA_ARGS__)
-	#else
-	    #define RAWR_CLANG(...)
-	    #define RAWR_NOT_CLANG(...)              __VA_ARGS__
-	    #define RAWR_CLANG_ELSE(Clang, NotClang) NotClang
-	    #define RAWR_CLANG_AND(Cond, ...)
-	    #define RAWR_CLANG_PRAGMA(...)
-	#endif
-	
-	#if RAWR_COMPILER_GCC
-	    #define RAWR_GCC(...)              __VA_ARGS__
-	    #define RAWR_NOT_GCC(...)
-	    #define RAWR_GCC_ELSE(GCC, NotGCC) GCC
-	    #define RAWR_GCC_AND(Cond, ...)    RAWR_PP_WHEN(Cond, __VA_ARGS__)
-	    #define RAWR_GCC_PRAGMA(...)       RAWR_RAW_PRAGMA(__VA_ARGS__)
-	#else
-	    #define RAWR_GCC(...)
-	    #define RAWR_NOT_GCC(...)          __VA_ARGS__
-	    #define RAWR_GCC_ELSE(GCC, NotGCC) NotGCC
-	    #define RAWR_GCC_AND(Cond, ...)
-	    #define RAWR_GCC_PRAGMA(...)
-	#endif
-
-#pragma endregion "rawr/lib/compiler.pp"
 
 /* required by:
 	- rawr/arch/x64.hpp
@@ -4247,6 +4263,152 @@
 /* required by:
 	- rawr/lib/intrin.hpp
 */
+#pragma region "rawr/lib/intrin/construct_at.hpp"
+	#ifndef RAWR_NO_SOURCE_MAPPING
+	    #line 3 "rawr/lib/intrin/construct_at.hpp"
+	#endif
+	// In this file you will witness evil, you will also witness great hacky engineering,
+	// magic enchantations, forbidden runes and funny comments.
+	// I don't think I need to tell you this whole file is UB by standard, but works
+	// on a per-compiler basis.
+	// Behold.
+	
+	#ifdef RAWR_MODULE
+	    //RAWR_AMALGAM_IGNORE export module rawr.lib.intrin.construct_at;
+	
+	    //RAWR_AMALGAM_IGNORE #include "rawr/lib/dist/module.pp"
+	#else
+	    //RAWR_AMALGAM_IGNORE #pragma once
+	
+	    //RAWR_AMALGAM_IGNORE #include "rawr/lib/dist/header.pp"
+	#endif
+	//RAWR_AMALGAM_IGNORE #include "rawr/lib/detection.pp"
+	//RAWR_AMALGAM_IGNORE #include "rawr/lib/compiler.pp"
+	
+	namespace rawr::inline lib::construct_at_detail
+	{
+	    // What this is about to be used for defies all that is good in the world, therefore
+	    // you must explictly request it's invocation unto this plane.
+	    struct unholy_override_tag { explicit constexpr unholy_override_tag() = default; };
+	}
+	
+	// Clang treats anything that kinda smells like std::construct_at with an internal
+	// constexpr blessing. std::rawr::construct_at apparently applies for old clang.
+	// This is all sorts of nasty but i kinda like it.
+	#if RAWR_COMPILER_CLANG
+	    void* operator new(decltype(sizeof(0)), void* p) noexcept;
+	
+	    namespace std::rawr
+	    {
+	        template<class T, class... Args>
+	        constexpr T* construct_at(T* p, Args&&... args)
+	        {
+	            return ::new (const_cast<void*>(static_cast<const volatile void*>(p)))
+	                T(static_cast<Args&&>(args)...);
+	        }
+	    }
+	#endif
+	
+	// GCC is a little stricter, it needs to be spelled exactly std::construct_at.
+	// ...
+	// They don't check the args.
+	// ...
+	// This is even nastier, we are overloading the std::construct_at with a tag-dispatched
+	// version. There is no God here.
+	//
+	// Don't think this is the last you'll see of this technique, old foes usually come
+	// back in stranger and more bizarre forms.
+	#if RAWR_COMPILER_GCC
+	    void* operator new(decltype(sizeof(0)), void* p) noexcept;
+	
+	    namespace std
+	    {
+	        template <class T, class... Args>
+	        constexpr T* construct_at(
+	            [[maybe_unused]] rawr::lib::construct_at_detail::unholy_override_tag Tag,
+	            T* ptr,
+	            Args&&... args
+	        )
+	        { return ::new (const_cast<void*>(static_cast<const volatile void*>(ptr))) T(static_cast<Args&&>(args)...); }
+	    }
+	#endif
+	
+	// You know the drill by now.
+	// ...
+	// Except not quite
+	// ...
+	// GCC and Clang don't need the tag in operator new since placement new is also blessed there.
+	// Plus we don't actually define operator new, just declare it - so no ODR issues.
+	//
+	// Since we need to define operator new in MSVC with the blessing, we inject the tag
+	// to avoid confusion with the one declared in <new>.
+	//
+	// These days MSVC's construct_at is just a plain old function that calls it with the holy [[msvc::constexpr]]
+	// attribute bestowed upon us mortals in MSVC 19.33 (VS17.3).
+	#if RAWR_COMPILER_MSVC && _MSC_VER >= 1933
+	    [[nodiscard]]
+	    [[msvc::constexpr]]
+	    inline void* __cdecl operator new(
+	        decltype(sizeof(void*)),
+	        rawr::lib::construct_at_detail::unholy_override_tag,
+	        void* p
+	    ) noexcept { return p; }
+	#endif
+	
+	// And just when you've though you've seen it all
+	// ...
+	// Older MSVC can *also* be supported, but it requires yet *another* hack, as MSVCs old blessing
+	// mechanism properly checks namespaces, function names and also checks parameters.
+	// ...
+	// I'm sure you can guess what's coming next: Tag dispatching via template parameters!
+	#if RAWR_COMPILER_MSVC && _MSC_VER < 1933
+	    namespace std
+	    {
+	        template <
+	            rawr::lib::construct_at_detail::unholy_override_tag Tag,
+	            typename T,
+	            typename... Args
+	        >
+	        constexpr T* construct_at(T* const ptr, Args&&... args)
+	        { return ::new (const_cast<void*>(static_cast<const volatile void*>(ptr))) T(args...); }
+	    }
+	#endif
+	
+	RAWR_EXPORT namespace rawr::inline lib::intrin
+	{
+	    template <typename T, typename... Args>
+	    constexpr T* construct_at(T* ptr, Args&&... args)
+	        noexcept(noexcept(T(static_cast<Args&&>(args)...)))
+	    {
+	        #if RAWR_COMPILER_GCC
+	            return std::construct_at(
+	                rawr::lib::construct_at_detail::unholy_override_tag{},
+	                ptr,
+	                static_cast<Args&&>(args)...
+	            );
+	        #elif RAWR_COMPILER_CLANG
+	            return std::rawr::construct_at(ptr, static_cast<Args&&>(args)...);
+	        #elif RAWR_COMPILER_MSVC && _MSC_VER >= 1933
+	            [[msvc::constexpr]] return ::new (
+	                rawr::lib::construct_at_detail::unholy_override_tag{},
+	                static_cast<void*>(ptr)
+	            ) T(static_cast<Args&&>(args)...);
+	        #elif RAWR_COMPILER_MSVC && _MSC_VER < 1933
+	            return std::construct_at<
+	                rawr::lib::construct_at_detail::unholy_override_tag{}
+	            >(
+	                ptr,
+	                static_cast<Args&&>(args)...
+	            );
+	        #endif
+	    }
+	}
+
+#pragma endregion "rawr/lib/intrin/construct_at.hpp"
+
+/* required by:
+	- rawr/lib/intrin.hpp
+*/
 #pragma region "rawr/lib/intrin/math.hpp"
 	#ifndef RAWR_NO_SOURCE_MAPPING
 	    #line 3 "rawr/lib/intrin/math.hpp"
@@ -5076,11 +5238,13 @@
 	#ifdef RAWR_MODULE
 	    //RAWR_AMALGAM_IGNORE export module rawr.lib.intrin;
 	    export import rawr.lib.intrin.base;
+	    export import rawr.lib.intrin.construct_at;
 	    export import rawr.lib.intrin.math;
 	    export import rawr.lib.intrin.mem;
 	#else
 	    //RAWR_AMALGAM_IGNORE #pragma once
 	    //RAWR_AMALGAM_IGNORE #include "rawr/lib/intrin/base.hpp"
+	    //RAWR_AMALGAM_IGNORE #include "rawr/lib/intrin/construct_at.hpp"
 	    //RAWR_AMALGAM_IGNORE #include "rawr/lib/intrin/math.hpp"
 	    //RAWR_AMALGAM_IGNORE #include "rawr/lib/intrin/mem.hpp"
 	#endif
@@ -7329,8 +7493,7 @@
 	//     {
 	//         struct section_entry { ... };
 	//         RAWR_LINKER_SECTION_DEFINE(rawr_lib_test_section, section, section_entry)
-	//         #define RAWR_REGISTER_TEST(Test) \
-	//             RAWR_LINKER_SECTION_REGISTER(rawr_lib_test_section, ::rawr::lib::test::section, Test)
+	//         #define RAWR_REGISTER_TEST(Test) RAWR_LINKER_SECTION_REGISTER(rawr_lib_test_section, ::rawr::lib::test::section, Test)
 	//     }
 	//
 	// Its also best practice to define a section in a namespace and not in the global
@@ -8432,9 +8595,11 @@
 	        using reg_t = rs64;
 	        using fd_t  = rs32;
 	
-	        constexpr fd_t stdin  = 0;
-	        constexpr fd_t stdout = 1;
-	        constexpr fd_t stderr = 2;
+	        // fd_* since some MSVC headers apparently define macros stdin, stdout, stderr.
+	        // MSVC, forever the ugly duckling.
+	        constexpr fd_t fd_stdin  = 0;
+	        constexpr fd_t fd_stdout = 1;
+	        constexpr fd_t fd_stderr = 2;
 	
 	        constexpr char const* syscall_register = "rax";
 	        constexpr char const* return_register  = "rax";
