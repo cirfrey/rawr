@@ -111,7 +111,7 @@ time and ease of use are made with that target
 Compilation times are expected to be very slow compared when not using modules,
 unless you invest into a precompiled header system.
 
-In fact, you can test rawr directly in [Godbolt](https://godbolt.org/z/KPbP944KM)
+In fact, you can test rawr directly in [Godbolt](https://godbolt.org/z/93KMGrfjY)
 using the amalgam. Again, don't expect fast compilation times.
 
 ```cpp
@@ -120,7 +120,7 @@ using the amalgam. Again, don't expect fast compilation times.
 RAWR_MAIN_NOCTX
 {
     namespace plat = rawr::platform::linux::x64;
-    plat::syscall::write(plat::stdout, "Howdy, world!").discard();
+    plat::syscall::write(plat::fd_stdout, "Howdy, world!").discard();
     plat::syscall::exit(0);
 }
 ```
