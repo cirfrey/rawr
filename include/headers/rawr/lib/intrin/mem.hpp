@@ -48,6 +48,8 @@ RAWR_EXPORT namespace rawr::inline lib::intrin::inline mem
 {
     namespace soft
     {
+        auto memcpy_unimplemented_err() -> void;
+
         template <typename Dst, typename Src>
         constexpr auto memcpy(Dst* dst, Src const* src, rst bytes) noexcept -> Dst*
         {
@@ -62,7 +64,9 @@ RAWR_EXPORT namespace rawr::inline lib::intrin::inline mem
                 }
             }
 
+            memcpy_unimplemented_err();
             RAWR_TODO("Unimplemented. Implement")
+
             return dst;
         }
 

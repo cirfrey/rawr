@@ -3475,6 +3475,7 @@
 /* required by:
 	- rawr/lib/bitfield.hpp
 	- rawr/lib/intrin.hpp
+	- rawr/lib/intrin/construct_at.hpp
 	- rawr/lib/intrin/math.hpp
 	- rawr/lib/intrin/mem.hpp
 	- rawr/lib/typing.hpp
@@ -3546,9 +3547,17 @@
 	    template <typename T> concept Empty = __is_empty(T);
 	    template <typename T> concept Union = __is_union(T);
 	
+	    template <
+	        typename T,
+	        typename... Args
+	    >                     concept Constructible        = __is_constructible(T, Args...);
 	    template <typename T> concept DefaultConstructible = __is_constructible(T);
 	    template <typename T> concept CopyConstructible    = __is_constructible(T, const T&);
 	    template <typename T> concept MoveConstructible    = __is_constructible(T, T&&);
+	    template <
+	        typename T,
+	        typename... Args
+	    >                     concept Assignable           = __is_assignable(T&, Args...);
 	    template <typename T> concept CopyAssignable       = __is_assignable(T&, const T&);
 	    template <typename T> concept MoveAssignable       = __is_assignable(T&, T&&);
 	    template <typename T> concept Destructible         =
@@ -3560,9 +3569,17 @@
 	            requires { declval<T&>().~T(); };
 	        #endif
 	
+	    template <
+	        typename T,
+	        typename... Args
+	    >                     concept TriviallyConstructible        = __is_trivially_constructible(T, Args...);
 	    template <typename T> concept TriviallyDefaultConstructible = __is_trivially_constructible(T);
 	    template <typename T> concept TriviallyCopyConstructible    = __is_trivially_constructible(T, const T&);
 	    template <typename T> concept TriviallyMoveConstructible    = __is_trivially_constructible(T, T&&);
+	    template <
+	        typename T,
+	        typename... Args
+	    >                     concept TriviallyAssignable           = __is_trivially_assignable(T&, Args...);
 	    template <typename T> concept TriviallyCopyAssignable       = __is_trivially_assignable(T&, const T&);
 	    template <typename T> concept TriviallyMoveAssignable       = __is_trivially_assignable(T&, T&&);
 	    template <typename T> concept TriviallyDestructible         =
@@ -3572,9 +3589,17 @@
 	            Destructible<T> && __has_trivial_destructor(T);
 	        #endif
 	
+	    template <
+	        typename T,
+	        typename... Args
+	    >                     concept NoThrowConstructible        = __is_nothrow_constructible(T, Args...);
 	    template <typename T> concept NoThrowDefaultConstructible = __is_nothrow_constructible(T);
 	    template <typename T> concept NoThrowCopyConstructible    = __is_nothrow_constructible(T, const T&);
 	    template <typename T> concept NoThrowMoveConstructible    = __is_nothrow_constructible(T, T&&);
+	        template <
+	        typename T,
+	        typename... Args
+	    >                     concept NoThrowAssignable           = __is_nothrow_assignable(T&, Args...);
 	    template <typename T> concept NoThrowCopyAssignable       = __is_nothrow_assignable(T&, const T&);
 	    template <typename T> concept NoThrowMoveAssignable       = __is_nothrow_assignable(T&, T&&);
 	    template <typename T> concept NoThrowDestructible         =
@@ -4275,10 +4300,12 @@
 	
 	#ifdef RAWR_MODULE
 	    //RAWR_AMALGAM_IGNORE export module rawr.lib.intrin.construct_at;
+	    import rawr.lib.intrin.base;
 	
 	    //RAWR_AMALGAM_IGNORE #include "rawr/lib/dist/module.pp"
 	#else
 	    //RAWR_AMALGAM_IGNORE #pragma once
+	    //RAWR_AMALGAM_IGNORE #include "rawr/lib/intrin/base.hpp"
 	
 	    //RAWR_AMALGAM_IGNORE #include "rawr/lib/dist/header.pp"
 	#endif
@@ -4319,7 +4346,12 @@
 	// Don't think this is the last you'll see of this technique, old foes usually come
 	// back in stranger and more bizarre forms.
 	#if RAWR_COMPILER_GCC
-	    void* operator new(decltype(sizeof(0)), void* p) noexcept;
+	    constexpr void* operator new(
+	        decltype(sizeof(0)),
+	        [[maybe_unused]] rawr::lib::construct_at_detail::unholy_override_tag Tag,
+	        void* p
+	    ) noexcept
+	    { return p; }
 	
 	    namespace std
 	    {
@@ -4329,7 +4361,7 @@
 	            T* ptr,
 	            Args&&... args
 	        )
-	        { return ::new (const_cast<void*>(static_cast<const volatile void*>(ptr))) T(static_cast<Args&&>(args)...); }
+	        { return ::new (Tag, const_cast<void*>(static_cast<const volatile void*>(ptr))) T(static_cast<Args&&>(args)...); }
 	    }
 	#endif
 	
@@ -4376,9 +4408,14 @@
 	
 	RAWR_EXPORT namespace rawr::inline lib::intrin
 	{
+	    // TODO: This is naiively forwarding args.
+	    //       Should it be std::forward'ing?
+	    //       Typing needs to play a hand here probably.
+	    //       Do we want this be compatible with && types and semantics?
 	    template <typename T, typename... Args>
 	    constexpr T* construct_at(T* ptr, Args&&... args)
-	        noexcept(noexcept(T(static_cast<Args&&>(args)...)))
+	    noexcept(noexcept(intrin::NoThrowConstructible<T, Args...>))
+	    requires(intrin::Constructible<T, Args...>)
 	    {
 	        #if RAWR_COMPILER_GCC
 	            return std::construct_at(
@@ -8119,21 +8156,27 @@
 	    using intrin::Empty;
 	    using intrin::Union;
 	
+	    using intrin::Constructible;
 	    using intrin::DefaultConstructible;
 	    using intrin::CopyConstructible;
 	    using intrin::MoveConstructible;
+	    using intrin::Assignable;
 	    using intrin::CopyAssignable;
 	    using intrin::MoveAssignable;
 	    using intrin::Destructible;
+	    using intrin::TriviallyConstructible;
 	    using intrin::TriviallyDefaultConstructible;
 	    using intrin::TriviallyCopyConstructible;
 	    using intrin::TriviallyMoveConstructible;
+	    using intrin::TriviallyAssignable;
 	    using intrin::TriviallyCopyAssignable;
 	    using intrin::TriviallyMoveAssignable;
 	    using intrin::TriviallyDestructible;
+	    using intrin::NoThrowConstructible;
 	    using intrin::NoThrowDefaultConstructible;
 	    using intrin::NoThrowCopyConstructible;
 	    using intrin::NoThrowMoveConstructible;
+	    using intrin::NoThrowAssignable;
 	    using intrin::NoThrowCopyAssignable;
 	    using intrin::NoThrowMoveAssignable;
 	    using intrin::NoThrowDestructible;
@@ -8368,7 +8411,7 @@
 	        {                                                                                                 \
 	            static constexpr auto name()       -> char const* { return #Name; }                           \
 	            static constexpr auto name_size()                 { char n[] = #Name; return sizeof(n) - 1; } \
-	                constexpr auto run_checks() -> void;                                                      \
+	                             auto run_checks() -> void;                                                   \
 	        };                                                                                                \
 	    }                                                                                                     \
 	    RAWR_LINKER_SECTION_REGISTER(rawr_lib_test_section, ::rawr::lib::test::section, {                     \
@@ -8378,7 +8421,7 @@
 	    /* This function is defined out-of-line so that the source location actually properly reflects */     \
 	    /* the file lines, as it would point to the beggining of the macro if the function body was    */     \
 	    /* just __VA_ARGS__ expanded after run_checks().                                               */     \
-	    constexpr auto RAWR_TEST_CONCAT(rawr_normal_test_, Counter)::run_checks() -> void
+	    auto RAWR_TEST_CONCAT(rawr_normal_test_, Counter)::run_checks() -> void
 	
 	#define RAWR_TEST_CONCAT_(a, b) a##b
 	#define RAWR_TEST_CONCAT(a, b) RAWR_TEST_CONCAT_(a, b)

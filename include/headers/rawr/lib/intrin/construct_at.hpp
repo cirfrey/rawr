@@ -9,10 +9,12 @@
 
 #ifdef RAWR_MODULE
     export module rawr.lib.intrin.construct_at;
+    import rawr.lib.intrin.base;
 
     #include "rawr/lib/dist/module.pp"
 #else
     #pragma once
+    #include "rawr/lib/intrin/base.hpp"
 
     #include "rawr/lib/dist/header.pp"
 #endif
@@ -53,7 +55,12 @@ namespace rawr::inline lib::construct_at_detail
 // Don't think this is the last you'll see of this technique, old foes usually come
 // back in stranger and more bizarre forms.
 #if RAWR_COMPILER_GCC
-    void* operator new(decltype(sizeof(0)), void* p) noexcept;
+    constexpr void* operator new(
+        decltype(sizeof(0)),
+        [[maybe_unused]] rawr::lib::construct_at_detail::unholy_override_tag Tag,
+        void* p
+    ) noexcept
+    { return p; }
 
     namespace std
     {
@@ -63,7 +70,7 @@ namespace rawr::inline lib::construct_at_detail
             T* ptr,
             Args&&... args
         )
-        { return ::new (const_cast<void*>(static_cast<const volatile void*>(ptr))) T(static_cast<Args&&>(args)...); }
+        { return ::new (Tag, const_cast<void*>(static_cast<const volatile void*>(ptr))) T(static_cast<Args&&>(args)...); }
     }
 #endif
 
@@ -110,9 +117,14 @@ namespace rawr::inline lib::construct_at_detail
 
 RAWR_EXPORT namespace rawr::inline lib::intrin
 {
+    // TODO: This is naiively forwarding args.
+    //       Should it be std::forward'ing?
+    //       Typing needs to play a hand here probably.
+    //       Do we want this be compatible with && types and semantics?
     template <typename T, typename... Args>
     constexpr T* construct_at(T* ptr, Args&&... args)
-        noexcept(noexcept(T(static_cast<Args&&>(args)...)))
+    noexcept(intrin::NoThrowConstructible<T, Args...>)
+    requires(intrin::Constructible<T, Args...>)
     {
         #if RAWR_COMPILER_GCC
             return std::construct_at(

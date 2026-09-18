@@ -4,7 +4,8 @@ test_groups = {
     'lib.test' : {
         'files': files('lib/test/checks.cpp', 'lib/test/checks2.cpp'),
         'runner': files('lib/test/runner.cpp'), # Requires a special runner.
-    }
+    },
+    'lib.intrin.construct_at': { 'files': files('lib/intrin/construct_at/checks.cpp') }
 }
 
 foreach name, group : test_groups

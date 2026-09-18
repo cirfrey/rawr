@@ -201,17 +201,17 @@ RAWR_MAIN_NOCTX
         }();
 
         if (!m) {
-            syscall::write(stdout, "unexpected: \"").discard();
-            syscall::write(stdout, suite_info.name, suite_info.name_size).discard();
-            syscall::write(stdout, "\"\n").discard();
+            syscall::write(fd_stdout, "unexpected: \"").discard();
+            syscall::write(fd_stdout, suite_info.name, suite_info.name_size).discard();
+            syscall::write(fd_stdout, "\"\n").discard();
             if (status == status_type::ok) status = status_type::unexpected_test;
             continue;
         }
 
         if (m->executed) {
-            syscall::write(stdout, "duplicated: \"").discard();
-            syscall::write(stdout, suite_info.name, suite_info.name_size).discard();
-            syscall::write(stdout, "\"\n").discard();
+            syscall::write(fd_stdout, "duplicated: \"").discard();
+            syscall::write(fd_stdout, suite_info.name, suite_info.name_size).discard();
+            syscall::write(fd_stdout, "\"\n").discard();
             if (status == status_type::ok) status = status_type::duplicated_test;
             continue;
         }
@@ -234,9 +234,9 @@ RAWR_MAIN_NOCTX
         // ── Count ─────────────────────────────────────────────────────────────
 
         if (m->observed_idx != m->expected_count) {
-            syscall::write(stdout, "count mismatch: ").discard();
-            syscall::write(stdout, suite_info.name, suite_info.name_size).discard();
-            syscall::write(stdout, "\n").discard();
+            syscall::write(fd_stdout, "count mismatch: ").discard();
+            syscall::write(fd_stdout, suite_info.name, suite_info.name_size).discard();
+            syscall::write(fd_stdout, "\n").discard();
             if (status == status_type::ok) status = status_type::check_count_mismatch;
         }
 
@@ -253,23 +253,23 @@ RAWR_MAIN_NOCTX
             auto const& exp = m->expected[i];
 
             if (obs.cond != exp.cond) {
-                syscall::write(stdout, "cond mismatch: ").discard();
-                syscall::write(stdout, suite_info.name, suite_info.name_size).discard();
-                syscall::write(stdout, "\n").discard();
+                syscall::write(fd_stdout, "cond mismatch: ").discard();
+                syscall::write(fd_stdout, suite_info.name, suite_info.name_size).discard();
+                syscall::write(fd_stdout, "\n").discard();
                 if (status == status_type::ok) status = status_type::check_cond_mismatch;
             }
 
             if (!streq(obs.expr, exp.expr)) {
-                syscall::write(stdout, "expr mismatch: ").discard();
-                syscall::write(stdout, suite_info.name, suite_info.name_size).discard();
-                syscall::write(stdout, "\n").discard();
+                syscall::write(fd_stdout, "expr mismatch: ").discard();
+                syscall::write(fd_stdout, suite_info.name, suite_info.name_size).discard();
+                syscall::write(fd_stdout, "\n").discard();
                 if (status == status_type::ok) status = status_type::check_expr_mismatch;
             }
 
             if (!obs.loc_file || obs.loc_file[0] == '\0' || obs.loc_line == 0u) {
-                syscall::write(stdout, "loc invalid: ").discard();
-                syscall::write(stdout, suite_info.name, suite_info.name_size).discard();
-                syscall::write(stdout, "\n").discard();
+                syscall::write(fd_stdout, "loc invalid: ").discard();
+                syscall::write(fd_stdout, suite_info.name, suite_info.name_size).discard();
+                syscall::write(fd_stdout, "\n").discard();
                 if (status == status_type::ok) status = status_type::check_loc_invalid;
             }
         }
@@ -282,9 +282,9 @@ RAWR_MAIN_NOCTX
 
         unsigned name_size = 0;
         while(m.name[name_size++]);
-        syscall::write(stdout, "not executed: ").discard();
-        syscall::write(stdout, m.name, name_size - 1).discard();
-        syscall::write(stdout, "\n").discard();
+        syscall::write(fd_stdout, "not executed: ").discard();
+        syscall::write(fd_stdout, m.name, name_size - 1).discard();
+        syscall::write(fd_stdout, "\n").discard();
         if (status == status_type::ok) status = status_type::not_all_expected_tests_executed;
     }
 

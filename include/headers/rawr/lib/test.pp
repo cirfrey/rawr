@@ -24,7 +24,7 @@
         {                                                                                                 \
             static constexpr auto name()       -> char const* { return #Name; }                           \
             static constexpr auto name_size()                 { char n[] = #Name; return sizeof(n) - 1; } \
-                constexpr auto run_checks() -> void;                                                      \
+                             auto run_checks() -> void;                                                   \
         };                                                                                                \
     }                                                                                                     \
     RAWR_LINKER_SECTION_REGISTER(rawr_lib_test_section, ::rawr::lib::test::section, {                     \
@@ -34,7 +34,7 @@
     /* This function is defined out-of-line so that the source location actually properly reflects */     \
     /* the file lines, as it would point to the beggining of the macro if the function body was    */     \
     /* just __VA_ARGS__ expanded after run_checks().                                               */     \
-    constexpr auto RAWR_TEST_CONCAT(rawr_normal_test_, Counter)::run_checks() -> void
+    auto RAWR_TEST_CONCAT(rawr_normal_test_, Counter)::run_checks() -> void
 
 #define RAWR_TEST_CONCAT_(a, b) a##b
 #define RAWR_TEST_CONCAT(a, b) RAWR_TEST_CONCAT_(a, b)

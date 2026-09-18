@@ -28,21 +28,27 @@ RAWR_EXPORT namespace rawr::inline lib::inline typing::inline base
     using intrin::Empty;
     using intrin::Union;
 
+    using intrin::Constructible;
     using intrin::DefaultConstructible;
     using intrin::CopyConstructible;
     using intrin::MoveConstructible;
+    using intrin::Assignable;
     using intrin::CopyAssignable;
     using intrin::MoveAssignable;
     using intrin::Destructible;
+    using intrin::TriviallyConstructible;
     using intrin::TriviallyDefaultConstructible;
     using intrin::TriviallyCopyConstructible;
     using intrin::TriviallyMoveConstructible;
+    using intrin::TriviallyAssignable;
     using intrin::TriviallyCopyAssignable;
     using intrin::TriviallyMoveAssignable;
     using intrin::TriviallyDestructible;
+    using intrin::NoThrowConstructible;
     using intrin::NoThrowDefaultConstructible;
     using intrin::NoThrowCopyConstructible;
     using intrin::NoThrowMoveConstructible;
+    using intrin::NoThrowAssignable;
     using intrin::NoThrowCopyAssignable;
     using intrin::NoThrowMoveAssignable;
     using intrin::NoThrowDestructible;
