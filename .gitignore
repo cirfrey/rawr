@@ -1,4 +1,2 @@
 build/
-
-src/scratchpad.cpp
-src/scratchpad/*
+__pycache__/

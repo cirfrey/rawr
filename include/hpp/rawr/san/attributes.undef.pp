@@ -1,0 +1,11 @@
+// GENERATED — do not edit
+#undef RAWR_NO_SANITIZE_CFI
+#undef RAWR_NO_SANITIZE_ADDRESS
+#undef RAWR_NO_SANITIZE_HWADDRESS
+#undef RAWR_NO_SANITIZE_UNDEFINED
+#undef RAWR_NO_SANITIZE_MEMORY
+#undef RAWR_NO_SANITIZE_THREAD
+#include "rawr/lib/compiler.undef.pp"
+#if RAWRSCAN_METADATA
+    #undef RAWR_PP_MODULE
+#endif

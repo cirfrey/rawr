@@ -18,3 +18,26 @@ services:
     working_dir: /workspace
     stdin_open: true
     tty: true
+
+  gcc-min:
+    build:
+      context: .
+      dockerfile: gcc-min.dockerfile
+    volumes:
+      - ../..:/workspace
+    working_dir: /workspace
+    stdin_open: true
+    tty: true
+
+  clang-min:
+    build:
+      context: .
+      dockerfile: clang-min.dockerfile
+    volumes:
+      - ../..:/workspace
+    working_dir: /workspace
+    stdin_open: true
+    tty: true
+
+# docker compose run --rm gcc-min   meson setup --wipe /build && meson test -v -C /build && meson compile -C /build
+# docker compose run --rm clang-min meson setup --wipe /build && meson test -v -C /build && meson compile -C /build

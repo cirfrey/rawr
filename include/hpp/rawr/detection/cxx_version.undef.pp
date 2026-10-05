@@ -1,0 +1,16 @@
+// GENERATED — do not edit
+#undef RAWR_CXX_VERSION_26
+#undef RAWR_CXX_VERSION_23
+#undef RAWR_CXX_VERSION_20
+#undef RAWR_CXX_VERSION_17
+#undef RAWR_CXX_VERSION_14
+#undef RAWR_CXX_VERSION_11
+#undef RAWR_CXX_VERSION_98
+#if defined(_MSVC_LANG)
+    #undef RAWR_CXX_VERSION
+#else
+    #undef RAWR_CXX_VERSION
+#endif
+#if RAWRSCAN_METADATA
+    #undef RAWR_PP_MODULE
+#endif

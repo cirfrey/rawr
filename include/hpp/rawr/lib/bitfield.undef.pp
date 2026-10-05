@@ -1,0 +1,18 @@
+// GENERATED — do not edit
+#undef RAWR_BF_ACCESSOR_5
+#undef RAWR_BF_ACCESSOR_4
+#undef RAWR_BF_ACCESSOR
+#undef RAWR_BF_FIELDS_5
+#undef RAWR_BF_FIELDS_4
+#undef RAWR_BF_FIELDS
+#undef RAWR_BITFIELD_IMPL
+#undef RAWR_BF_OVERLAP_CHECK_OFF
+#undef RAWR_BF_OVERLAP_CHECK_ON
+#undef RAWR_BITFIELD_RELAXED_W
+#undef RAWR_BITFIELD_RELAXED
+#undef RAWR_BITFIELD_W
+#undef RAWR_BITFIELD
+#include "rawr/lib/pp.undef.pp"
+#if RAWRSCAN_METADATA
+    #undef RAWR_PP_MODULE
+#endif

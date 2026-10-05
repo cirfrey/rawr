@@ -1,0 +1,7 @@
+// GENERATED — do not edit
+#undef RAWR_VERSION_PATCH
+#undef RAWR_VERSION_MINOR
+#undef RAWR_VERSION_MAJOR
+#if RAWRSCAN_METADATA
+    #undef RAWR_PP_MODULE
+#endif

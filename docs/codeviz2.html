@@ -1,0 +1,559 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>rawr · dependency explorer</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;font:13px/1.4 system-ui,sans-serif;background:#f8fafc;color:#0f172a;overflow:hidden}
+#root{display:flex;flex-direction:column;height:100%}
+#tabbar{display:flex;align-items:center;gap:2px;background:#fff;border-bottom:1px solid #e2e8f0;padding:0 16px;height:44px;flex-shrink:0}
+#brand{font-weight:700;font-size:14px;margin-right:16px;letter-spacing:-.3px;color:#0f172a}
+.tab{padding:0 14px;height:44px;border:none;background:none;font:inherit;font-size:13px;color:#64748b;cursor:pointer;border-bottom:2.5px solid transparent;transition:color .1s}
+.tab:hover{color:#1e293b}
+.tab.on{color:#2563eb;border-color:#2563eb;font-weight:600}
+#view-folder,#view-ego{flex:1;overflow:hidden;display:flex;flex-direction:column;min-height:0}
+[hidden]{display:none!important}
+/* folder map */
+#folder-wrap{flex:1;overflow:auto;padding:12px 16px;min-height:0}
+#folder-detail{border-top:2px solid var(--accent,#e2e8f0);background:#fff;padding:12px 20px;max-height:210px;overflow-y:auto;flex-shrink:0}
+#folder-detail h3{font-size:12px;font-weight:700;margin-bottom:8px;color:#0f172a}
+.dim{font-weight:400;color:#94a3b8;margin-left:6px;font-size:11px}
+#folder-files{display:flex;flex-wrap:wrap;gap:5px}
+.fc{padding:4px 9px;border-radius:5px;border:1.5px solid;font-size:11px;font-weight:600;cursor:pointer;transition:opacity .1s}
+.fc:hover{opacity:.75}
+.fc .m{font-weight:400;opacity:.65;margin-left:4px;font-size:10px}
+.k-hpp{background:#eff6ff;border-color:#3b82f6;color:#1d4ed8}
+.k-pp {background:#fffbeb;border-color:#d97706;color:#92400e}
+.k-agg{background:#faf5ff;border-color:#7c3aed;color:#5b21b6}
+/* ego network */
+#view-ego{flex-direction:row}
+#ego-side{width:240px;border-right:1px solid #e2e8f0;background:#fff;display:flex;flex-direction:column;flex-shrink:0;overflow:hidden}
+#ego-sw{padding:10px 12px;border-bottom:1px solid #f1f5f9;flex-shrink:0}
+#ego-search{width:100%;padding:6px 8px;border:1px solid #e2e8f0;border-radius:5px;font:inherit;font-size:12px;outline:none}
+#ego-search:focus{border-color:#93c5fd}
+#ego-list{flex:1;overflow-y:auto;padding:6px 0}
+.fg{padding:0 8px 6px}
+.fgl{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#94a3b8;padding:5px 4px 2px}
+.fr{padding:4px 8px;border-radius:4px;cursor:pointer;font-size:11.5px;color:#374151;display:flex;align-items:center;gap:5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.fr:hover{background:#f1f5f9}
+.fr.on{background:#dbeafe;color:#1d4ed8;font-weight:600}
+.kd{width:7px;height:7px;border-radius:50%;flex-shrink:0}
+#ego-canvas{flex:1;overflow:auto;padding:20px;position:relative;min-width:0}
+#ego-empty{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);color:#94a3b8;font-size:14px;white-space:nowrap;pointer-events:none}
+#ego-info{font-size:12px;color:#64748b;margin-bottom:14px;line-height:1.7}
+#ego-info strong{color:#0f172a;font-size:13px;font-weight:700;display:block}
+</style>
+</head>
+<body>
+<div id="root">
+  <header id="tabbar">
+    <span id="brand">rawr</span>
+    <button class="tab on" data-tab="folder">⬡ Folder Map</button>
+    <button class="tab"    data-tab="ego">◎ File Explorer</button>
+  </header>
+  <div id="view-folder">
+    <div id="folder-wrap"></div>
+    <div id="folder-detail" hidden></div>
+  </div>
+  <div id="view-ego" hidden>
+    <aside id="ego-side">
+      <div id="ego-sw"><input id="ego-search" placeholder="Search files…" autocomplete="off"></div>
+      <div id="ego-list"></div>
+    </aside>
+    <div id="ego-canvas">
+      <div id="ego-empty">← Select a file to explore its connections</div>
+      <div id="ego-content" hidden>
+        <div id="ego-info"></div>
+        <div id="ego-svg-wrap"></div>
+      </div>
+    </div>
+  </div>
+</div>
+<script>
+// ── DATA ──────────────────────────────────────────────────────────────────────
+
+const FDEPTH={
+  'rawr':1,
+  'rawr/abi':2,'rawr/abi/sysv':3,'rawr/abi/win64':3,
+  'rawr/arch':2,'rawr/arch/x64':3,
+  'rawr/bin':2,'rawr/cxx_abi':2,'rawr/diag':2,
+  'rawr/lib':2,
+  'rawr/lib/dist':3,'rawr/lib/hash':3,'rawr/lib/integer':3,
+  'rawr/lib/intrin':3,'rawr/lib/nostdlib':3,'rawr/lib/sync':3,
+  'rawr/platform':2,'rawr/san':2,
+};
+// background fill per folder (domain-coloured)
+const FCOL={
+  'rawr':'#ede9fe',
+  'rawr/abi':'#fee2e2','rawr/abi/sysv':'#fee2e2','rawr/abi/win64':'#fee2e2',
+  'rawr/arch':'#dcfce7','rawr/arch/x64':'#dcfce7',
+  'rawr/bin':'#d1fae5','rawr/cxx_abi':'#fef3c7','rawr/diag':'#f3f4f6',
+  'rawr/lib':'#dbeafe',
+  'rawr/lib/dist':'#fce7f3',  // pink — the highway
+  'rawr/lib/hash':'#dbeafe','rawr/lib/integer':'#dbeafe',
+  'rawr/lib/intrin':'#dbeafe','rawr/lib/nostdlib':'#dbeafe','rawr/lib/sync':'#dbeafe',
+  'rawr/platform':'#d1fae5','rawr/san':'#fefce8',
+};
+// stroke / accent colour per folder
+const FSTK={
+  'rawr':'#7c3aed',
+  'rawr/abi':'#dc2626','rawr/abi/sysv':'#dc2626','rawr/abi/win64':'#dc2626',
+  'rawr/arch':'#059669','rawr/arch/x64':'#059669',
+  'rawr/bin':'#16a34a','rawr/cxx_abi':'#d97706','rawr/diag':'#6b7280',
+  'rawr/lib':'#2563eb',
+  'rawr/lib/dist':'#db2777',
+  'rawr/lib/hash':'#2563eb','rawr/lib/integer':'#2563eb',
+  'rawr/lib/intrin':'#2563eb','rawr/lib/nostdlib':'#0891b2','rawr/lib/sync':'#2563eb',
+  'rawr/platform':'#059669','rawr/san':'#ca8a04',
+};
+
+// id → {folder, name, kind:'hpp'|'pp'|'agg'}
+const FILES={
+  'rawr/arch.hpp':{folder:'rawr',name:'arch.hpp',kind:'agg'},
+  'rawr/lib.hpp':{folder:'rawr',name:'lib.hpp',kind:'agg'},
+  'rawr/abi.hpp':{folder:'rawr',name:'abi.hpp',kind:'agg'},
+  'rawr/bin.hpp':{folder:'rawr',name:'bin.hpp',kind:'agg'},
+  'rawr/platform.hpp':{folder:'rawr',name:'platform.hpp',kind:'agg'},
+  'rawr/abi/sysv.hpp':{folder:'rawr/abi',name:'sysv.hpp',kind:'hpp'},
+  'rawr/abi/win64.hpp':{folder:'rawr/abi',name:'win64.hpp',kind:'hpp'},
+  'rawr/abi/sysv/ctc.hpp':{folder:'rawr/abi/sysv',name:'ctc.hpp',kind:'hpp'},
+  'rawr/abi/sysv/trampolines.pp':{folder:'rawr/abi/sysv',name:'trampolines.pp',kind:'pp'},
+  'rawr/abi/win64/ctc.hpp':{folder:'rawr/abi/win64',name:'ctc.hpp',kind:'hpp'},
+  'rawr/arch/x64.hpp':{folder:'rawr/arch',name:'x64.hpp',kind:'agg'},
+  'rawr/arch/x64/atomic.hpp':{folder:'rawr/arch/x64',name:'atomic.hpp',kind:'hpp'},
+  'rawr/arch/x64/simd.hpp':{folder:'rawr/arch/x64',name:'simd.hpp',kind:'hpp'},
+  'rawr/bin/elf.hpp':{folder:'rawr/bin',name:'elf.hpp',kind:'hpp'},
+  'rawr/cxx_abi/itanium.hpp':{folder:'rawr/cxx_abi',name:'itanium.hpp',kind:'hpp'},
+  'rawr/diag/dwarf.hpp':{folder:'rawr/diag',name:'dwarf.hpp',kind:'hpp'},
+  'rawr/lib/bits.hpp':{folder:'rawr/lib',name:'bits.hpp',kind:'hpp'},
+  'rawr/lib/bitfield.hpp':{folder:'rawr/lib',name:'bitfield.hpp',kind:'hpp'},
+  'rawr/lib/detection.hpp':{folder:'rawr/lib',name:'detection.hpp',kind:'hpp'},
+  'rawr/lib/fmt.hpp':{folder:'rawr/lib',name:'fmt.hpp',kind:'hpp'},
+  'rawr/lib/hash.hpp':{folder:'rawr/lib',name:'hash.hpp',kind:'agg'},
+  'rawr/lib/integer.hpp':{folder:'rawr/lib',name:'integer.hpp',kind:'agg'},
+  'rawr/lib/intrin.hpp':{folder:'rawr/lib',name:'intrin.hpp',kind:'agg'},
+  'rawr/lib/linker_section.pp':{folder:'rawr/lib',name:'linker_section.pp',kind:'pp'},
+  'rawr/lib/sync.hpp':{folder:'rawr/lib',name:'sync.hpp',kind:'agg'},
+  'rawr/lib/test.hpp':{folder:'rawr/lib',name:'test.hpp',kind:'hpp'},
+  'rawr/lib/typing.hpp':{folder:'rawr/lib',name:'typing.hpp',kind:'hpp'},
+  // dist — the highway files; hpp.pp is included by every .hpp file
+  'rawr/lib/dist/hpp.pp':{folder:'rawr/lib/dist',name:'hpp.pp',kind:'pp'},
+  'rawr/lib/dist/module.pp':{folder:'rawr/lib/dist',name:'module.pp',kind:'pp'},
+  'rawr/lib/dist/nostdlib.pp':{folder:'rawr/lib/dist',name:'nostdlib.pp',kind:'pp'},
+  'rawr/lib/hash/fnv1a.hpp':{folder:'rawr/lib/hash',name:'fnv1a.hpp',kind:'hpp'},
+  'rawr/lib/integer/base.hpp':{folder:'rawr/lib/integer',name:'base.hpp',kind:'hpp'},
+  'rawr/lib/integer/raw.hpp':{folder:'rawr/lib/integer',name:'raw.hpp',kind:'hpp'},
+  'rawr/lib/integer/strong.hpp':{folder:'rawr/lib/integer',name:'strong.hpp',kind:'hpp'},
+  'rawr/lib/intrin/base.hpp':{folder:'rawr/lib/intrin',name:'base.hpp',kind:'hpp'},
+  'rawr/lib/intrin/math.hpp':{folder:'rawr/lib/intrin',name:'math.hpp',kind:'hpp'},
+  'rawr/lib/intrin/mem.hpp':{folder:'rawr/lib/intrin',name:'mem.hpp',kind:'hpp'},
+  // nostdlib — new shape from uploaded files
+  'rawr/lib/nostdlib/memset_base':{folder:'rawr/lib/nostdlib',name:'mem/memset/base.hpp',kind:'hpp'},
+  'rawr/lib/nostdlib/memset_ext':{folder:'rawr/lib/nostdlib',name:'mem/memset/extern.hpp',kind:'hpp'},
+  'rawr/lib/nostdlib/memset':{folder:'rawr/lib/nostdlib',name:'mem/memset.hpp',kind:'agg'},
+  'rawr/lib/nostdlib/memcpy':{folder:'rawr/lib/nostdlib',name:'mem/memcpy.hpp',kind:'agg'},
+  'rawr/lib/sync/base.hpp':{folder:'rawr/lib/sync',name:'base.hpp',kind:'hpp'},
+  'rawr/platform/linux.hpp':{folder:'rawr/platform',name:'linux.hpp',kind:'hpp'},
+  'rawr/san/asan.hpp':{folder:'rawr/san',name:'asan.hpp',kind:'hpp'},
+  'rawr/san/ubsan.hpp':{folder:'rawr/san',name:'ubsan.hpp',kind:'hpp'},
+};
+
+// [source, target]  — source #includes target
+const EDGES=[
+  ['rawr/arch.hpp','rawr/arch/x64.hpp'],
+  ['rawr/abi.hpp','rawr/abi/sysv.hpp'],['rawr/abi.hpp','rawr/abi/win64.hpp'],
+  ['rawr/bin.hpp','rawr/bin/elf.hpp'],
+  ['rawr/platform.hpp','rawr/platform/linux.hpp'],
+  ['rawr/lib.hpp','rawr/lib/bits.hpp'],['rawr/lib.hpp','rawr/lib/bitfield.hpp'],
+  ['rawr/lib.hpp','rawr/lib/detection.hpp'],['rawr/lib.hpp','rawr/lib/fmt.hpp'],
+  ['rawr/lib.hpp','rawr/lib/hash.hpp'],['rawr/lib.hpp','rawr/lib/integer.hpp'],
+  ['rawr/lib.hpp','rawr/lib/intrin.hpp'],['rawr/lib.hpp','rawr/lib/sync.hpp'],
+  ['rawr/lib.hpp','rawr/lib/typing.hpp'],
+  // dist/hpp.pp: universal include in every .hpp — the highway
+  ['rawr/lib/bits.hpp','rawr/lib/dist/hpp.pp'],
+  ['rawr/lib/bitfield.hpp','rawr/lib/dist/hpp.pp'],
+  ['rawr/lib/detection.hpp','rawr/lib/dist/hpp.pp'],
+  ['rawr/lib/fmt.hpp','rawr/lib/dist/hpp.pp'],
+  ['rawr/lib/hash.hpp','rawr/lib/dist/hpp.pp'],
+  ['rawr/lib/integer.hpp','rawr/lib/dist/hpp.pp'],
+  ['rawr/lib/intrin.hpp','rawr/lib/dist/hpp.pp'],
+  ['rawr/lib/sync.hpp','rawr/lib/dist/hpp.pp'],
+  ['rawr/lib/typing.hpp','rawr/lib/dist/hpp.pp'],
+  ['rawr/lib/test.hpp','rawr/lib/dist/hpp.pp'],
+  ['rawr/lib/linker_section.pp','rawr/lib/dist/hpp.pp'],
+  ['rawr/lib/hash/fnv1a.hpp','rawr/lib/dist/hpp.pp'],
+  ['rawr/lib/sync/base.hpp','rawr/lib/dist/hpp.pp'],
+  ['rawr/lib/integer/base.hpp','rawr/lib/dist/hpp.pp'],
+  ['rawr/lib/integer/raw.hpp','rawr/lib/dist/hpp.pp'],
+  ['rawr/lib/integer/strong.hpp','rawr/lib/dist/hpp.pp'],
+  ['rawr/lib/intrin/base.hpp','rawr/lib/dist/hpp.pp'],
+  ['rawr/lib/nostdlib/memset_base','rawr/lib/dist/hpp.pp'],
+  ['rawr/lib/nostdlib/memset_ext','rawr/lib/dist/hpp.pp'],
+  ['rawr/lib/nostdlib/memset','rawr/lib/dist/hpp.pp'],
+  ['rawr/lib/nostdlib/memcpy','rawr/lib/dist/hpp.pp'],
+  ['rawr/abi/sysv/ctc.hpp','rawr/lib/dist/hpp.pp'],
+  ['rawr/abi/win64/ctc.hpp','rawr/lib/dist/hpp.pp'],
+  ['rawr/diag/dwarf.hpp','rawr/lib/dist/hpp.pp'],
+  // module.pp
+  ['rawr/lib/bits.hpp','rawr/lib/dist/module.pp'],
+  ['rawr/lib/detection.hpp','rawr/lib/dist/module.pp'],
+  ['rawr/lib/integer.hpp','rawr/lib/dist/module.pp'],
+  // nostdlib.pp
+  ['rawr/lib/nostdlib/memset_ext','rawr/lib/dist/nostdlib.pp'],
+  // integer/
+  ['rawr/lib/integer.hpp','rawr/lib/integer/base.hpp'],
+  ['rawr/lib/integer.hpp','rawr/lib/integer/raw.hpp'],
+  ['rawr/lib/integer.hpp','rawr/lib/integer/strong.hpp'],
+  ['rawr/lib/integer/strong.hpp','rawr/lib/integer/base.hpp'],
+  ['rawr/lib/integer/strong.hpp','rawr/lib/integer/raw.hpp'],
+  // intrin/
+  ['rawr/lib/intrin.hpp','rawr/lib/intrin/base.hpp'],
+  ['rawr/lib/intrin.hpp','rawr/lib/intrin/math.hpp'],
+  ['rawr/lib/intrin.hpp','rawr/lib/intrin/mem.hpp'],
+  ['rawr/lib/intrin/math.hpp','rawr/lib/intrin/base.hpp'],
+  ['rawr/lib/intrin/mem.hpp','rawr/lib/intrin/base.hpp'],
+  ['rawr/lib/intrin/base.hpp','rawr/lib/integer/raw.hpp'],
+  ['rawr/lib/intrin/math.hpp','rawr/lib/integer/raw.hpp'],
+  ['rawr/lib/intrin/mem.hpp','rawr/lib/integer/raw.hpp'],
+  // lib → integer
+  ['rawr/lib/bits.hpp','rawr/lib/integer/raw.hpp'],
+  ['rawr/lib/bitfield.hpp','rawr/lib/integer/raw.hpp'],
+  ['rawr/lib/detection.hpp','rawr/lib/integer/raw.hpp'],
+  ['rawr/lib/fmt.hpp','rawr/lib/integer/raw.hpp'],
+  ['rawr/lib/typing.hpp','rawr/lib/integer/raw.hpp'],
+  ['rawr/lib/typing.hpp','rawr/lib/intrin/base.hpp'],
+  ['rawr/lib/test.hpp','rawr/lib/integer/raw.hpp'],
+  // hash/, sync/
+  ['rawr/lib/hash.hpp','rawr/lib/hash/fnv1a.hpp'],
+  ['rawr/lib/hash/fnv1a.hpp','rawr/lib/integer/raw.hpp'],
+  ['rawr/lib/sync.hpp','rawr/lib/sync/base.hpp'],
+  ['rawr/lib/sync/base.hpp','rawr/lib/integer/raw.hpp'],
+  // nostdlib
+  ['rawr/lib/nostdlib/memset_base','rawr/lib/intrin/mem.hpp'],
+  ['rawr/lib/nostdlib/memset_ext','rawr/lib/nostdlib/memset_base'],
+  ['rawr/lib/nostdlib/memset','rawr/lib/nostdlib/memset_base'],
+  ['rawr/lib/nostdlib/memset','rawr/lib/nostdlib/memset_ext'],
+  ['rawr/lib/nostdlib/memcpy','rawr/lib/intrin/mem.hpp'],
+  // arch/x64
+  ['rawr/arch/x64.hpp','rawr/arch/x64/atomic.hpp'],
+  ['rawr/arch/x64.hpp','rawr/arch/x64/simd.hpp'],
+  ['rawr/arch/x64/atomic.hpp','rawr/lib/integer/raw.hpp'],
+  ['rawr/arch/x64/simd.hpp','rawr/lib/integer/raw.hpp'],
+  // abi
+  ['rawr/abi/sysv.hpp','rawr/abi/sysv/ctc.hpp'],
+  ['rawr/abi/sysv.hpp','rawr/lib/integer/raw.hpp'],
+  ['rawr/abi/sysv/ctc.hpp','rawr/lib/integer/raw.hpp'],
+  ['rawr/abi/sysv/ctc.hpp','rawr/lib/intrin/base.hpp'],
+  ['rawr/abi/win64.hpp','rawr/abi/win64/ctc.hpp'],
+  ['rawr/abi/win64/ctc.hpp','rawr/lib/integer/raw.hpp'],
+  // platform, diag
+  ['rawr/platform/linux.hpp','rawr/lib/integer/raw.hpp'],
+  ['rawr/platform/linux.hpp','rawr/lib/sync/base.hpp'],
+  ['rawr/diag/dwarf.hpp','rawr/lib/integer/raw.hpp'],
+];
+
+// ── LAYOUT ────────────────────────────────────────────────────────────────────
+
+const FW=192, FH=44, FGAP=8, CGAP=82, FPAD=20;
+const depths=[...new Set(Object.values(FDEPTH))].sort((a,b)=>b-a);
+const byDepth={};
+depths.forEach(d=>{byDepth[d]=Object.keys(FDEPTH).filter(k=>FDEPTH[k]===d).sort();});
+const colX={};
+depths.forEach((d,i)=>{colX[d]=FPAD+i*(FW+CGAP);});
+const fPos={};
+depths.forEach(d=>{byDepth[d].forEach((f,i)=>{fPos[f]={x:colX[d],y:FPAD+14+i*(FH+FGAP)};});});
+const SVGW=colX[depths[depths.length-1]]+FW+FPAD;
+const SVGH=FPAD+14+Math.max(...depths.map(d=>byDepth[d].length))*(FH+FGAP)+FPAD;
+
+// folder-level edge counts
+const fEM={};
+EDGES.forEach(([s,t])=>{
+  const sf=FILES[s]?.folder, tf=FILES[t]?.folder;
+  if(sf&&tf&&sf!==tf){const k=sf+'→'+tf;if(!fEM[k])fEM[k]={src:sf,tgt:tf,n:0};fEM[k].n++;}
+});
+const fEdges=Object.values(fEM);
+
+const fCount={};
+Object.values(FILES).forEach(({folder})=>{fCount[folder]=(fCount[folder]||0)+1;});
+
+function adj(fid){
+  const s=new Set();
+  fEdges.forEach(e=>{if(e.src===fid)s.add(e.tgt);if(e.tgt===fid)s.add(e.src);});
+  return s;
+}
+
+// SVG path between folder boxes
+// Normal direction: source is shallower (right), target deeper (left).
+// Source left-port → target right-port, S-curve going left.
+// Same-depth: loop arc to the left of the column.
+function fPath(src,tgt){
+  const s=fPos[src],t=fPos[tgt];
+  if(!s||!t) return '';
+  const sy=s.y+FH/2, ty=t.y+FH/2;
+  if(FDEPTH[src]===FDEPTH[tgt]){
+    const x=s.x, cx=58;
+    return `M${x},${sy} C${x-cx},${sy} ${x-cx},${ty} ${x},${ty}`;
+  }
+  const x1=s.x, x2=t.x+FW, cx=Math.abs(x1-x2)*0.4;
+  return `M${x1},${sy} C${x1-cx},${sy} ${x2+cx},${ty} ${x2},${ty}`;
+}
+
+// ── STATE ─────────────────────────────────────────────────────────────────────
+
+let tab='folder', hovF=null, actF=null, selFile=null, search='';
+
+// ── HELPERS ───────────────────────────────────────────────────────────────────
+
+const kCol=k=>k==='pp'?'#d97706':k==='agg'?'#7c3aed':'#3b82f6';
+const kBg =k=>k==='pp'?'#fffbeb':k==='agg'?'#faf5ff':'#eff6ff';
+function xe(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+
+// ── FOLDER MAP ────────────────────────────────────────────────────────────────
+
+function buildFolderSVG(){
+  const focus=hovF||actF, nb=focus?adj(focus):new Set();
+  const sw=n=>1+Math.log2(n+1)*2.2;
+  const so=n=>Math.min(.65,.18+Math.log2(n+1)*.12);
+
+  const edges=fEdges.map(e=>{
+    const d=fPath(e.src,e.tgt); if(!d) return '';
+    const hl=focus&&(e.src===focus||e.tgt===focus);
+    const col=FSTK[e.src]||'#94a3b8';
+    const op=focus?(hl?.82:.04):so(e.n);
+    const width=sw(e.n)+(hl?.6:0);
+    // weight label at approximate bezier midpoint
+    let lbl='';
+    if(hl){
+      const s=fPos[e.src],t=fPos[e.tgt]; if(s&&t){
+        const mx=(s.x+t.x+t.x+FW)/3, my=(s.y+t.y)/2+FH/2;
+        lbl=`<text x="${mx}" y="${my-5}" text-anchor="middle" font-size="9" font-weight="700" fill="${col}" pointer-events="none">${e.n}</text>`;
+      }
+    }
+    return `<path d="${d}" stroke="${focus?(hl?col:'#e2e8f0'):col}" stroke-width="${width}" opacity="${op}" fill="none" stroke-linecap="round" pointer-events="none"/>${lbl}`;
+  }).join('');
+
+  const boxes=Object.keys(FDEPTH).map(f=>{
+    const p=fPos[f]; if(!p) return '';
+    const isA=f===actF, isH=f===hovF;
+    const isHL=!focus||(f===focus||nb.has(f));
+    const stroke=FSTK[f]||'#94a3b8';
+    const fill=isHL?(FCOL[f]||'#f8fafc'):'#f8fafc';
+    const lbl=f==='rawr'?'rawr':f.replace('rawr/','');
+    return `<g data-folder="${xe(f)}" opacity="${isHL?1:.15}" style="cursor:pointer">
+  <rect x="${p.x}" y="${p.y}" width="${FW}" height="${FH}" rx="6"
+    fill="${fill}" stroke="${(isA||isH)?stroke:'#e2e8f0'}" stroke-width="${(isA||isH)?2:1}"/>
+  <text x="${p.x+9}" y="${p.y+17}" font-size="11" font-weight="600" fill="#0f172a">${xe(lbl)}</text>
+  <text x="${p.x+9}" y="${p.y+31}" font-size="10" fill="#64748b">${fCount[f]||0} files</text>
+  ${isA?`<circle cx="${p.x+FW-14}" cy="${p.y+FH/2}" r="9" fill="${stroke}"/>
+  <text x="${p.x+FW-14}" y="${p.y+FH/2+4.5}" text-anchor="middle" font-size="12" fill="white" pointer-events="none">✕</text>`:''}
+</g>`;
+  }).join('');
+
+  const colLbls=depths.map((d)=>{
+    const lbl=d===3?'LEAF MODULES':d===2?'DOMAINS':'AGGREGATORS';
+    return `<text x="${colX[d]+FW/2}" y="13" text-anchor="middle" font-size="8" fill="#d1d5db" font-weight="700" letter-spacing="1" pointer-events="none">${lbl}</text>`;
+  }).join('');
+
+  return `<svg width="${SVGW}" height="${SVGH}" style="display:block;font-family:system-ui,sans-serif">
+${colLbls}
+${edges}
+${boxes}
+</svg>`;
+}
+
+function renderDetail(){
+  const panel=document.getElementById('folder-detail');
+  if(!actF){panel.hidden=true;return;}
+  panel.style.setProperty('--accent', FSTK[actF]||'#e2e8f0');
+  panel.hidden=false;
+  const files=Object.entries(FILES).filter(([,v])=>v.folder===actF).sort(([a],[b])=>FILES[a].name.localeCompare(FILES[b].name));
+  const chips=files.map(([id,f])=>{
+    const dep=EDGES.filter(e=>e[0]===id).length;
+    const dep2=EDGES.filter(e=>e[1]===id).length;
+    return `<div class="fc k-${f.kind}" data-file="${xe(id)}" title="${xe(id)}">${xe(f.name)}<span class="m">↓${dep} ↑${dep2}</span></div>`;
+  }).join('');
+  panel.innerHTML=`<h3>${xe(actF)}<span class="dim">${files.length} files · click to explore in File Explorer</span></h3><div id="folder-files">${chips}</div>`;
+}
+
+function updateFolderSVG(){
+  document.getElementById('folder-wrap').innerHTML=buildFolderSVG();
+}
+
+// ── EGO NETWORK ───────────────────────────────────────────────────────────────
+
+const NW=160, NH=32, NGAP=6, GGAP=14, NPAD=18;
+const CX=310, CW=162, CH=42;
+const LX=12, RX=582;
+const ESVGW=RX+NW+14;
+
+function layoutNodes(ids){
+  const byF={};
+  ids.forEach(id=>{const f=FILES[id]?.folder||'?';(byF[f]=byF[f]||[]).push(id);});
+  const pos={}, groups=[];
+  let y=NPAD;
+  Object.entries(byF).sort(([a],[b])=>a.localeCompare(b)).forEach(([folder,arr])=>{
+    const gy=y;
+    [...arr].sort((a,b)=>FILES[a].name.localeCompare(FILES[b].name)).forEach(id=>{pos[id]=y;y+=NH+NGAP;});
+    groups.push({folder,midY:gy+(y-NGAP-gy)/2});
+    y+=GGAP;
+  });
+  return{pos,h:y,groups};
+}
+
+function buildEgoSVG(fid){
+  const file=FILES[fid]; if(!file) return '';
+  const deps   =EDGES.filter(e=>e[0]===fid&&FILES[e[1]]).map(e=>e[1]);
+  const depants=EDGES.filter(e=>e[1]===fid&&FILES[e[0]]).map(e=>e[0]);
+  const dl=layoutNodes(deps), dal=layoutNodes(depants);
+  const totalH=Math.max(dl.h, dal.h, CH+NPAD*2);
+  const cy=(totalH-CH)/2;
+  const ESVGH=totalH+NPAD;
+
+  let paths='', nodes='', labels='';
+
+  // Left spokes: dep right-edge → center left-edge
+  deps.forEach(id=>{
+    const y1=(dl.pos[id]||0)+NH/2, y2=cy+CH/2;
+    const x1=LX+NW, x2=CX, cx=(x2-x1)*.45;
+    paths+=`<path d="M${x1},${y1} C${x1+cx},${y1} ${x2-cx},${y2} ${x2},${y2}" stroke="#3b82f6" stroke-width="1.4" opacity=".4" fill="none"/>`;
+  });
+  // Right spokes: center right-edge → depant left-edge
+  depants.forEach(id=>{
+    const y1=cy+CH/2, y2=(dal.pos[id]||0)+NH/2;
+    const x1=CX+CW, x2=RX, cx=(x2-x1)*.45;
+    paths+=`<path d="M${x1},${y1} C${x1+cx},${y1} ${x2-cx},${y2} ${x2},${y2}" stroke="#10b981" stroke-width="1.4" opacity=".4" fill="none"/>`;
+  });
+
+  // Dep nodes
+  deps.forEach(id=>{
+    const f=FILES[id], y=dl.pos[id]||0;
+    const col=kCol(f?.kind), bg=kBg(f?.kind);
+    nodes+=`<g class="en" data-file="${xe(id)}" style="cursor:pointer" title="${xe(id)}">
+  <rect x="${LX}" y="${y}" width="${NW}" height="${NH}" rx="4" fill="${bg}" stroke="${col}" stroke-width="1.5"/>
+  <text x="${LX+8}" y="${y+NH/2+4.5}" font-size="10.5" fill="#0f172a">${xe(f?.name||id.split('/').pop())}</text>
+</g>`;
+  });
+
+  // Centre node
+  const cc=kCol(file.kind);
+  nodes+=`<rect x="${CX}" y="${cy}" width="${CW}" height="${CH}" rx="7" fill="${cc}"/>
+<text x="${CX+CW/2}" y="${cy+CH/2+5}" text-anchor="middle" font-size="12.5" fill="white" font-weight="700">${xe(file.name)}</text>`;
+
+  // Dependant nodes
+  depants.forEach(id=>{
+    const f=FILES[id], y=dal.pos[id]||0;
+    const col=kCol(f?.kind), bg=kBg(f?.kind);
+    nodes+=`<g class="en" data-file="${xe(id)}" style="cursor:pointer" title="${xe(id)}">
+  <rect x="${RX}" y="${y}" width="${NW}" height="${NH}" rx="4" fill="${bg}" stroke="${col}" stroke-width="1.5"/>
+  <text x="${RX+8}" y="${y+NH/2+4.5}" font-size="10.5" fill="#0f172a">${xe(f?.name||id.split('/').pop())}</text>
+</g>`;
+  });
+
+  // Folder group labels (between node columns and the centre)
+  dl.groups.forEach(g=>{
+    const s=g.folder.replace('rawr/','').replace('rawr','root');
+    labels+=`<text x="${LX+NW+5}" y="${g.midY+4.5}" font-size="8.5" fill="#94a3b8" font-weight="600">${xe(s)}</text>`;
+  });
+  dal.groups.forEach(g=>{
+    const s=g.folder.replace('rawr/','').replace('rawr','root');
+    labels+=`<text x="${RX-5}" y="${g.midY+4.5}" text-anchor="end" font-size="8.5" fill="#94a3b8" font-weight="600">${xe(s)}</text>`;
+  });
+
+  // Direction callouts
+  if(deps.length)    labels+=`<text x="${(LX+NW+CX)/2}" y="${cy-7}" text-anchor="middle" font-size="8" fill="#93c5fd" font-weight="700" letter-spacing=".4">INCLUDES ›</text>`;
+  if(depants.length) labels+=`<text x="${(CX+CW+RX)/2}" y="${cy-7}" text-anchor="middle" font-size="8" fill="#6ee7b7" font-weight="700" letter-spacing=".4">‹ INCLUDED BY</text>`;
+  if(!deps.length)    labels+=`<text x="${LX+NW/2+4}" y="${cy+CH/2+5}" text-anchor="middle" font-size="11" fill="#d1d5db">no deps</text>`;
+  if(!depants.length) labels+=`<text x="${RX+NW/2}" y="${cy+CH/2+5}" text-anchor="middle" font-size="11" fill="#d1d5db">no dependants</text>`;
+
+  return `<svg width="${ESVGW}" height="${ESVGH}" style="display:block;font-family:system-ui,sans-serif">
+${paths}${nodes}${labels}
+</svg>`;
+}
+
+function renderEgoSidebar(){
+  const q=search.toLowerCase();
+  const byF={};
+  Object.entries(FILES)
+    .filter(([id,f])=>!q||f.name.toLowerCase().includes(q)||id.includes(q))
+    .sort(([a],[b])=>FILES[a].name.localeCompare(FILES[b].name))
+    .forEach(([id,f])=>{(byF[f.folder]=byF[f.folder]||[]).push([id,f]);});
+  const html=Object.entries(byF).sort(([a],[b])=>a.localeCompare(b)).map(([folder,files])=>
+    `<div class="fg"><div class="fgl">${xe(folder.replace('rawr/',''))}</div>${
+      files.map(([id,f])=>`<div class="fr ${id===selFile?'on':''}" data-file="${xe(id)}"><div class="kd" style="background:${kCol(f.kind)}"></div>${xe(f.name)}</div>`).join('')
+    }</div>`
+  ).join('');
+  document.getElementById('ego-list').innerHTML=html||'<div style="padding:12px;color:#94a3b8;font-size:12px">No results</div>';
+}
+
+function renderEgoMain(){
+  const empty=document.getElementById('ego-empty');
+  const content=document.getElementById('ego-content');
+  if(!selFile||!FILES[selFile]){empty.hidden=false;content.hidden=true;return;}
+  empty.hidden=true; content.hidden=false;
+  const f=FILES[selFile];
+  const nd=EDGES.filter(e=>e[0]===selFile&&FILES[e[1]]).length;
+  const nda=EDGES.filter(e=>e[1]===selFile&&FILES[e[0]]).length;
+  document.getElementById('ego-info').innerHTML=
+    `<strong>${xe(selFile)}</strong>${nd} dependenc${nd!==1?'ies':'y'} &nbsp;·&nbsp; ${nda} dependant${nda!==1?'s':''}`;
+  document.getElementById('ego-svg-wrap').innerHTML=buildEgoSVG(selFile);
+}
+
+function renderEgo(){renderEgoSidebar();renderEgoMain();}
+
+// ── RENDER ────────────────────────────────────────────────────────────────────
+
+function render(){
+  document.querySelectorAll('.tab').forEach(b=>b.classList.toggle('on',b.dataset.tab===tab));
+  document.getElementById('view-folder').hidden=tab!=='folder';
+  document.getElementById('view-ego').hidden=tab!=='ego';
+  if(tab==='folder'){updateFolderSVG();renderDetail();}
+  else renderEgo();
+}
+
+// ── EVENTS ────────────────────────────────────────────────────────────────────
+
+// Tabs
+document.querySelectorAll('.tab').forEach(b=>{b.addEventListener('click',()=>{tab=b.dataset.tab;render();});});
+
+// Folder map: persistent wrapper gets hover + click via delegation
+const fw=document.getElementById('folder-wrap');
+fw.addEventListener('pointermove',e=>{
+  const box=e.target.closest('[data-folder]');
+  const f=box?box.dataset.folder:null;
+  if(f!==hovF){hovF=f;updateFolderSVG();}
+});
+fw.addEventListener('pointerleave',()=>{if(hovF!==null){hovF=null;updateFolderSVG();}});
+fw.addEventListener('click',e=>{
+  const box=e.target.closest('[data-folder]');
+  actF=box?(box.dataset.folder===actF?null:box.dataset.folder):null;
+  updateFolderSVG(); renderDetail();
+});
+
+// Detail panel → navigate to ego
+document.getElementById('folder-detail').addEventListener('click',e=>{
+  const chip=e.target.closest('[data-file]');
+  if(chip){selFile=chip.dataset.file;tab='ego';render();}
+});
+
+// Ego sidebar file list
+document.getElementById('ego-list').addEventListener('click',e=>{
+  const row=e.target.closest('[data-file]');
+  if(row){selFile=row.dataset.file;renderEgo();}
+});
+
+// Ego canvas: click a spoke node → select it
+document.getElementById('ego-canvas').addEventListener('click',e=>{
+  const node=e.target.closest('.en[data-file]');
+  if(node&&node.dataset.file!==selFile){selFile=node.dataset.file;renderEgo();}
+});
+
+// Search
+document.getElementById('ego-search').addEventListener('input',e=>{search=e.target.value;renderEgoSidebar();});
+
+// ── INIT ──────────────────────────────────────────────────────────────────────
+render();
+</script>
+</body>
+</html>

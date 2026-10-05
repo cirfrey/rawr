@@ -1,0 +1,23 @@
+// GENERATED — do not edit
+#if defined(__EMSCRIPTEN__)
+    #undef RAWR_ENV_EMSCRIPTEN
+#elif defined(__STDC_HOSTED__) && __STDC_HOSTED__ == 0
+    #undef RAWR_ENV_FREESTANDING
+#elif defined(__CYGWIN__)
+    #undef RAWR_ENV_CYGWIN
+#elif defined(__MINGW32__) || defined(__MINGW64__)
+    #undef RAWR_ENV_MINGW
+#elif RAWR_PLATFORM_LINUX   || RAWR_PLATFORM_MACOS  || RAWR_PLATFORM_IOS || RAWR_PLATFORM_ANDROID || RAWR_PLATFORM_WINDOWS
+    #undef RAWR_ENV_NATIVE
+#else
+    #undef RAWR_ENV_UNKNOWN
+#endif
+#undef RAWR_ENV_UNKNOWN
+#undef RAWR_ENV_NATIVE
+#undef RAWR_ENV_EMSCRIPTEN
+#undef RAWR_ENV_MINGW
+#undef RAWR_ENV_CYGWIN
+#undef RAWR_ENV_FREESTANDING
+#if RAWRSCAN_METADATA
+    #undef RAWR_PP_MODULE
+#endif

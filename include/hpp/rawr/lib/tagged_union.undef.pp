@@ -1,0 +1,24 @@
+// GENERATED — do not edit
+#undef RAWR_TU_QUERY_2
+#undef RAWR_TU_QUERY
+#undef RAWR_TU_MAKE_2
+#undef RAWR_TU_MAKE
+#undef RAWR_TU_MOVE_ASSIGN_2
+#undef RAWR_TU_COPY_ASSIGN_2
+#undef RAWR_TU_MOVE_CONSTRUCT_2
+#undef RAWR_TU_COPY_CONSTRUCT_2
+#undef RAWR_TU_DESTROY_2
+#undef RAWR_TU_MOVE_ASSIGN
+#undef RAWR_TU_COPY_ASSIGN
+#undef RAWR_TU_MOVE_CONSTRUCT
+#undef RAWR_TU_COPY_CONSTRUCT
+#undef RAWR_TU_DESTROY
+#undef RAWR_TU_MEMBER_2
+#undef RAWR_TU_MEMBER
+#undef RAWR_TU_ENUM_2
+#undef RAWR_TU_ENUM
+#undef RAWR_TAGGED_UNION
+#include "rawr/lib/pp.undef.pp"
+#if RAWRSCAN_METADATA
+    #undef RAWR_PP_MODULE
+#endif

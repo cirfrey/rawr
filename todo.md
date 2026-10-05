@@ -1,5 +1,5 @@
 
-# Short term - 07/09/26 - 13/09/26
+# Short term - 18/09/26 - 28/09/26
 
 [ ] rawr::sync
     - [X] detection stuff
@@ -8,20 +8,18 @@
 [ ] detection.pp: optional error on unknown arch/bin/etc
 [ ] Distribution
     - [ ] Meson project version from rawr/lib/dist/version.(h)pp
-[ ] Unify dist/module.pp and dist/header.pp into dist/hpp.pp.
 
 ## If theres time
 
-[ ] merge attributes.pp into compiler.pp
 [~] rawr::lib::typing.
-[ ] Generic test runner.
+[~] Generic test runner.
     - [ ] Also print environment on start -> detection.hpp -> renum
 
 # Longer term
 
 [ ] compile time signaling/error module.
 [ ] rawr::maybe<T, typename NonValue=Nil> (encodes optional<> and expected<>)
-[ ] RAWR_TAGGED_UNION (ergonomic variant)
+[~] RAWR_TAGGED_UNION (ergonomic variant)
 [ ] Ergonomic compiletime testing.
 [ ] rawr::test checks with messages.
 [ ] Tokenized logging facilities.
