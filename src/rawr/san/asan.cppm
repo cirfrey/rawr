@@ -1,7 +1,7 @@
 export module rawr.san.asan;
 import        rawr.lib.integer.raw;
-import        rawr.lib.intrin.base;
-#include     "rawr/detection/san.pp"
+import        rawr.intrin.base;
+#include     "rawr/san/detection.pp"
 
 namespace rawr::san::asan::detail
 {
@@ -17,7 +17,7 @@ namespace rawr::san::asan::detail
 
 export namespace rawr::san::asan
 {
-    inline constexpr bool compiled = RAWR_SAN_ASAN != 0;
+    inline constexpr bool compiled = RAWR_SANFEATURE_ASAN != 0;
 
     constexpr auto poison(
         [[maybe_unused]] void const* address,

@@ -12,6 +12,6 @@
 #include "rawr/detection/bin.undef.pp"
 #include "rawr/detection/arch.undef.pp"
 #include "rawr/detection/abi.undef.pp"
-#if RAWRSCAN_METADATA
+#ifdef RAWR_METADATA
     #undef RAWR_PP_MODULE
 #endif

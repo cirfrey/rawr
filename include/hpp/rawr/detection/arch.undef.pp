@@ -1,17 +1,17 @@
 // GENERATED — do not edit
-#if RAWR_ARCH_FAMILY_WASM
+#if RAWR_ARCH_WASM
     #if defined(__wasm_atomics__)
         #undef RAWR_ARCH_WASM_ATOMICS
     #endif
 #endif
 #undef RAWR_ARCH_WASM_ATOMICS
-#if RAWR_ARCH_FAMILY_RISCV
+#if RAWR_ARCH_RISCV
     #if defined(__riscv_atomic)
         #undef RAWR_ARCH_RISCV_ATOMIC
     #endif
 #endif
 #undef RAWR_ARCH_RISCV_ATOMIC
-#if RAWR_ARCH_FAMILY_ARM
+#if RAWR_ARCH_ARM
     #if !defined(__ARM_ARCH_6M__)
         #undef RAWR_ARCH_ARM_ATOMIC_CAS
     #endif
@@ -41,92 +41,92 @@
 #undef RAWR_ARCH_ARM_SVE2
 #undef RAWR_ARCH_ARM_SVE
 #undef RAWR_ARCH_ARM_NEON
-#if RAWR_ARCH_FAMILY_X86
+#if RAWR_ARCH_X86
     #if defined(__CLWB__)
-        #undef RAWR_ARCH_X86_CLWB
+        #undef RAWR_ARCH_IA32_CLWB
     #endif
     #if defined(__LZCNT__)
-        #undef RAWR_ARCH_X86_LZCNT
+        #undef RAWR_ARCH_IA32_LZCNT
     #endif
     #if defined(__POPCNT__)
-        #undef RAWR_ARCH_X86_POPCNT
+        #undef RAWR_ARCH_IA32_POPCNT
     #endif
     #if defined(__BMI2__)
-        #undef RAWR_ARCH_X86_BMI2
+        #undef RAWR_ARCH_IA32_BMI2
     #endif
     #if defined(__BMI__)
-        #undef RAWR_ARCH_X86_BMI1
+        #undef RAWR_ARCH_IA32_BMI1
     #endif
     #if defined(__FMA__)
-        #undef RAWR_ARCH_X86_FMA
+        #undef RAWR_ARCH_IA32_FMA
     #endif
     #if defined(__AVX512F__)
-        #undef RAWR_ARCH_X86_AVX512F
+        #undef RAWR_ARCH_IA32_AVX512F
     #endif
     #if defined(__AVX2__)
-        #undef RAWR_ARCH_X86_AVX2
+        #undef RAWR_ARCH_IA32_AVX2
     #endif
     #if defined(__AVX__)
-        #undef RAWR_ARCH_X86_AVX
+        #undef RAWR_ARCH_IA32_AVX
     #endif
     #if defined(__SSE4_2__)
-        #undef RAWR_ARCH_X86_SSE42
+        #undef RAWR_ARCH_IA32_SSE42
     #endif
     #if defined(__SSE4_1__)
-        #undef RAWR_ARCH_X86_SSE41
+        #undef RAWR_ARCH_IA32_SSE41
     #endif
     #if RAWR_ARCH_X64 || defined(__SSE2__)
-        #undef RAWR_ARCH_X86_SSE2
+        #undef RAWR_ARCH_IA32_SSE2
     #endif
     #if RAWR_ARCH_X64 || defined(__SSE__)
-        #undef RAWR_ARCH_X86_SSE
+        #undef RAWR_ARCH_IA32_SSE
     #endif
 #endif
-#undef RAWR_ARCH_X86_CLWB
-#undef RAWR_ARCH_X86_LZCNT
-#undef RAWR_ARCH_X86_POPCNT
-#undef RAWR_ARCH_X86_BMI2
-#undef RAWR_ARCH_X86_BMI1
-#undef RAWR_ARCH_X86_FMA
-#undef RAWR_ARCH_X86_AVX512F
-#undef RAWR_ARCH_X86_AVX2
-#undef RAWR_ARCH_X86_AVX
-#undef RAWR_ARCH_X86_SSE42
-#undef RAWR_ARCH_X86_SSE41
-#undef RAWR_ARCH_X86_SSE2
-#undef RAWR_ARCH_X86_SSE
+#undef RAWR_ARCH_IA32_CLWB
+#undef RAWR_ARCH_IA32_LZCNT
+#undef RAWR_ARCH_IA32_POPCNT
+#undef RAWR_ARCH_IA32_BMI2
+#undef RAWR_ARCH_IA32_BMI1
+#undef RAWR_ARCH_IA32_FMA
+#undef RAWR_ARCH_IA32_AVX512F
+#undef RAWR_ARCH_IA32_AVX2
+#undef RAWR_ARCH_IA32_AVX
+#undef RAWR_ARCH_IA32_SSE42
+#undef RAWR_ARCH_IA32_SSE41
+#undef RAWR_ARCH_IA32_SSE2
+#undef RAWR_ARCH_IA32_SSE
 #if RAWR_ARCH_SPARC64 || RAWR_ARCH_SPARC32
-    #undef RAWR_ARCH_FAMILY_SPARC
+    #undef RAWR_ARCH_SPARC
 #endif
 #if RAWR_ARCH_S390X || RAWR_ARCH_S390
-    #undef RAWR_ARCH_FAMILY_S390
+    #undef RAWR_ARCH_IBMZ
 #endif
 #if RAWR_ARCH_MIPS64 || RAWR_ARCH_MIPS32
-    #undef RAWR_ARCH_FAMILY_MIPS
+    #undef RAWR_ARCH_MIPS
 #endif
 #if RAWR_ARCH_PPC64 || RAWR_ARCH_PPC32
-    #undef RAWR_ARCH_FAMILY_PPC
+    #undef RAWR_ARCH_PPC
 #endif
 #if RAWR_ARCH_ARM64 || RAWR_ARCH_ARM32
-    #undef RAWR_ARCH_FAMILY_ARM
+    #undef RAWR_ARCH_ARM
 #endif
-#if RAWR_ARCH_X64 || RAWR_ARCH_X86
-    #undef RAWR_ARCH_FAMILY_X86
+#if RAWR_ARCH_X64 || RAWR_ARCH_IA32
+    #undef RAWR_ARCH_X86
 #endif
 #if RAWR_ARCH_WASM32 || RAWR_ARCH_WASM64
-    #undef RAWR_ARCH_FAMILY_WASM
+    #undef RAWR_ARCH_WASM
 #endif
 #if RAWR_ARCH_RISCV64 || RAWR_ARCH_RISCV32
-    #undef RAWR_ARCH_FAMILY_RISCV
+    #undef RAWR_ARCH_RISCV
 #endif
-#undef RAWR_ARCH_FAMILY_SPARC
-#undef RAWR_ARCH_FAMILY_S390
-#undef RAWR_ARCH_FAMILY_MIPS
-#undef RAWR_ARCH_FAMILY_PPC
-#undef RAWR_ARCH_FAMILY_ARM
-#undef RAWR_ARCH_FAMILY_WASM
-#undef RAWR_ARCH_FAMILY_X86
-#undef RAWR_ARCH_FAMILY_RISCV
+#undef RAWR_ARCH_SPARC
+#undef RAWR_ARCH_IBMZ
+#undef RAWR_ARCH_MIPS
+#undef RAWR_ARCH_PPC
+#undef RAWR_ARCH_ARM
+#undef RAWR_ARCH_WASM
+#undef RAWR_ARCH_X86
+#undef RAWR_ARCH_RISCV
 #if defined(__wasm64__)
     #undef RAWR_ARCH_WASM64
 #elif defined(__wasm32__) || defined(__wasm__)
@@ -134,7 +134,7 @@
 #elif defined(__x86_64__) || defined(_M_X64)
     #undef RAWR_ARCH_X64
 #elif defined(__i386__) || defined(__i386) || defined(_M_IX86)
-    #undef RAWR_ARCH_X86
+    #undef RAWR_ARCH_IA32
 #elif defined(__aarch64__) || defined(_M_ARM64)
     #undef RAWR_ARCH_ARM64
 #elif defined(__arm__) || defined(_M_ARM)
@@ -203,7 +203,7 @@
 #undef RAWR_ARCH_ARM32
 #undef RAWR_ARCH_ARM64
 #undef RAWR_ARCH_X64
-#undef RAWR_ARCH_X86
-#if RAWRSCAN_METADATA
+#undef RAWR_ARCH_IA32
+#ifdef RAWR_METADATA
     #undef RAWR_PP_MODULE
 #endif

@@ -87,7 +87,7 @@ class ModuleImport:
 
 @dataclass
 class Define:
-    """#define with backslash-continuation lines joined and \ stripped."""
+    """#define with backslash-continuation lines joined and \\ stripped."""
     name: str; body: str; line: int
 
 @dataclass
@@ -368,10 +368,10 @@ def walk_defines(nodes: list[Node]) -> Generator[Define, None, None]:
 
 
 def _pp_module(nodes: list[Node]) -> str:
-    """Read RAWR_PP_MODULE from a RAWRSCAN_METADATA conditional block."""
+    """Read RAWR_PP_MODULE from a #ifdef RAWR_METADATA conditional block."""
     for n in nodes:
         if isinstance(n, IfChain):
-            if n.if_node.condition.strip() == 'RAWRSCAN_METADATA':
+            if n.if_node.condition.strip() == 'defined(RAWR_METADATA)':
                 return next(
                     (
                         d.body.strip()

@@ -4,16 +4,283 @@
 #define RAWR_AMALGAM 1
 
 #if !RAWR_AMALGAM_NO_SECTIONS
+	#pragma section "rawr/arch/detection.pp"
+#endif
+	#if !defined(RAWR_AMALGAM_NO_SOURCE_MAPPING) || !RAWR_AMALGAM_NO_SOURCE_MAPPING
+		#line 3 "rawr/arch/detection.pp"
+	#endif
+	#pragma once
+
+	#ifdef RAWR_METADATA
+	    #define RAWR_PP_MODULE rawr.arch.detection.pp
+	#endif
+
+	// --- Ids. ---
+
+	#define RAWR_ARCHID_UNKNOWN 1
+	#define RAWR_ARCHID_IA32    2
+	#define RAWR_ARCHID_X64     3
+	#define RAWR_ARCHID_ARM32   4
+	#define RAWR_ARCHID_ARM64   5
+	#define RAWR_ARCHID_RISCV32 6
+	#define RAWR_ARCHID_RISCV64 7
+	#define RAWR_ARCHID_XTENSA  8
+	#define RAWR_ARCHID_AVR     9
+	#define RAWR_ARCHID_WASM32  10
+	#define RAWR_ARCHID_WASM64  11
+	#define RAWR_ARCHID_PPC32   12
+	#define RAWR_ARCHID_PPC64   13
+	#define RAWR_ARCHID_LOONG64 14
+	#define RAWR_ARCHID_MIPS32  15
+	#define RAWR_ARCHID_MIPS64  16
+	#define RAWR_ARCHID_S390    17
+	#define RAWR_ARCHID_S390X   18
+	#define RAWR_ARCHID_MSP430  19
+	#define RAWR_ARCHID_SPARC32 20
+	#define RAWR_ARCHID_SPARC64 21
+	#define RAWR_ARCHID_SUPERH  22
+	#define RAWR_ARCHID_MAX     22
+
+	// --- Detection. ---
+
+	// WASM first — Emscripten defines __i386 for legacy reasons
+	#if defined(__wasm64__)
+	    #define RAWR_DETECTED_ARCHID RAWR_ARCHID_WASM64
+	#elif defined(__wasm32__) || defined(__wasm__)
+	    // Fallback to 32-bit if only __wasm__ is defined (legacy)
+	    #define RAWR_DETECTED_ARCHID RAWR_ARCHID_WASM32
+	#elif defined(__arm64ec__) || defined(_M_ARM64EC)
+	    // Arm64EC: ARM64 instructions, x64-compatible ABI. Also defines __x86_64__/_M_X64, so test it first.
+	    #define RAWR_DETECTED_ARCHID RAWR_ARCHID_ARM64
+	#elif defined(__x86_64__) || defined(_M_X64)
+	    #define RAWR_DETECTED_ARCHID RAWR_ARCHID_X64
+	#elif defined(__i386__) || defined(__i386) || defined(_M_IX86)
+	    // __i386 (no trailing __) is the GCC spelling; _M_IX86 is MSVC
+	    #define RAWR_DETECTED_ARCHID RAWR_ARCHID_IA32
+	#elif defined(__aarch64__) || defined(_M_ARM64)
+	    #define RAWR_DETECTED_ARCHID RAWR_ARCHID_ARM64
+	#elif defined(__arm__) || defined(_M_ARM)
+	    #define RAWR_DETECTED_ARCHID RAWR_ARCHID_ARM32
+	#elif defined(__riscv)
+	    // __riscv_xlen is always defined alongside __riscv
+	    #if __riscv_xlen == 64
+	        #define RAWR_DETECTED_ARCHID RAWR_ARCHID_RISCV64
+	    #else
+	        #define RAWR_DETECTED_ARCHID RAWR_ARCHID_RISCV32
+	    #endif
+	#elif defined(__XTENSA__)
+	    #define RAWR_DETECTED_ARCHID RAWR_ARCHID_XTENSA
+	#elif defined(__AVR__)
+	    #define RAWR_DETECTED_ARCHID RAWR_ARCHID_AVR
+	#elif defined(__powerpc__) || defined(__ppc__) || defined(_M_PPC)
+	    // Check for 64-bit PowerPC (includes ELFv1, ELFv2, and MSVC definitions)
+	    #if defined(__powerpc64__) || defined(__ppc64__) || defined(_ARCH_PPC64)
+	        #define RAWR_DETECTED_ARCHID RAWR_ARCHID_PPC64
+	    #else
+	        #define RAWR_DETECTED_ARCHID RAWR_ARCHID_PPC32
+	    #endif
+	#elif defined(__loongarch64) || (defined(__loongarch__) && __loongarch_grlen == 64)
+	    #define RAWR_DETECTED_ARCHID RAWR_ARCHID_LOONG64
+	#elif defined(__mips__) || defined(_M_MRX000)
+	    // __mips64 or _MIPS_SIM / __mips register width checks
+	    #if defined(__mips64) || (defined(_MIPS_SIM) && _MIPS_SIM == _ABI64) || (defined(__mips_regsize) && __mips_regsize == 64)
+	        #define RAWR_DETECTED_ARCHID RAWR_ARCHID_MIPS64
+	    #else
+	        #define RAWR_DETECTED_ARCHID RAWR_ARCHID_MIPS32
+	    #endif
+	#elif defined(__s390x__) || defined(__s390__)
+	    // s390x is the 64-bit architecture; s390 is the legacy 32-bit
+	    #if defined(__s390x__)
+	        #define RAWR_DETECTED_ARCHID RAWR_ARCHID_S390X
+	    #else
+	        #define RAWR_DETECTED_ARCHID RAWR_ARCHID_S390
+	    #endif
+	#elif defined(__MSP430__)
+	    #define RAWR_DETECTED_ARCHID RAWR_ARCHID_MSP430
+	#elif defined(__sparc__) || defined(__sparc)
+	    // LEON processors (space-grade SPARC V8) are covered under __sparc__.
+	    // __sparcv9 and __arch64__ dictate 64-bit.
+	    #if defined(__sparcv9) || defined(__sparc_v9__) || defined(__arch64__)
+	        #define RAWR_DETECTED_ARCHID RAWR_ARCHID_SPARC64
+	    #else
+	        #define RAWR_DETECTED_ARCHID RAWR_ARCHID_SPARC32
+	    #endif
+	#elif defined(__sh__)
+	    // Covers SH-1 through SH-4 (SuperH)
+	    #define RAWR_DETECTED_ARCHID RAWR_ARCHID_SUPERH
+	#else
+	    #define RAWR_DETECTED_ARCHID RAWR_ARCHID_UNKNOWN
+	#endif
+
+	// --- User override. ---
+
+	// -DRAWR_SET_ARCHID=RAWR_ARCHID_<VALUE> replaces detection (UNKNOWN is a legal value). RAWR_DETECTED_ARCHID always keeps what
+	// detection found. Id 0 is reserved as "malformed": a misspelled name evaluates to 0.
+	#ifdef RAWR_ARCHID
+	    #error "rawr: RAWR_ARCHID is an output of detection; to override it define RAWR_SET_ARCHID"
+	#endif
+	#ifdef RAWR_SET_ARCHID
+	    #if RAWR_SET_ARCHID < 1 || RAWR_SET_ARCHID > RAWR_ARCHID_MAX
+	        #error "rawr: RAWR_SET_ARCHID must be one of the RAWR_ARCHID_* values (a misspelled name evaluates to 0, which is never valid)"
+	    #endif
+	    #define RAWR_ARCHID           RAWR_SET_ARCHID
+	    #define RAWR_ARCHID_DETECTED  0
+	    #define RAWR_ARCHID_OVERRIDEN 1
+	#else
+	    #define RAWR_ARCHID           RAWR_DETECTED_ARCHID
+	    #define RAWR_ARCHID_DETECTED  1
+	    #define RAWR_ARCHID_OVERRIDEN 0
+	#endif
+
+	// --- Canonical macros. ---
+
+	#define RAWR_ARCH_IA32    0
+	#define RAWR_ARCH_X64     0
+	#define RAWR_ARCH_ARM64   0
+	#define RAWR_ARCH_ARM32   0
+	#define RAWR_ARCH_RISCV64 0
+	#define RAWR_ARCH_RISCV32 0
+	#define RAWR_ARCH_XTENSA  0
+	#define RAWR_ARCH_AVR     0
+	#define RAWR_ARCH_WASM32  0
+	#define RAWR_ARCH_WASM64  0
+	#define RAWR_ARCH_PPC32   0
+	#define RAWR_ARCH_PPC64   0
+	#define RAWR_ARCH_LOONG64 0
+	#define RAWR_ARCH_MIPS32  0
+	#define RAWR_ARCH_MIPS64  0
+	#define RAWR_ARCH_S390    0
+	#define RAWR_ARCH_S390X   0
+	#define RAWR_ARCH_MSP430  0
+	#define RAWR_ARCH_SPARC32 0
+	#define RAWR_ARCH_SPARC64 0
+	#define RAWR_ARCH_SUPERH  0
+	#define RAWR_ARCH_UNKNOWN 0
+	#if RAWR_ARCHID == RAWR_ARCHID_UNKNOWN
+	    #undef  RAWR_ARCH_UNKNOWN
+	    #define RAWR_ARCH_UNKNOWN 1
+	#elif RAWR_ARCHID == RAWR_ARCHID_IA32
+	    #undef  RAWR_ARCH_IA32
+	    #define RAWR_ARCH_IA32 1
+	#elif RAWR_ARCHID == RAWR_ARCHID_X64
+	    #undef  RAWR_ARCH_X64
+	    #define RAWR_ARCH_X64 1
+	#elif RAWR_ARCHID == RAWR_ARCHID_ARM64
+	    #undef  RAWR_ARCH_ARM64
+	    #define RAWR_ARCH_ARM64 1
+	#elif RAWR_ARCHID == RAWR_ARCHID_ARM32
+	    #undef  RAWR_ARCH_ARM32
+	    #define RAWR_ARCH_ARM32 1
+	#elif RAWR_ARCHID == RAWR_ARCHID_RISCV64
+	    #undef  RAWR_ARCH_RISCV64
+	    #define RAWR_ARCH_RISCV64 1
+	#elif RAWR_ARCHID == RAWR_ARCHID_RISCV32
+	    #undef  RAWR_ARCH_RISCV32
+	    #define RAWR_ARCH_RISCV32 1
+	#elif RAWR_ARCHID == RAWR_ARCHID_XTENSA
+	    #undef  RAWR_ARCH_XTENSA
+	    #define RAWR_ARCH_XTENSA 1
+	#elif RAWR_ARCHID == RAWR_ARCHID_AVR
+	    #undef  RAWR_ARCH_AVR
+	    #define RAWR_ARCH_AVR 1
+	#elif RAWR_ARCHID == RAWR_ARCHID_WASM32
+	    #undef  RAWR_ARCH_WASM32
+	    #define RAWR_ARCH_WASM32 1
+	#elif RAWR_ARCHID == RAWR_ARCHID_WASM64
+	    #undef  RAWR_ARCH_WASM64
+	    #define RAWR_ARCH_WASM64 1
+	#elif RAWR_ARCHID == RAWR_ARCHID_PPC32
+	    #undef  RAWR_ARCH_PPC32
+	    #define RAWR_ARCH_PPC32 1
+	#elif RAWR_ARCHID == RAWR_ARCHID_PPC64
+	    #undef  RAWR_ARCH_PPC64
+	    #define RAWR_ARCH_PPC64 1
+	#elif RAWR_ARCHID == RAWR_ARCHID_LOONG64
+	    #undef  RAWR_ARCH_LOONG64
+	    #define RAWR_ARCH_LOONG64 1
+	#elif RAWR_ARCHID == RAWR_ARCHID_MIPS32
+	    #undef  RAWR_ARCH_MIPS32
+	    #define RAWR_ARCH_MIPS32 1
+	#elif RAWR_ARCHID == RAWR_ARCHID_MIPS64
+	    #undef  RAWR_ARCH_MIPS64
+	    #define RAWR_ARCH_MIPS64 1
+	#elif RAWR_ARCHID == RAWR_ARCHID_S390
+	    #undef  RAWR_ARCH_S390
+	    #define RAWR_ARCH_S390 1
+	#elif RAWR_ARCHID == RAWR_ARCHID_S390X
+	    #undef  RAWR_ARCH_S390X
+	    #define RAWR_ARCH_S390X 1
+	#elif RAWR_ARCHID == RAWR_ARCHID_MSP430
+	    #undef  RAWR_ARCH_MSP430
+	    #define RAWR_ARCH_MSP430 1
+	#elif RAWR_ARCHID == RAWR_ARCHID_SPARC32
+	    #undef  RAWR_ARCH_SPARC32
+	    #define RAWR_ARCH_SPARC32 1
+	#elif RAWR_ARCHID == RAWR_ARCHID_SPARC64
+	    #undef  RAWR_ARCH_SPARC64
+	    #define RAWR_ARCH_SPARC64 1
+	#elif RAWR_ARCHID == RAWR_ARCHID_SUPERH
+	    #undef  RAWR_ARCH_SUPERH
+	    #define RAWR_ARCH_SUPERH 1
+	#endif
+
+	// --- Families. ---
+
+	#define RAWR_ARCH_X86   0
+	#define RAWR_ARCH_RISCV 0
+	#define RAWR_ARCH_WASM  0
+	#define RAWR_ARCH_ARM   0
+	#define RAWR_ARCH_PPC   0
+	#define RAWR_ARCH_MIPS  0
+	#define RAWR_ARCH_IBMZ  0
+	#define RAWR_ARCH_SPARC 0
+	#if RAWR_ARCH_RISCV64 || RAWR_ARCH_RISCV32
+	    #undef  RAWR_ARCH_RISCV
+	    #define RAWR_ARCH_RISCV 1
+	#endif
+	#if RAWR_ARCH_WASM32 || RAWR_ARCH_WASM64
+	    #undef  RAWR_ARCH_WASM
+	    #define RAWR_ARCH_WASM 1
+	#endif
+	#if RAWR_ARCH_X64 || RAWR_ARCH_IA32
+	    #undef  RAWR_ARCH_X86
+	    #define RAWR_ARCH_X86 1
+	#endif
+	#if RAWR_ARCH_ARM64 || RAWR_ARCH_ARM32
+	    #undef  RAWR_ARCH_ARM
+	    #define RAWR_ARCH_ARM 1
+	#endif
+	#if RAWR_ARCH_PPC64 || RAWR_ARCH_PPC32
+	    #undef  RAWR_ARCH_PPC
+	    #define RAWR_ARCH_PPC 1
+	#endif
+	#if RAWR_ARCH_MIPS64 || RAWR_ARCH_MIPS32
+	    #undef  RAWR_ARCH_MIPS
+	    #define RAWR_ARCH_MIPS 1
+	#endif
+	#if RAWR_ARCH_S390X || RAWR_ARCH_S390
+	    #undef  RAWR_ARCH_IBMZ
+	    #define RAWR_ARCH_IBMZ 1
+	#endif
+	#if RAWR_ARCH_SPARC64 || RAWR_ARCH_SPARC32
+	    #undef  RAWR_ARCH_SPARC
+	    #define RAWR_ARCH_SPARC 1
+	#endif
+
+#if !defined(RAWR_AMALGAM_NO_SECTIONS) || !RAWR_AMALGAM_NO_SECTIONS
+	#pragma endsection "rawr/arch/detection.pp"
+#endif
+#if !RAWR_AMALGAM_NO_SECTIONS
 	#pragma section "rawr/distribution/todo.pp"
 #endif
-	#if !RAWR_AMALGAM_NO_SOURCE_MAPPING
+	#if !defined(RAWR_AMALGAM_NO_SOURCE_MAPPING) || !RAWR_AMALGAM_NO_SOURCE_MAPPING
 		#line 3 "rawr/distribution/todo.pp"
 	#endif
 	// Goal: Make it so annoying that you have no choice but to tackle the TODO.
 	// Usage: RAWR_TODO("Some todo here")
 	#pragma once
 
-	#if RAWRSCAN_METADATA
+	#ifdef RAWR_METADATA
 	    #define RAWR_PP_MODULE rawr.distribution.todo.pp
 	#endif
 
@@ -43,32 +310,70 @@
 	    #define RAWR_TODO(x)
 	#endif
 
-#if !RAWR_AMALGAM_NO_SECTIONS
+#if !defined(RAWR_AMALGAM_NO_SECTIONS) || !RAWR_AMALGAM_NO_SECTIONS
 	#pragma endsection "rawr/distribution/todo.pp"
 #endif
 #if !RAWR_AMALGAM_NO_SECTIONS
-	#pragma section "rawr/detection/compiler.pp"
+	#pragma section "rawr/compiler/detection.pp"
 #endif
-	#if !RAWR_AMALGAM_NO_SOURCE_MAPPING
-		#line 3 "rawr/detection/compiler.pp"
+	#if !defined(RAWR_AMALGAM_NO_SOURCE_MAPPING) || !RAWR_AMALGAM_NO_SOURCE_MAPPING
+		#line 3 "rawr/compiler/detection.pp"
 	#endif
 	#pragma once
 
-	#if RAWRSCAN_METADATA
-	    #define RAWR_PP_MODULE rawr.detection.compiler.pp
+	#ifdef RAWR_METADATA
+	    #define RAWR_PP_MODULE rawr.compiler.detection.pp
 	#endif
 
-	#define RAWR_DETECTION_MIN_GCC_VERSION   11
-	#define RAWR_DETECTION_MIN_CLANG_VERSION 12
-	#define RAWR_DETECTION_MIN_MSVC_VERSION  1928
+	// --- Ids. ---
+
+	#define RAWR_COMPILERID_UNKNOWN 1
+	#define RAWR_COMPILERID_CLANG   2
+	#define RAWR_COMPILERID_GCC     3
+	#define RAWR_COMPILERID_MSVC    4
+	#define RAWR_COMPILERID_MAX     4
+
+	// --- Detection. ---
+
+	// Clang must come before GCC — clang-cl defines both __clang__ and _MSC_VER,
+	// and Apple Clang defines __GNUC__ for compatibility.
+	#if defined(__clang__)
+	    #define RAWR_DETECTED_COMPILERID RAWR_COMPILERID_CLANG
+	#elif defined(__GNUC__) || defined(__GNUG__)
+	    #define RAWR_DETECTED_COMPILERID RAWR_COMPILERID_GCC
+	#elif defined(_MSC_VER)
+	    #define RAWR_DETECTED_COMPILERID RAWR_COMPILERID_MSVC
+	#else
+	    #define RAWR_DETECTED_COMPILERID RAWR_COMPILERID_UNKNOWN
+	#endif
+
+	// --- User override. ---
+
+	// -DRAWR_SET_COMPILERID=RAWR_COMPILERID_<VALUE> replaces detection (UNKNOWN is a legal value). RAWR_DETECTED_COMPILERID always keeps what
+	// detection found. Id 0 is reserved as "malformed": a misspelled name evaluates to 0.
+	#ifdef RAWR_COMPILERID
+	    #error "rawr: RAWR_COMPILERID is an output of detection; to override it define RAWR_SET_COMPILERID"
+	#endif
+	#ifdef RAWR_SET_COMPILERID
+	    #if RAWR_SET_COMPILERID < 1 || RAWR_SET_COMPILERID > RAWR_COMPILERID_MAX
+	        #error "rawr: RAWR_SET_COMPILERID must be one of the RAWR_COMPILERID_* values (a misspelled name evaluates to 0, which is never valid)"
+	    #endif
+	    #define RAWR_COMPILERID           RAWR_SET_COMPILERID
+	    #define RAWR_COMPILERID_DETECTED  0
+	    #define RAWR_COMPILERID_OVERRIDEN 1
+	#else
+	    #define RAWR_COMPILERID           RAWR_DETECTED_COMPILERID
+	    #define RAWR_COMPILERID_DETECTED  1
+	    #define RAWR_COMPILERID_OVERRIDEN 0
+	#endif
+
+	// --- Canonical macros. ---
 
 	#define RAWR_COMPILER_CLANG   0
 	#define RAWR_COMPILER_GCC     0
 	#define RAWR_COMPILER_MSVC    0
 	#define RAWR_COMPILER_UNKNOWN 0
-	// Clang must come before GCC — clang-cl defines both __clang__ and _MSC_VER,
-	// and Apple Clang defines __GNUC__ for compatibility.
-	#if defined(__clang__)
+	#if RAWR_COMPILERID == RAWR_COMPILERID_CLANG
 	    #undef  RAWR_COMPILER_CLANG
 	    #define RAWR_COMPILER_CLANG        1
 	    #define RAWR_COMPILER_VERSION      (__clang_major__ * 10000 + __clang_minor__ * 100 + __clang_patchlevel__)
@@ -76,7 +381,7 @@
 	    #define RAWR_COMPILER_VERSION_MINOR __clang_minor__
 	    #define RAWR_COMPILER_VERSION_PATCH __clang_patchlevel__
 	    #define RAWR_COMPILER_VERSION_BUILD 0
-	#elif defined(__GNUC__) || defined(__GNUG__)
+	#elif RAWR_COMPILERID == RAWR_COMPILERID_GCC
 	    #undef  RAWR_COMPILER_GCC
 	    #define RAWR_COMPILER_GCC           1
 	    #define RAWR_COMPILER_VERSION       (__GNUC__ * 10000 + __GNUC_MINOR__ * 100 + __GNUC_PATCHLEVEL__)
@@ -84,7 +389,7 @@
 	    #define RAWR_COMPILER_VERSION_MINOR __GNUC_MINOR__
 	    #define RAWR_COMPILER_VERSION_PATCH __GNUC_PATCHLEVEL__
 	    #define RAWR_COMPILER_VERSION_BUILD 0
-	#elif defined(_MSC_VER)
+	#elif RAWR_COMPILERID == RAWR_COMPILERID_MSVC
 	    #undef  RAWR_COMPILER_MSVC
 	    #define RAWR_COMPILER_MSVC          1
 	    #define RAWR_COMPILER_VERSION       _MSC_FULL_VER
@@ -102,300 +407,249 @@
 	    #define RAWR_COMPILER_VERSION_BUILD 0
 	#endif
 
-	#define RAWR_COMPILER_FAMILY_GNU 0
+	// --- Families. ---
+
+	#define RAWR_COMPILER_GNU 0
 	#if RAWR_COMPILER_CLANG || RAWR_COMPILER_GCC
-	    #undef  RAWR_COMPILER_FAMILY_GNU
-	    #define RAWR_COMPILER_FAMILY_GNU 1
+	    #undef  RAWR_COMPILER_GNU
+	    #define RAWR_COMPILER_GNU 1
 	#endif
 
-	#if !RAWR_DETECTION_NO_COMPILER_ERROR
+	// --- Version checking. ---
+
+	#define RAWR_COMPILER_MIN_GCC_VERSION   11
+	#define RAWR_COMPILER_MIN_CLANG_VERSION 12
+	#define RAWR_COMPILER_MIN_MSVC_VERSION  1928
+	#ifndef RAWR_COMPILER_NO_VERSION_CHECKING
+	    #define RAWR_COMPILER_NO_VERSION_CHECKING 0
+	#endif
+
+	#if !RAWR_COMPILER_NO_VERSION_CHECKING
 	    #if RAWR_COMPILER_GCC
-	        #if RAWR_COMPILER_VERSION_MAJOR < RAWR_DETECTION_MIN_GCC_VERSION
-	            #error "rawr/detection/compiler.pp: GCC 11+ required (concepts correctness, NTTP structural types)"
+	        #if RAWR_COMPILER_VERSION_MAJOR < RAWR_COMPILER_MIN_GCC_VERSION
+	            #error "rawr/compiler/detection.pp: GCC 11+ required (concepts correctness, NTTP structural types)"
 	        #endif
 	    #elif RAWR_COMPILER_CLANG
-	        #if RAWR_COMPILER_VERSION_MAJOR < RAWR_DETECTION_MIN_CLANG_VERSION
-	            #error "rawr/detection/compiler.pp: Clang 12+ required (concepts constraint subsumption correctness)"
+	        #if RAWR_COMPILER_VERSION_MAJOR < RAWR_COMPILER_MIN_CLANG_VERSION
+	            #error "rawr/compiler/detection.pp: Clang 12+ required (concepts constraint subsumption correctness)"
 	        #endif
 	    #elif RAWR_COMPILER_MSVC
-	        #if _MSC_VER < RAWR_DETECTION_MIN_MSVC_VERSION
-	            #error "rawr/detection/compiler.pp: MSVC 16.8+ (_MSC_VER >= 1928) required (C++20 mode, concepts)"
+	        #if _MSC_VER < RAWR_COMPILER_MIN_MSVC_VERSION
+	            #error "rawr/compiler/detection.pp: MSVC 16.8+ (_MSC_VER >= 1928) required (C++20 mode, concepts)"
 	        #endif
 	    #else
-	        #error "rawr/detection/compiler.pp: unrecognized compiler"
+	        #error "rawr/compiler/detection.pp: unrecognized compiler"
 	    #endif
 	#endif
 
-#if !RAWR_AMALGAM_NO_SECTIONS
-	#pragma endsection "rawr/detection/compiler.pp"
+#if !defined(RAWR_AMALGAM_NO_SECTIONS) || !RAWR_AMALGAM_NO_SECTIONS
+	#pragma endsection "rawr/compiler/detection.pp"
 #endif
 #if !RAWR_AMALGAM_NO_SECTIONS
-	#pragma section "rawr/detection/arch.pp"
+	#pragma section "rawr/abi/dm/bits.pp"
 #endif
-	#if !RAWR_AMALGAM_NO_SOURCE_MAPPING
-		#line 3 "rawr/detection/arch.pp"
+	#if !defined(RAWR_AMALGAM_NO_SOURCE_MAPPING) || !RAWR_AMALGAM_NO_SOURCE_MAPPING
+		#line 3 "rawr/abi/dm/bits.pp"
 	#endif
 	#pragma once
 
-	#if RAWRSCAN_METADATA
-	    #define RAWR_PP_MODULE rawr.detection.arch.pp
+	#ifdef RAWR_METADATA
+	    #define RAWR_PP_MODULE rawr.abi.dm.bits.pp
 	#endif
 
-	#define RAWR_ARCH_X86     0
-	#define RAWR_ARCH_X64     0
-	#define RAWR_ARCH_ARM64   0
-	#define RAWR_ARCH_ARM32   0
-	#define RAWR_ARCH_RISCV64 0
-	#define RAWR_ARCH_RISCV32 0
-	#define RAWR_ARCH_XTENSA  0
-	#define RAWR_ARCH_AVR     0
-	#define RAWR_ARCH_WASM32  0
-	#define RAWR_ARCH_WASM64  0
-	#define RAWR_ARCH_PPC32   0
-	#define RAWR_ARCH_PPC64   0
-	#define RAWR_ARCH_LOONG64 0
-	#define RAWR_ARCH_MIPS32  0
-	#define RAWR_ARCH_MIPS64  0
-	#define RAWR_ARCH_S390    0
-	#define RAWR_ARCH_S390X   0
-	#define RAWR_ARCH_MSP430  0
-	#define RAWR_ARCH_SPARC32 0
-	#define RAWR_ARCH_SPARC64 0
-	#define RAWR_ARCH_SUPERH  0
-	#define RAWR_ARCH_UNKNOWN 0
-	// WASM first — Emscripten defines __i386 for legacy reasons
-	#if defined(__wasm64__)
-	    #undef  RAWR_ARCH_WASM64
-	    #define RAWR_ARCH_WASM64 1
-	#elif defined(__wasm32__) || defined(__wasm__)
-	    // Fallback to 32-bit if only __wasm__ is defined (legacy)
-	    #undef  RAWR_ARCH_WASM32
-	    #define RAWR_ARCH_WASM32 1
-	#elif defined(__x86_64__) || defined(_M_X64)
-	    #undef  RAWR_ARCH_X64
-	    #define RAWR_ARCH_X64 1
-	#elif defined(__i386__) || defined(__i386) || defined(_M_IX86)
-	    // __i386 (no trailing __) is the GCC spelling; _M_IX86 is MSVC
-	    #undef  RAWR_ARCH_X86
-	    #define RAWR_ARCH_X86 1
-	#elif defined(__aarch64__) || defined(_M_ARM64)
-	    #undef  RAWR_ARCH_ARM64
-	    #define RAWR_ARCH_ARM64 1
-	#elif defined(__arm__) || defined(_M_ARM)
-	    #undef  RAWR_ARCH_ARM32
-	    #define RAWR_ARCH_ARM32 1
-	#elif defined(__riscv)
-	    // __riscv_xlen is always defined alongside __riscv
-	    #if __riscv_xlen == 64
-	        #undef  RAWR_ARCH_RISCV64
-	        #define RAWR_ARCH_RISCV64 1
-	    #else
-	        #undef  RAWR_ARCH_RISCV32
-	        #define RAWR_ARCH_RISCV32 1
-	    #endif
-	#elif defined(__XTENSA__)
-	    #undef  RAWR_ARCH_XTENSA
-	    #define RAWR_ARCH_XTENSA 1
-	#elif defined(__AVR__)
-	    #undef  RAWR_ARCH_AVR
-	    #define RAWR_ARCH_AVR 1
-	#elif defined(__powerpc__) || defined(__ppc__) || defined(_M_PPC)
-	    // Check for 64-bit PowerPC (includes ELFv1, ELFv2, and MSVC definitions)
-	    #if defined(__powerpc64__) || defined(__ppc64__) || defined(_ARCH_PPC64)
-	        #undef  RAWR_ARCH_PPC64
-	        #define RAWR_ARCH_PPC64 1
-	    #else
-	        #undef  RAWR_ARCH_PPC32
-	        #define RAWR_ARCH_PPC32 1
-	    #endif
-	#elif defined(__loongarch64) || (defined(__loongarch__) && __loongarch_grlen == 64)
-	    #undef  RAWR_ARCH_LOONG64
-	    #define RAWR_ARCH_LOONG64 1
-	#elif defined(__mips__) || defined(_M_MRX000)
-	    // __mips64 or _MIPS_SIM / __mips register width checks
-	    #if defined(__mips64) || (defined(_MIPS_SIM) && _MIPS_SIM == _ABI64) || (defined(__mips_regsize) && __mips_regsize == 64)
-	        #undef  RAWR_ARCH_MIPS64
-	        #define RAWR_ARCH_MIPS64 1
-	    #else
-	        #undef  RAWR_ARCH_MIPS32
-	        #define RAWR_ARCH_MIPS32 1
-	    #endif
-	#elif defined(__s390x__) || defined(__s390__)
-	    // s390x is the 64-bit architecture; s390 is the legacy 32-bit
-	    #if defined(__s390x__)
-	        #undef  RAWR_ARCH_S390X
-	        #define RAWR_ARCH_S390X 1
-	    #else
-	        #undef  RAWR_ARCH_S390
-	        #define RAWR_ARCH_S390 1
-	    #endif
-	#elif defined(__MSP430__)
-	    #undef  RAWR_ARCH_MSP430
-	    #define RAWR_ARCH_MSP430 1
-	#elif defined(__sparc__) || defined(__sparc)
-	    // LEON processors (space-grade SPARC V8) are covered under __sparc__.
-	    // __sparcv9 and __arch64__ dictate 64-bit.
-	    #if defined(__sparcv9) || defined(__sparc_v9__) || defined(__arch64__)
-	        #undef  RAWR_ARCH_SPARC64
-	        #define RAWR_ARCH_SPARC64 1
-	    #else
-	        #undef  RAWR_ARCH_SPARC32
-	        #define RAWR_ARCH_SPARC32 1
-	    #endif
-	#elif defined(__sh__)
-	    // Covers SH-1 through SH-4 (SuperH)
-	    #undef  RAWR_ARCH_SUPERH
-	    #define RAWR_ARCH_SUPERH 1
+	#if defined(__CHAR_BIT__)
+	    #define RAWR_ABI_DM_BITS_IN_BYTE __CHAR_BIT__
+	#elif defined(_MSC_VER)
+	    #define RAWR_ABI_DM_BITS_IN_BYTE 8
 	#else
-	    #undef  RAWR_ARCH_UNKNOWN
-	    #define RAWR_ARCH_UNKNOWN 1
+	    #ifndef RAWR_ABI_DM_BITS_IN_BYTE
+	        #error How many bits in byte?
+	    #endif
 	#endif
 
-	#define RAWR_ARCH_FAMILY_RISCV 0
-	#define RAWR_ARCH_FAMILY_X86   0
-	#define RAWR_ARCH_FAMILY_WASM  0
-	#define RAWR_ARCH_FAMILY_ARM   0
-	#define RAWR_ARCH_FAMILY_PPC   0
-	#define RAWR_ARCH_FAMILY_MIPS  0
-	#define RAWR_ARCH_FAMILY_S390  0
-	#define RAWR_ARCH_FAMILY_SPARC 0
-	#if RAWR_ARCH_RISCV64 || RAWR_ARCH_RISCV32
-	    #undef  RAWR_ARCH_FAMILY_RISCV
-	    #define RAWR_ARCH_FAMILY_RISCV 1
+#if !defined(RAWR_AMALGAM_NO_SECTIONS) || !RAWR_AMALGAM_NO_SECTIONS
+	#pragma endsection "rawr/abi/dm/bits.pp"
+#endif
+#if !RAWR_AMALGAM_NO_SECTIONS
+	#pragma section "rawr/abi/dm/detection.pp"
+#endif
+	#if !defined(RAWR_AMALGAM_NO_SOURCE_MAPPING) || !RAWR_AMALGAM_NO_SOURCE_MAPPING
+		#line 3 "rawr/abi/dm/detection.pp"
 	#endif
-	#if RAWR_ARCH_WASM32 || RAWR_ARCH_WASM64
-	    #undef  RAWR_ARCH_FAMILY_WASM
-	    #define RAWR_ARCH_FAMILY_WASM 1
-	#endif
-	#if RAWR_ARCH_X64 || RAWR_ARCH_X86
-	    #undef  RAWR_ARCH_FAMILY_X86
-	    #define RAWR_ARCH_FAMILY_X86 1
-	#endif
-	#if RAWR_ARCH_ARM64 || RAWR_ARCH_ARM32
-	    #undef  RAWR_ARCH_FAMILY_ARM
-	    #define RAWR_ARCH_FAMILY_ARM 1
-	#endif
-	#if RAWR_ARCH_PPC64 || RAWR_ARCH_PPC32
-	    #undef  RAWR_ARCH_FAMILY_PPC
-	    #define RAWR_ARCH_FAMILY_PPC 1
-	#endif
-	#if RAWR_ARCH_MIPS64 || RAWR_ARCH_MIPS32
-	    #undef  RAWR_ARCH_FAMILY_MIPS
-	    #define RAWR_ARCH_FAMILY_MIPS 1
-	#endif
-	#if RAWR_ARCH_S390X || RAWR_ARCH_S390
-	    #undef  RAWR_ARCH_FAMILY_S390
-	    #define RAWR_ARCH_FAMILY_S390 1
-	#endif
-	#if RAWR_ARCH_SPARC64 || RAWR_ARCH_SPARC32
-	    #undef  RAWR_ARCH_FAMILY_SPARC
-	    #define RAWR_ARCH_FAMILY_SPARC 1
+	// An ABI is two independent facts:
+	//   cc : calling convention - register usage, stack layout, entry parameter passing (what rawr's trampolines must obey)
+	//   dm : data model         - the widths of int / long / pointer (what struct layouts and size_t-like types depend on)
+	// They vary independently: x32 is (SysV, ILP32), Cygwin x64 is (Win64, LP64), MinGW x64 is (Win64, LLP64),
+	// watchOS arm64_32 is (AAPCS64 Apple, ILP32), RISC-V is (RISCV, ILP32|LP64).
+	#pragma once
+
+	#ifdef RAWR_METADATA
+	    #define RAWR_PP_MODULE rawr.abi.dm.detection.pp
 	#endif
 
-	// Defaults
-	#define RAWR_ARCH_X86_SSE     0
-	#define RAWR_ARCH_X86_SSE2    0
-	#define RAWR_ARCH_X86_SSE41   0
-	#define RAWR_ARCH_X86_SSE42   0
-	#define RAWR_ARCH_X86_AVX     0
-	#define RAWR_ARCH_X86_AVX2    0
-	#define RAWR_ARCH_X86_AVX512F 0
-	#define RAWR_ARCH_X86_FMA     0
-	#define RAWR_ARCH_X86_BMI1    0
-	#define RAWR_ARCH_X86_BMI2    0
-	#define RAWR_ARCH_X86_POPCNT  0
-	#define RAWR_ARCH_X86_LZCNT   0
-	#define RAWR_ARCH_X86_CLWB    0
-	#if RAWR_ARCH_FAMILY_X86
-	    // SSE / SSE2 are guaranteed on x64 by ABI, so we use ||, not &&
-	    #if RAWR_ARCH_X64 || defined(__SSE__)
-	        #undef  RAWR_ARCH_X86_SSE
-	        #define RAWR_ARCH_X86_SSE 1
+	// --- Ids. ---
+
+	#define RAWR_ABI_DMID_UNKNOWN 1
+	#define RAWR_ABI_DMID_ILP32   2
+	#define RAWR_ABI_DMID_LP64    3
+	#define RAWR_ABI_DMID_LLP64   4
+	#define RAWR_ABI_DMID_ILP64   5
+	#define RAWR_ABI_DMID_LP32    6
+	#define RAWR_ABI_DMID_IP16    7
+	#define RAWR_ABI_DMID_MAX     7
+
+	// --- Detection. ---
+
+	#if defined(__SIZEOF_INT__) && defined(__SIZEOF_LONG__) && defined(__SIZEOF_POINTER__)
+	    #if   __SIZEOF_INT__ == 4 && __SIZEOF_LONG__ == 4 && __SIZEOF_POINTER__ == 4
+	        #define RAWR_DETECTED_ABI_DMID RAWR_ABI_DMID_ILP32
+	    #elif __SIZEOF_INT__ == 4 && __SIZEOF_LONG__ == 8 && __SIZEOF_POINTER__ == 8
+	        #define RAWR_DETECTED_ABI_DMID RAWR_ABI_DMID_LP64
+	    #elif __SIZEOF_INT__ == 4 && __SIZEOF_LONG__ == 4 && __SIZEOF_POINTER__ == 8
+	        #define RAWR_DETECTED_ABI_DMID RAWR_ABI_DMID_LLP64
+	    #elif __SIZEOF_INT__ == 8 && __SIZEOF_LONG__ == 8 && __SIZEOF_POINTER__ == 8
+	        #define RAWR_DETECTED_ABI_DMID RAWR_ABI_DMID_ILP64
+	    #elif __SIZEOF_INT__ == 2 && __SIZEOF_LONG__ == 4 && __SIZEOF_POINTER__ == 4
+	        #define RAWR_DETECTED_ABI_DMID RAWR_ABI_DMID_LP32
+	    #elif __SIZEOF_INT__ == 2 && __SIZEOF_LONG__ == 4 && __SIZEOF_POINTER__ == 2
+	        #define RAWR_DETECTED_ABI_DMID RAWR_ABI_DMID_IP16
+	    #else
+	        #define RAWR_DETECTED_ABI_DMID RAWR_ABI_DMID_UNKNOWN
 	    #endif
-	    #if RAWR_ARCH_X64 || defined(__SSE2__)
-	        #undef  RAWR_ARCH_X86_SSE2
-	        #define RAWR_ARCH_X86_SSE2 1
+	#elif defined(_MSC_VER)
+	    // MSVC defines no __SIZEOF_*: int and long are 32-bit on every MSVC target, only the pointer varies.
+	    #if defined(_WIN64)
+	        #define RAWR_DETECTED_ABI_DMID RAWR_ABI_DMID_LLP64
+	    #else
+	        #define RAWR_DETECTED_ABI_DMID RAWR_ABI_DMID_ILP32
 	    #endif
-	    #if defined(__SSE4_1__)
-	        #undef  RAWR_ARCH_X86_SSE41
-	        #define RAWR_ARCH_X86_SSE41 1
-	    #endif
-	    #if defined(__SSE4_2__)
-	        #undef  RAWR_ARCH_X86_SSE42
-	        #define RAWR_ARCH_X86_SSE42 1
-	    #endif
-	    #if defined(__AVX__)
-	        #undef  RAWR_ARCH_X86_AVX
-	        #define RAWR_ARCH_X86_AVX 1
-	    #endif
-	    #if defined(__AVX2__)
-	        #undef  RAWR_ARCH_X86_AVX2
-	        #define RAWR_ARCH_X86_AVX2 1
-	    #endif
-	    #if defined(__AVX512F__)
-	        #undef  RAWR_ARCH_X86_AVX512F
-	        #define RAWR_ARCH_X86_AVX512F 1
-	    #endif
-	    #if defined(__FMA__)
-	        #undef  RAWR_ARCH_X86_FMA
-	        #define RAWR_ARCH_X86_FMA 1
-	    #endif
-	    #if defined(__BMI__)
-	        #undef  RAWR_ARCH_X86_BMI1
-	        #define RAWR_ARCH_X86_BMI1 1
-	    #endif
-	    #if defined(__BMI2__)
-	        #undef  RAWR_ARCH_X86_BMI2
-	        #define RAWR_ARCH_X86_BMI2 1
-	    #endif
-	    #if defined(__POPCNT__)
-	        #undef  RAWR_ARCH_X86_POPCNT
-	        #define RAWR_ARCH_X86_POPCNT 1
-	    #endif
-	    #if defined(__LZCNT__)
-	        #undef  RAWR_ARCH_X86_LZCNT
-	        #define RAWR_ARCH_X86_LZCNT 1
-	    #endif
-	    #if defined(__CLWB__)
-	        #undef  RAWR_ARCH_X86_CLWB
-	        #define RAWR_ARCH_X86_CLWB 1
-	    #endif
-	    // Note: MSVC exposes few independent ISA flags — only AVX/AVX2/AVX512 via /arch:.
-	    // CLWB, FMA, BMI etc. must be injected via -DRAWR_ARCH_X86_FEATURE_CLWB=1
-	    // in the build system when targeting those features on MSVC.
+	#else
+	    #define RAWR_DETECTED_ABI_DMID RAWR_ABI_DMID_UNKNOWN
 	#endif
 
-	#define RAWR_ARCH_ARM_NEON       0
-	#define RAWR_ARCH_ARM_SVE        0
-	#define RAWR_ARCH_ARM_SVE2       0
-	#define RAWR_ARCH_ARM_DOTPROD    0
-	#define RAWR_ARCH_ARM_FP16       0
-	#define RAWR_ARCH_ARM_BF16       0
-	#define RAWR_ARCH_ARM_ATOMIC_CAS 0
-	#if RAWR_ARCH_FAMILY_ARM
+	// --- User override. ---
+
+	// -DRAWR_SET_DMID=RAWR_DMID_<VALUE> replaces detection (UNKNOWN is a legal value). RAWR_DETECTED_DMID always keeps what
+	// detection found. Id 0 is reserved as "malformed": a misspelled name evaluates to 0.
+	#ifdef RAWR_ABI_DMID
+	    #error "rawr: RAWR_ABI_DMID is an output of detection; to override it define RAWR_SET_ABI_DMID"
+	#endif
+	#ifdef RAWR_SET_ABI_DMID
+	    #if RAWR_SET_ABI_DMID < 1 || RAWR_SET_ABI_DMID > RAWR_ABI_DMID_MAX
+	        #error "rawr: RAWR_SET_ABI_DMID must be one of the RAWR_ABI_DMID_* values (a misspelled name evaluates to 0, which is never valid)"
+	    #endif
+	    #define RAWR_ABI_DMID           RAWR_SET_ABI_DMID
+	    #define RAWR_ABI_DMID_DETECTED  0
+	    #define RAWR_ABI_DMID_OVERRIDEN 1
+	#else
+	    #define RAWR_ABI_DMID           RAWR_DETECTED_ABI_DMID
+	    #define RAWR_ABI_DMID_DETECTED  1
+	    #define RAWR_ABI_DMID_OVERRIDEN 0
+	#endif
+
+	// --- Canonical macros. ---
+
+	#define RAWR_ABI_DM_ILP32   0  // int 32, long 32, ptr 32 - 32-bit Linux/Windows/ARM/RISC-V/wasm32, x32, arm64_32
+	#define RAWR_ABI_DM_LP64    0  // int 32, long 64, ptr 64 - 64-bit Linux/macOS/BSD/Android, Cygwin
+	#define RAWR_ABI_DM_LLP64   0  // int 32, long 32, ptr 64 - 64-bit Windows (MSVC, MinGW)
+	#define RAWR_ABI_DM_ILP64   0  // int 64, long 64, ptr 64 - rare
+	#define RAWR_ABI_DM_LP32    0  // int 16, long 32, ptr 32 - rare
+	#define RAWR_ABI_DM_IP16    0  // int 16, long 32, ptr 16 - AVR, small-model MSP430
+	#define RAWR_ABI_DM_UNKNOWN 0
+	#if RAWR_ABI_DMID == RAWR_ABI_DMID_UNKNOWN
+	    #undef  RAWR_ABI_DM_UNKNOWN
+	    #define RAWR_ABI_DM_UNKNOWN 1
+	#elif RAWR_ABI_DMID == RAWR_ABI_DMID_ILP32
+	    #undef  RAWR_ABI_DM_ILP32
+	    #define RAWR_ABI_DM_ILP32 1
+	#elif RAWR_ABI_DMID == RAWR_ABI_DMID_LP64
+	    #undef  RAWR_ABI_DM_LP64
+	    #define RAWR_ABI_DM_LP64 1
+	#elif RAWR_ABI_DMID == RAWR_ABI_DMID_LLP64
+	    #undef  RAWR_ABI_DM_LLP64
+	    #define RAWR_ABI_DM_LLP64 1
+	#elif RAWR_ABI_DMID == RAWR_ABI_DMID_ILP64
+	    #undef  RAWR_ABI_DM_ILP64
+	    #define RAWR_ABI_DM_ILP64 1
+	#elif RAWR_ABI_DMID == RAWR_ABI_DMID_LP32
+	    #undef  RAWR_ABI_DM_LP32
+	    #define RAWR_ABI_DM_LP32 1
+	#elif RAWR_ABI_DMID == RAWR_ABI_DMID_IP16
+	    #undef  RAWR_ABI_DM_IP16
+	    #define RAWR_ABI_DM_IP16 1
+	#endif
+
+	// --- Families. ---
+
+	#define RAWR_ABI_DM_PTR64 0
+	#define RAWR_ABI_DM_PTR32 0
+	#if RAWR_ABI_DM_LP64 || RAWR_ABI_DM_LLP64 || RAWR_ABI_DM_ILP64
+	    #undef  RAWR_ABI_DM_PTR64
+	    #define RAWR_ABI_DM_PTR64 1
+	#elif RAWR_ABI_DM_ILP32 || RAWR_ABI_DM_LP32
+	    #undef  RAWR_ABI_DM_PTR32
+	    #define RAWR_ABI_DM_PTR32 1
+	#endif
+
+#if !defined(RAWR_AMALGAM_NO_SECTIONS) || !RAWR_AMALGAM_NO_SECTIONS
+	#pragma endsection "rawr/abi/dm/detection.pp"
+#endif
+#if !RAWR_AMALGAM_NO_SECTIONS
+	#pragma section "rawr/arch/arm/detection.pp"
+#endif
+	#if !defined(RAWR_AMALGAM_NO_SOURCE_MAPPING) || !RAWR_AMALGAM_NO_SOURCE_MAPPING
+		#line 3 "rawr/arch/arm/detection.pp"
+	#endif
+	#pragma once
+
+	#ifdef RAWR_METADATA
+	    #define RAWR_PP_MODULE rawr.arch.arm.detection.pp
+	#endif
+
+	// --- Ids. ---
+
+	#define RAWR_ARCH_ARMFEATUREID_NEON       1
+	#define RAWR_ARCH_ARMFEATUREID_SVE        2
+	#define RAWR_ARCH_ARMFEATUREID_SVE2       4
+	#define RAWR_ARCH_ARMFEATUREID_DOTPROD    8
+	#define RAWR_ARCH_ARMFEATUREID_FP16       16
+	#define RAWR_ARCH_ARMFEATUREID_BF16       32
+	#define RAWR_ARCH_ARMFEATUREID_ATOMIC_CAS 64
+	#define RAWR_ARCH_ARMFEATUREID_ALL        127
+
+	// --- Detection. ---
+
+	#define RAWR_DETECTED_ARCH_ARMFEATURE_NEON       0
+	#define RAWR_DETECTED_ARCH_ARMFEATURE_SVE        0
+	#define RAWR_DETECTED_ARCH_ARMFEATURE_SVE2       0
+	#define RAWR_DETECTED_ARCH_ARMFEATURE_DOTPROD    0
+	#define RAWR_DETECTED_ARCH_ARMFEATURE_FP16       0
+	#define RAWR_DETECTED_ARCH_ARMFEATURE_BF16       0
+	#define RAWR_DETECTED_ARCH_ARMFEATURE_ATOMIC_CAS 0
+	#if RAWR_ARCH_ARM
 	    #if defined(__ARM_NEON)
-	        #undef  RAWR_ARCH_ARM_NEON
-	        #define RAWR_ARCH_ARM_NEON 1
+	        #undef  RAWR_DETECTED_ARCH_ARMFEATURE_NEON
+	        #define RAWR_DETECTED_ARCH_ARMFEATURE_NEON 1
 	    #endif
 	    #if defined(__ARM_FEATURE_SVE)
-	        #undef  RAWR_ARCH_ARM_SVE
-	        #define RAWR_ARCH_ARM_SVE 1
+	        #undef  RAWR_DETECTED_ARCH_ARMFEATURE_SVE
+	        #define RAWR_DETECTED_ARCH_ARMFEATURE_SVE 1
 	    #endif
 	    #if defined(__ARM_FEATURE_SVE2)
-	        #undef  RAWR_ARCH_ARM_SVE2
-	        #define RAWR_ARCH_ARM_SVE2 1
+	        #undef  RAWR_DETECTED_ARCH_ARMFEATURE_SVE2
+	        #define RAWR_DETECTED_ARCH_ARMFEATURE_SVE2 1
 	    #endif
 	    #if defined(__ARM_FEATURE_DOTPROD)
-	        #undef  RAWR_ARCH_ARM_DOTPROD
-	        #define RAWR_ARCH_ARM_DOTPROD 1
+	        #undef  RAWR_DETECTED_ARCH_ARMFEATURE_DOTPROD
+	        #define RAWR_DETECTED_ARCH_ARMFEATURE_DOTPROD 1
 	    #endif
 	    #if defined(__ARM_FEATURE_FP16_VECTOR_ARITHMETIC)
-	        #undef  RAWR_ARCH_ARM_FP16
-	        #define RAWR_ARCH_ARM_FP16 1
+	        #undef  RAWR_DETECTED_ARCH_ARMFEATURE_FP16
+	        #define RAWR_DETECTED_ARCH_ARMFEATURE_FP16 1
 	    #endif
 	    #if defined(__ARM_FEATURE_BF16)
-	        #undef  RAWR_ARCH_ARM_BF16
-	        #define RAWR_ARCH_ARM_BF16 1
+	        #undef  RAWR_DETECTED_ARCH_ARMFEATURE_BF16
+	        #define RAWR_DETECTED_ARCH_ARMFEATURE_BF16 1
 	    #endif
 	    // ARMv6-M (Cortex-M0/M0+/M1) is the one ARM32 profile that excludes
 	    // LDREX/STREX entirely. GCC/Clang define __ARM_ARCH_6M__ specifically
@@ -404,41 +658,90 @@
 	    // no equivalent gap — every AArch64 profile is A-class and always has
 	    // at least LDXR/STXR — so it's unconditionally capable and isn't
 	    // gated by this macro at all; it's handled as always-1 at point of use.
-	    #if !defined(__ARM_ARCH_6M__)
-	        #undef  RAWR_ARCH_ARM_ATOMIC_CAS
-	        #define RAWR_ARCH_ARM_ATOMIC_CAS 1
+	    // ACLE: __ARM_FEATURE_LDREX is defined exactly when LDREX/STREX exist (absent on v4T/v5TE/v6-M).
+	    // MSVC does not define it; MSVC ARM32 targets ARMv7+.
+	    #if RAWR_ARCH_ARM64 || defined(__ARM_FEATURE_LDREX) || defined(_M_ARM)
+	        #undef  RAWR_DETECTED_ARCH_ARMFEATURE_ATOMIC_CAS
+	        #define RAWR_DETECTED_ARCH_ARMFEATURE_ATOMIC_CAS 1
 	    #endif
 	#endif
 
-	#define RAWR_ARCH_RISCV_ATOMIC 0
-	#if RAWR_ARCH_FAMILY_RISCV
-	    // Set by GCC/Clang when the 'A' (atomic) extension is targeted
-	    // (-matomic, or an "a"-suffixed -march, e.g. rv32ima). Many minimal
-	    // embedded RV32I cores omit the A extension deliberately to save area.
-	    #if defined(__riscv_atomic)
-	        #undef  RAWR_ARCH_RISCV_ATOMIC
-	        #define RAWR_ARCH_RISCV_ATOMIC 1
+	// --- Detected aggregate. ---
+
+	#define RAWR_DETECTED_ARCH_ARMFEATURES ( \
+	    (RAWR_DETECTED_ARCH_ARMFEATURE_NEON       * RAWR_ARCH_ARMFEATUREID_NEON)       | \
+	    (RAWR_DETECTED_ARCH_ARMFEATURE_SVE        * RAWR_ARCH_ARMFEATUREID_SVE)        | \
+	    (RAWR_DETECTED_ARCH_ARMFEATURE_SVE2       * RAWR_ARCH_ARMFEATUREID_SVE2)       | \
+	    (RAWR_DETECTED_ARCH_ARMFEATURE_DOTPROD    * RAWR_ARCH_ARMFEATUREID_DOTPROD)    | \
+	    (RAWR_DETECTED_ARCH_ARMFEATURE_FP16       * RAWR_ARCH_ARMFEATUREID_FP16)       | \
+	    (RAWR_DETECTED_ARCH_ARMFEATURE_BF16       * RAWR_ARCH_ARMFEATUREID_BF16)       | \
+	    (RAWR_DETECTED_ARCH_ARMFEATURE_ATOMIC_CAS * RAWR_ARCH_ARMFEATUREID_ATOMIC_CAS) | \
+	0 )
+
+	// --- User override. ---
+
+	// -DRAWR_SET_ARCH_ARMFEATURES=(RAWR_ARCH_ARMFEATURE_A|RAWR_ARCH_ARMFEATURE_B) replaces detection (RAWR_DETECTED_ARCH_ARMFEATURES keeps the detected set).
+	#ifdef RAWR_ARCH_ARMFEATURES
+	    #error "rawr: RAWR_ARCH_ARMFEATURES is an output of detection; to override it define RAWR_SET_ARCH_ARMFEATURES"
+	#endif
+	#ifdef RAWR_SET_ARCH_ARMFEATURES
+	    #if RAWR_SET_ARCH_ARMFEATURES & ~RAWR_ARCH_ARMFEATUREID_ALL
+	        #error "rawr: RAWR_SET_ARCH_ARMFEATURES contains bits that are not RAWR_ARCH_ARMFEATUREID_* values"
 	    #endif
+	    #define RAWR_ARCH_ARMFEATURES           RAWR_SET_ARCH_ARMFEATURES
+	    #define RAWR_ARCH_ARMFEATURES_DETECTED  0
+	    #define RAWR_ARCH_ARMFEATURES_OVERRIDEN 1
+	#else
+	    #define RAWR_ARCH_ARMFEATURES          RAWR_DETECTED_ARCH_ARMFEATURES
+	    #define RAWR_ARCH_ARMFEATURES_DETECTED  1
+	    #define RAWR_ARCH_ARMFEATURES_OVERRIDEN 0
 	#endif
 
-	#define RAWR_ARCH_WASM_ATOMICS 0
-	#if RAWR_ARCH_FAMILY_WASM
-	    // Set by Clang when compiled with -matomics (the threads/atomics
-	    // proposal). Without it, a wasm module has no shared memory across
-	    // execution agents — see RAWR_ARCH_HAS_CAS below.
-	    #if defined(__wasm_atomics__)
-	        #undef  RAWR_ARCH_WASM_ATOMICS
-	        #define RAWR_ARCH_WASM_ATOMICS 1
-	    #endif
+	// --- Canonical macros. ---
+
+	#define RAWR_ARCH_ARMFEATURE_NEON       0
+	#define RAWR_ARCH_ARMFEATURE_SVE        0
+	#define RAWR_ARCH_ARMFEATURE_SVE2       0
+	#define RAWR_ARCH_ARMFEATURE_DOTPROD    0
+	#define RAWR_ARCH_ARMFEATURE_FP16       0
+	#define RAWR_ARCH_ARMFEATURE_BF16       0
+	#define RAWR_ARCH_ARMFEATURE_ATOMIC_CAS 0
+	#if RAWR_ARCH_ARMFEATURES & RAWR_ARCH_ARMFEATUREID_NEON
+	    #undef  RAWR_ARCH_ARMFEATURE_NEON
+	    #define RAWR_ARCH_ARMFEATURE_NEON 1
+	#endif
+	#if RAWR_ARCH_ARMFEATURES & RAWR_ARCH_ARMFEATUREID_SVE
+	    #undef  RAWR_ARCH_ARMFEATURE_SVE
+	    #define RAWR_ARCH_ARMFEATURE_SVE 1
+	#endif
+	#if RAWR_ARCH_ARMFEATURES & RAWR_ARCH_ARMFEATUREID_SVE2
+	    #undef  RAWR_ARCH_ARMFEATURE_SVE2
+	    #define RAWR_ARCH_ARMFEATURE_SVE2 1
+	#endif
+	#if RAWR_ARCH_ARMFEATURES & RAWR_ARCH_ARMFEATUREID_DOTPROD
+	    #undef  RAWR_ARCH_ARMFEATURE_DOTPROD
+	    #define RAWR_ARCH_ARMFEATURE_DOTPROD 1
+	#endif
+	#if RAWR_ARCH_ARMFEATURES & RAWR_ARCH_ARMFEATUREID_FP16
+	    #undef  RAWR_ARCH_ARMFEATURE_FP16
+	    #define RAWR_ARCH_ARMFEATURE_FP16 1
+	#endif
+	#if RAWR_ARCH_ARMFEATURES & RAWR_ARCH_ARMFEATUREID_BF16
+	    #undef  RAWR_ARCH_ARMFEATURE_BF16
+	    #define RAWR_ARCH_ARMFEATURE_BF16 1
+	#endif
+	#if RAWR_ARCH_ARMFEATURES & RAWR_ARCH_ARMFEATUREID_ATOMIC_CAS
+	    #undef  RAWR_ARCH_ARMFEATURE_ATOMIC_CAS
+	    #define RAWR_ARCH_ARMFEATURE_ATOMIC_CAS 1
 	#endif
 
-#if !RAWR_AMALGAM_NO_SECTIONS
-	#pragma endsection "rawr/detection/arch.pp"
+#if !defined(RAWR_AMALGAM_NO_SECTIONS) || !RAWR_AMALGAM_NO_SECTIONS
+	#pragma endsection "rawr/arch/arm/detection.pp"
 #endif
 #if !RAWR_AMALGAM_NO_SECTIONS
 	#pragma section "rawr/lib/sass.cppm"
 #endif
-	#if !RAWR_AMALGAM_NO_SOURCE_MAPPING
+	#if !defined(RAWR_AMALGAM_NO_SOURCE_MAPPING) || !RAWR_AMALGAM_NO_SOURCE_MAPPING
 		#line 1 "rawr/lib/sass.hpp"
 	#endif
 	// Static assertion utils.
@@ -449,13 +752,13 @@
 	    inline constexpr auto fail = false;
 	}
 
-#if !RAWR_AMALGAM_NO_SECTIONS
+#if !defined(RAWR_AMALGAM_NO_SECTIONS) || !RAWR_AMALGAM_NO_SECTIONS
 	#pragma endsection "rawr/lib/sass.cppm"
 #endif
 #if !RAWR_AMALGAM_NO_SECTIONS
 	#pragma section "rawr/lib/dummy_return.cppm"
 #endif
-	#if !RAWR_AMALGAM_NO_SOURCE_MAPPING
+	#if !defined(RAWR_AMALGAM_NO_SOURCE_MAPPING) || !RAWR_AMALGAM_NO_SOURCE_MAPPING
 		#line 1 "rawr/lib/dummy_return.hpp"
 	#endif
 	
@@ -466,279 +769,17 @@
 	    };
 	}
 
-#if !RAWR_AMALGAM_NO_SECTIONS
+#if !defined(RAWR_AMALGAM_NO_SECTIONS) || !RAWR_AMALGAM_NO_SECTIONS
 	#pragma endsection "rawr/lib/dummy_return.cppm"
 #endif
 #if !RAWR_AMALGAM_NO_SECTIONS
-	#pragma section "rawr/detection/cxx_version.pp"
+	#pragma section "rawr/bin/linker_set.cppm"
 #endif
-	#if !RAWR_AMALGAM_NO_SOURCE_MAPPING
-		#line 3 "rawr/detection/cxx_version.pp"
-	#endif
-	#pragma once
-
-	#if RAWRSCAN_METADATA
-	    #define RAWR_PP_MODULE rawr.detection.cxx_version.pp
-	#endif
-
-	// MSVC doesn't update __cplusplus without /Zc:__cplusplus.
-	// _MSVC_LANG is always correct on MSVC regardless.
-	#if defined(_MSVC_LANG)
-	    #define RAWR_CXX_VERSION _MSVC_LANG
-	#else
-	    #define RAWR_CXX_VERSION __cplusplus
-	#endif
-	// NOLINTBEGIN(modernize-macro-to-enum)
-	#define RAWR_CXX_VERSION_98 199711L
-	#define RAWR_CXX_VERSION_11 201103L
-	#define RAWR_CXX_VERSION_14 201402L
-	#define RAWR_CXX_VERSION_17 201703L
-	#define RAWR_CXX_VERSION_20 202002L
-	#define RAWR_CXX_VERSION_23 202302L
-	#define RAWR_CXX_VERSION_26 202603L
-	// NOLINTEND(modernize-macro-to-enum)
-
-#if !RAWR_AMALGAM_NO_SECTIONS
-	#pragma endsection "rawr/detection/cxx_version.pp"
-#endif
-#if !RAWR_AMALGAM_NO_SECTIONS
-	#pragma section "rawr/detection/san.pp"
-#endif
-	#if !RAWR_AMALGAM_NO_SOURCE_MAPPING
-		#line 3 "rawr/detection/san.pp"
-	#endif
-	#pragma once
-
-	#if RAWRSCAN_METADATA
-	    #define RAWR_PP_MODULE rawr.detection.san.pp
-	#endif
-
-	// Guarding __has_feature inside an #elif chain prevents MSVC from
-	// aggressively expanding it and throwing C1012.
-
-	// --- Address Sanitizer (ASAN) ---
-	#if defined(__SANITIZE_ADDRESS__)
-	    #define RAWR_SAN_ASAN 1
-	#elif defined(__has_feature)
-	    #if __has_feature(address_sanitizer)
-	        #define RAWR_SAN_ASAN 1
-	    #else
-	        #define RAWR_SAN_ASAN 0
-	    #endif
-	#else
-	    #define RAWR_SAN_ASAN 0
-	#endif
-
-	// --- Hardware-Assisted Address Sanitizer (HWASAN) ---
-	#if defined(__SANITIZE_HWADDRESS__)
-	    #define RAWR_SAN_HWASAN 1
-	#elif defined(__has_feature)
-	    #if __has_feature(hwaddress_sanitizer)
-	        #define RAWR_SAN_HWASAN 1
-	    #else
-	        #define RAWR_SAN_HWASAN 0
-	    #endif
-	#else
-	    #define RAWR_SAN_HWASAN 0
-	#endif
-
-	// --- Thread Sanitizer (TSAN) ---
-	#if defined(__SANITIZE_THREAD__)
-	    #define RAWR_SAN_TSAN 1
-	#elif defined(__has_feature)
-	    #if __has_feature(thread_sanitizer)
-	        #define RAWR_SAN_TSAN 1
-	    #else
-	        #define RAWR_SAN_TSAN 0
-	    #endif
-	#else
-	    #define RAWR_SAN_TSAN 0
-	#endif
-
-	// --- Memory Sanitizer (MSAN) ---
-	#if defined(__SANITIZE_MEMORY__)
-	    #define RAWR_SAN_MSAN 1
-	#elif defined(__has_feature)
-	    #if __has_feature(memory_sanitizer)
-	        #define RAWR_SAN_MSAN 1
-	    #else
-	        #define RAWR_SAN_MSAN 0
-	    #endif
-	#else
-	    #define RAWR_SAN_MSAN 0
-	#endif
-
-	// --- Leak Sanitizer (LSAN) ---
-	#if defined(__SANITIZE_LEAK__)
-	    #define RAWR_SAN_LSAN 1
-	#elif defined(__has_feature)
-	    #if __has_feature(leak_sanitizer)
-	        #define RAWR_SAN_LSAN 1
-	    #else
-	        #define RAWR_SAN_LSAN 0
-	    #endif
-	#else
-	    #define RAWR_SAN_LSAN 0
-	#endif
-
-	// --- Undefined Behavior Sanitizer (UBSAN) ---
-	#if defined(__SANITIZE_UNDEFINED__)
-	    #define RAWR_SAN_UBSAN 1
-	#elif defined(__has_feature)
-	    #if __has_feature(undefined_behavior_sanitizer)
-	        #define RAWR_SAN_UBSAN 1
-	    #else
-	        #define RAWR_SAN_UBSAN 0
-	    #endif
-	#else
-	    #define RAWR_SAN_UBSAN 0
-	#endif
-
-	// --- Control Flow Guard / Integrity (CFG / CFI) ---
-	#if defined(_CONTROL_FLOW_GUARD)
-	    #define RAWR_SAN_CFI 1 // MSVC CFG
-	#elif defined(__has_feature)
-	    #if __has_feature(control_flow_integrity)
-	        #define RAWR_SAN_CFI 1 // Clang CFI
-	    #else
-	        #define RAWR_SAN_CFI 0
-	    #endif
-	#else
-	    #define RAWR_SAN_CFI 0
-	#endif
-
-	// --- SafeStack ---
-	#if defined(__has_feature)
-	    #if __has_feature(safe_stack)
-	        #define RAWR_SAN_SAFESTACK 1
-	    #else
-	        #define RAWR_SAN_SAFESTACK 0
-	    #endif
-	#else
-	    #define RAWR_SAN_SAFESTACK 0
-	#endif
-
-	// --- MSVC Runtime Checks (/RTC) ---
-	#if defined(__MSVC_RUNTIME_CHECKS)
-	    #define RAWR_SAN_RTC 1
-	#else
-	    #define RAWR_SAN_RTC 0
-	#endif
-
-	// Helper for "any sanitizer is active" (useful for tweaking timeouts or disabling optimizations)
-	// Note: Excludes CFI, SafeStack, and RTC as they usually don't dictate timeout adjustments.
-	#define RAWR_SAN_ANY_SANITIZER 0
-	#if RAWR_SAN_ASAN   || \
-	    RAWR_SAN_HWASAN || \
-	    RAWR_SAN_TSAN   || \
-	    RAWR_SAN_MSAN   || \
-	    RAWR_SAN_LSAN   || \
-	    RAWR_SAN_UBSAN
-	    #undef  RAWR_SAN_ANY_SANITIZER
-	    #define RAWR_SAN_ANY_SANITIZER 1
-	#endif
-
-#if !RAWR_AMALGAM_NO_SECTIONS
-	#pragma endsection "rawr/detection/san.pp"
-#endif
-#if !RAWR_AMALGAM_NO_SECTIONS
-	#pragma section "rawr/detection/env.pp"
-#endif
-	#if !RAWR_AMALGAM_NO_SOURCE_MAPPING
-		#line 3 "rawr/detection/env.pp"
-	#endif
-	#pragma once
-
-	#if RAWRSCAN_METADATA
-	    #define RAWR_PP_MODULE rawr.detection.env.pp
-	#endif
-
-	// ENV describes the execution environment layered above the host.
-	// A HOST_LINUX target with freestanding toolchain gets ENV_FREESTANDING.
-	// A HOST_WINDOWS target with Cygwin gets ENV_CYGWIN AND HOST_WINDOWS.
-	#define RAWR_ENV_FREESTANDING 0
-	#define RAWR_ENV_CYGWIN       0
-	#define RAWR_ENV_MINGW        0
-	#define RAWR_ENV_EMSCRIPTEN   0
-	#define RAWR_ENV_NATIVE       0
-	#define RAWR_ENV_UNKNOWN      0
-	#if defined(__EMSCRIPTEN__)
-	    #undef  RAWR_ENV_EMSCRIPTEN
-	    #define RAWR_ENV_EMSCRIPTEN 1
-	// __STDC_HOSTED__ == 0 means the compiler was invoked in freestanding mode (-ffreestanding).
-	// Embedded targets should set this. Bare toolchains often set it by default.
-	#elif defined(__STDC_HOSTED__) && __STDC_HOSTED__ == 0
-	    #undef  RAWR_ENV_FREESTANDING
-	    #define RAWR_ENV_FREESTANDING 1
-	#elif defined(__CYGWIN__)
-	    #undef  RAWR_ENV_CYGWIN
-	    #define RAWR_ENV_CYGWIN 1
-	#elif defined(__MINGW32__) || defined(__MINGW64__)
-	    #undef  RAWR_ENV_MINGW
-	    #define RAWR_ENV_MINGW 1
-	#elif RAWR_PLATFORM_LINUX   || RAWR_PLATFORM_MACOS  || RAWR_PLATFORM_IOS || \
-	      RAWR_PLATFORM_ANDROID || RAWR_PLATFORM_WINDOWS
-	    #undef  RAWR_ENV_NATIVE
-	    #define RAWR_ENV_NATIVE 1
-	#else
-	    #undef  RAWR_ENV_UNKNOWN
-	    #define RAWR_ENV_UNKNOWN 1
-	#endif
-
-#if !RAWR_AMALGAM_NO_SECTIONS
-	#pragma endsection "rawr/detection/env.pp"
-#endif
-#if !RAWR_AMALGAM_NO_SECTIONS
-	#pragma section "rawr/distribution/version.pp"
-#endif
-	#if !RAWR_AMALGAM_NO_SOURCE_MAPPING
-		#line 3 "rawr/distribution/version.pp"
-	#endif
-	#pragma once
-
-	#if RAWRSCAN_METADATA
-	    #define RAWR_PP_MODULE rawr.distribution.version.pp
-	#endif
-
-	#define RAWR_VERSION_MAJOR 0
-	#define RAWR_VERSION_MINOR 0
-	#define RAWR_VERSION_PATCH 0
-
-#if !RAWR_AMALGAM_NO_SECTIONS
-	#pragma endsection "rawr/distribution/version.pp"
-#endif
-#if !RAWR_AMALGAM_NO_SECTIONS
-	#pragma section "rawr/lib/rich_enum.cppm"
-#endif
-	#if !RAWR_AMALGAM_NO_SOURCE_MAPPING
-		#line 1 "rawr/lib/rich_enum.hpp"
+	#if !defined(RAWR_AMALGAM_NO_SOURCE_MAPPING) || !RAWR_AMALGAM_NO_SOURCE_MAPPING
+		#line 1 "rawr/bin/linker_set.hpp"
 	#endif
 	
-	namespace rawr::inline lib
-	{
-	    template <typename E> concept RichEnum  = requires { requires E::_is_rawr_rich_enum; typename E::enum_type; };
-	    // NOTE: a rich_flags is also a rich_enum.
-	    template <typename E> concept RichFlags = requires { requires E::_is_rawr_rich_flags; typename E::enum_type; };
-	
-	    namespace enum_trait
-	    {
-	        template <typename E> struct plain_enum    { using type = E; };
-	        template <RichEnum E> struct plain_enum<E> { using type = typename E::enum_type; };
-	    }
-	    template <typename E> using plain_enum = typename enum_trait::plain_enum<E>::type;
-	}
-
-#if !RAWR_AMALGAM_NO_SECTIONS
-	#pragma endsection "rawr/lib/rich_enum.cppm"
-#endif
-#if !RAWR_AMALGAM_NO_SECTIONS
-	#pragma section "rawr/lib/linker_section.cppm"
-#endif
-	#if !RAWR_AMALGAM_NO_SOURCE_MAPPING
-		#line 1 "rawr/lib/linker_section.hpp"
-	#endif
-	
-	namespace rawr::inline lib::linker_section::msvc
+	namespace rawr::bin::linker_set::msvc
 	{
 	    template <typename PointerType>
 	    struct iterator
@@ -794,13 +835,13 @@
 	    };
 	}
 
-#if !RAWR_AMALGAM_NO_SECTIONS
-	#pragma endsection "rawr/lib/linker_section.cppm"
+#if !defined(RAWR_AMALGAM_NO_SECTIONS) || !RAWR_AMALGAM_NO_SECTIONS
+	#pragma endsection "rawr/bin/linker_set.cppm"
 #endif
 #if !RAWR_AMALGAM_NO_SECTIONS
 	#pragma section "rawr/lib/pp.pp"
 #endif
-	#if !RAWR_AMALGAM_NO_SOURCE_MAPPING
+	#if !defined(RAWR_AMALGAM_NO_SOURCE_MAPPING) || !RAWR_AMALGAM_NO_SOURCE_MAPPING
 		#line 3 "rawr/lib/pp.pp"
 	#endif
 	// Preprocessor utility macros (FOR_EACH, NARG, CAT, ...):
@@ -810,7 +851,7 @@
 	// more RAWR_PP_FOR_EACH_n macros.
 	#pragma once
 
-	#if RAWRSCAN_METADATA
+	#ifdef RAWR_METADATA
 	    #define RAWR_PP_MODULE rawr.lib.pp.pp
 	#endif
 
@@ -1168,24 +1209,988 @@
 	#define RAWR_PP_CAT_(M, N, ...) M##N
 	#define RAWR_PP_CAT(M, N, ...)  RAWR_PP_CAT_(M, N)
 
-#if !RAWR_AMALGAM_NO_SECTIONS
+#if !defined(RAWR_AMALGAM_NO_SECTIONS) || !RAWR_AMALGAM_NO_SECTIONS
 	#pragma endsection "rawr/lib/pp.pp"
 #endif
 #if !RAWR_AMALGAM_NO_SECTIONS
-	#pragma section "rawr/detection/platform.pp"
+	#pragma section "rawr/cxx/version.pp"
 #endif
-	#if !RAWR_AMALGAM_NO_SOURCE_MAPPING
-		#line 3 "rawr/detection/platform.pp"
+	#if !defined(RAWR_AMALGAM_NO_SOURCE_MAPPING) || !RAWR_AMALGAM_NO_SOURCE_MAPPING
+		#line 3 "rawr/cxx/version.pp"
 	#endif
 	#pragma once
 
-	#if RAWRSCAN_METADATA
-	    #define RAWR_PP_MODULE rawr.detection.platform.pp
+	#ifdef RAWR_METADATA
+	    #define RAWR_PP_MODULE rawr.cxx.version.pp
+	#endif
+
+	// MSVC doesn't update __cplusplus without /Zc:__cplusplus.
+	// _MSVC_LANG is always correct on MSVC regardless.
+	#if defined(_MSVC_LANG)
+	    #define RAWR_CXX_VERSION _MSVC_LANG
+	#else
+	    #define RAWR_CXX_VERSION __cplusplus
+	#endif
+	// NOLINTBEGIN(modernize-macro-to-enum)
+	#define RAWR_CXX_VERSION_98 199711L
+	#define RAWR_CXX_VERSION_11 201103L
+	#define RAWR_CXX_VERSION_14 201402L
+	#define RAWR_CXX_VERSION_17 201703L
+	#define RAWR_CXX_VERSION_20 202002L
+	#define RAWR_CXX_VERSION_23 202302L
+	#define RAWR_CXX_VERSION_26 202603L
+	// NOLINTEND(modernize-macro-to-enum)
+
+#if !defined(RAWR_AMALGAM_NO_SECTIONS) || !RAWR_AMALGAM_NO_SECTIONS
+	#pragma endsection "rawr/cxx/version.pp"
+#endif
+#if !RAWR_AMALGAM_NO_SECTIONS
+	#pragma section "rawr/distribution/amalgam.pp"
+#endif
+	#if !defined(RAWR_AMALGAM_NO_SOURCE_MAPPING) || !RAWR_AMALGAM_NO_SOURCE_MAPPING
+		#line 3 "rawr/distribution/amalgam.pp"
+	#endif
+	#pragma once
+
+	#ifdef RAWR_METADATA
+	    #define RAWR_PP_MODULE rawr.distribution.amalgam.pp
+	#endif
+
+	#ifndef RAWR_AMALGAM
+	    #define RAWR_AMALGAM 0
+	#endif
+
+	#ifndef RAWR_AMALGAM_NOSTDLIB
+	    #define RAWR_AMALGAM_NOSTDLIB 0
+	#endif
+
+	#if RAWR_AMALGAM && !RAWR_AMALGAM_NOSTDLIB
+	    #define RAWR_AMALGAM_NOSTDLIB_GATED_0(...)
+	    #define RAWR_AMALGAM_NOSTDLIB_GATED_1(...) __VA_ARGS__
+	    #define RAWR_AMALGAM_NOSTDLIB_GATED(C, ...) RAWR_AMALGAM_NOSTDLIB_GATED_CAT_CALL(RAWR_AMALGAM_NOSTDLIB_GATED_, C, __VA_ARGS__)
+	    #define RAWR_AMALGAM_NOSTDLIB_GATED_CAT_CALL(M, N, ...)  RAWR_AMALGAM_NOSTDLIB_GATED_EXPAND(RAWR_AMALGAM_NOSTDLIB_GATED_CAT_CALL_(M, N, __VA_ARGS__))
+	    #define RAWR_AMALGAM_NOSTDLIB_GATED_CAT_CALL_(M, N, ...) M##N(__VA_ARGS__)
+	    #define RAWR_AMALGAM_NOSTDLIB_GATED_EXPAND(...) __VA_ARGS__
+	#else
+	    #define RAWR_AMALGAM_NOSTDLIB_GATED(Cond, ...) __VA_ARGS__
+	#endif
+
+	#ifndef RAWR_AMALGAM_NOSTDLIB_MEMCPY
+	    #define RAWR_AMALGAM_NOSTDLIB_MEMCPY 0
+	#endif
+	#ifndef RAWR_AMALGAM_NOSTDLIB_MEMSET
+	    #define RAWR_AMALGAM_NOSTDLIB_MEMSET 0
+	#endif
+
+#if !defined(RAWR_AMALGAM_NO_SECTIONS) || !RAWR_AMALGAM_NO_SECTIONS
+	#pragma endsection "rawr/distribution/amalgam.pp"
+#endif
+#if !RAWR_AMALGAM_NO_SECTIONS
+	#pragma section "rawr/distribution/version.pp"
+#endif
+	#if !defined(RAWR_AMALGAM_NO_SOURCE_MAPPING) || !RAWR_AMALGAM_NO_SOURCE_MAPPING
+		#line 3 "rawr/distribution/version.pp"
+	#endif
+	#pragma once
+
+	#ifdef RAWR_METADATA
+	    #define RAWR_PP_MODULE rawr.distribution.version.pp
+	#endif
+
+	#define RAWR_VERSION_MAJOR 0
+	#define RAWR_VERSION_MINOR 0
+	#define RAWR_VERSION_PATCH 0
+
+#if !defined(RAWR_AMALGAM_NO_SECTIONS) || !RAWR_AMALGAM_NO_SECTIONS
+	#pragma endsection "rawr/distribution/version.pp"
+#endif
+#if !RAWR_AMALGAM_NO_SECTIONS
+	#pragma section "rawr/lib/integer/detection.pp"
+#endif
+	#if !defined(RAWR_AMALGAM_NO_SOURCE_MAPPING) || !RAWR_AMALGAM_NO_SOURCE_MAPPING
+		#line 3 "rawr/lib/integer/detection.pp"
+	#endif
+	#pragma once
+
+	#ifdef RAWR_METADATA
+	    #define RAWR_PP_MODULE rawr.lib.integer.detection.pp
+	#endif
+
+	#if defined(__SIZEOF_INT128__)
+	    #define RAWR_INTEGER_HAS_INT128 1
+	#else
+	    #define RAWR_INTEGER_HAS_INT128 0
+	#endif
+
+#if !defined(RAWR_AMALGAM_NO_SECTIONS) || !RAWR_AMALGAM_NO_SECTIONS
+	#pragma endsection "rawr/lib/integer/detection.pp"
+#endif
+#if !RAWR_AMALGAM_NO_SECTIONS
+	#pragma section "rawr/lib/rich_enum.cppm"
+#endif
+	#if !defined(RAWR_AMALGAM_NO_SOURCE_MAPPING) || !RAWR_AMALGAM_NO_SOURCE_MAPPING
+		#line 1 "rawr/lib/rich_enum.hpp"
+	#endif
+	
+	namespace rawr::inline lib
+	{
+	    template <typename E> concept RichEnum  = requires { requires E::_is_rawr_rich_enum; typename E::enum_type; };
+	    // NOTE: a rich_flags is also a rich_enum.
+	    template <typename E> concept RichFlags = requires { requires E::_is_rawr_rich_flags; typename E::enum_type; };
+	
+	    namespace enum_trait
+	    {
+	        template <typename E> struct plain_enum    { using type = E; };
+	        template <RichEnum E> struct plain_enum<E> { using type = typename E::enum_type; };
+	    }
+	    template <typename E> using plain_enum = typename enum_trait::plain_enum<E>::type;
+	}
+
+#if !defined(RAWR_AMALGAM_NO_SECTIONS) || !RAWR_AMALGAM_NO_SECTIONS
+	#pragma endsection "rawr/lib/rich_enum.cppm"
+#endif
+#if !RAWR_AMALGAM_NO_SECTIONS
+	#pragma section "rawr/san/detection.pp"
+#endif
+	#if !defined(RAWR_AMALGAM_NO_SOURCE_MAPPING) || !RAWR_AMALGAM_NO_SOURCE_MAPPING
+		#line 3 "rawr/san/detection.pp"
+	#endif
+	#pragma once
+
+	#ifdef RAWR_METADATA
+	    #define RAWR_PP_MODULE rawr.san.detection.pp
+	#endif
+
+	// --- Ids. ---
+
+	#define RAWR_SANFEATUREID_ASAN      1
+	#define RAWR_SANFEATUREID_HWASAN    2
+	#define RAWR_SANFEATUREID_TSAN      4
+	#define RAWR_SANFEATUREID_MSAN      8
+	#define RAWR_SANFEATUREID_LSAN      16
+	#define RAWR_SANFEATUREID_UBSAN     32
+	#define RAWR_SANFEATUREID_CFI       64
+	#define RAWR_SANFEATUREID_SAFESTACK 128
+	#define RAWR_SANFEATUREID_RTC       256
+	#define RAWR_SANFEATUREID_ALL       511
+
+	// --- Detection. ---
+
+	// Guarding __has_feature inside an #elif chain prevents MSVC from
+	// aggressively expanding it and throwing C1012.
+
+	// --- Address Sanitizer (ASAN) ---
+	#if defined(__SANITIZE_ADDRESS__)
+	    #define RAWR_DETECTED_SAN_ASAN 1
+	#elif defined(__has_feature)
+	    #if __has_feature(address_sanitizer)
+	        #define RAWR_DETECTED_SAN_ASAN 1
+	    #else
+	        #define RAWR_DETECTED_SAN_ASAN 0
+	    #endif
+	#else
+	    #define RAWR_DETECTED_SAN_ASAN 0
+	#endif
+
+	// --- Hardware-Assisted Address Sanitizer (HWASAN) ---
+	#if defined(__SANITIZE_HWADDRESS__)
+	    #define RAWR_DETECTED_SAN_HWASAN 1
+	#elif defined(__has_feature)
+	    #if __has_feature(hwaddress_sanitizer)
+	        #define RAWR_DETECTED_SAN_HWASAN 1
+	    #else
+	        #define RAWR_DETECTED_SAN_HWASAN 0
+	    #endif
+	#else
+	    #define RAWR_DETECTED_SAN_HWASAN 0
+	#endif
+
+	// --- Thread Sanitizer (TSAN) ---
+	#if defined(__SANITIZE_THREAD__)
+	    #define RAWR_DETECTED_SAN_TSAN 1
+	#elif defined(__has_feature)
+	    #if __has_feature(thread_sanitizer)
+	        #define RAWR_DETECTED_SAN_TSAN 1
+	    #else
+	        #define RAWR_DETECTED_SAN_TSAN 0
+	    #endif
+	#else
+	    #define RAWR_DETECTED_SAN_TSAN 0
+	#endif
+
+	// --- Memory Sanitizer (MSAN) ---
+	#if defined(__SANITIZE_MEMORY__)
+	    #define RAWR_DETECTED_SAN_MSAN 1
+	#elif defined(__has_feature)
+	    #if __has_feature(memory_sanitizer)
+	        #define RAWR_DETECTED_SAN_MSAN 1
+	    #else
+	        #define RAWR_DETECTED_SAN_MSAN 0
+	    #endif
+	#else
+	    #define RAWR_DETECTED_SAN_MSAN 0
+	#endif
+
+	// --- Leak Sanitizer (LSAN) ---
+	#if defined(__SANITIZE_LEAK__)
+	    #define RAWR_DETECTED_SAN_LSAN 1
+	#elif defined(__has_feature)
+	    #if __has_feature(leak_sanitizer)
+	        #define RAWR_DETECTED_SAN_LSAN 1
+	    #else
+	        #define RAWR_DETECTED_SAN_LSAN 0
+	    #endif
+	#else
+	    #define RAWR_DETECTED_SAN_LSAN 0
+	#endif
+
+	// --- Undefined Behavior Sanitizer (UBSAN) ---
+	#if defined(__SANITIZE_UNDEFINED__)
+	    #define RAWR_DETECTED_SAN_UBSAN 1
+	#elif defined(__has_feature)
+	    #if __has_feature(undefined_behavior_sanitizer)
+	        #define RAWR_DETECTED_SAN_UBSAN 1
+	    #else
+	        #define RAWR_DETECTED_SAN_UBSAN 0
+	    #endif
+	#else
+	    #define RAWR_DETECTED_SAN_UBSAN 0
+	#endif
+
+	// --- Control Flow Guard / Integrity (CFG / CFI) ---
+	#if defined(_CONTROL_FLOW_GUARD)
+	    #define RAWR_DETECTED_SAN_CFI 1 // MSVC CFG
+	#elif defined(__has_feature)
+	    #if __has_feature(control_flow_integrity)
+	        #define RAWR_DETECTED_SAN_CFI 1 // Clang CFI
+	    #else
+	        #define RAWR_DETECTED_SAN_CFI 0
+	    #endif
+	#else
+	    #define RAWR_DETECTED_SAN_CFI 0
+	#endif
+
+	// --- SafeStack ---
+	#if defined(__has_feature)
+	    #if __has_feature(safe_stack)
+	        #define RAWR_DETECTED_SAN_SAFESTACK 1
+	    #else
+	        #define RAWR_DETECTED_SAN_SAFESTACK 0
+	    #endif
+	#else
+	    #define RAWR_DETECTED_SAN_SAFESTACK 0
+	#endif
+
+	// --- MSVC Runtime Checks (/RTC) ---
+	#if defined(__MSVC_RUNTIME_CHECKS)
+	    #define RAWR_DETECTED_SAN_RTC 1
+	#else
+	    #define RAWR_DETECTED_SAN_RTC 0
+	#endif
+
+
+	// --- Detected aggregate. ---
+
+	#define RAWR_DETECTED_SANFEATURES ( \
+	    (RAWR_DETECTED_SAN_ASAN      * RAWR_SANFEATUREID_ASAN) | \
+	    (RAWR_DETECTED_SAN_HWASAN    * RAWR_SANFEATUREID_HWASAN) | \
+	    (RAWR_DETECTED_SAN_TSAN      * RAWR_SANFEATUREID_TSAN) | \
+	    (RAWR_DETECTED_SAN_MSAN      * RAWR_SANFEATUREID_MSAN) | \
+	    (RAWR_DETECTED_SAN_LSAN      * RAWR_SANFEATUREID_LSAN) | \
+	    (RAWR_DETECTED_SAN_UBSAN     * RAWR_SANFEATUREID_UBSAN) | \
+	    (RAWR_DETECTED_SAN_CFI       * RAWR_SANFEATUREID_CFI) | \
+	    (RAWR_DETECTED_SAN_SAFESTACK * RAWR_SANFEATUREID_SAFESTACK) | \
+	    (RAWR_DETECTED_SAN_RTC       * RAWR_SANFEATUREID_RTC) | \
+	0 )
+
+	// --- User override. ---
+	// -DRAWR_SET_SANFEATURES=(RAWR_SANFEATURE_A|RAWR_SANFEATURE_B) replaces detection (RAWR_DETECTED_SANFEATURES keeps the detected set).
+	#ifdef RAWR_SANFEATURES
+	    #error "rawr: RAWR_SANFEATURES is an output of detection; to override it define RAWR_SET_SANFEATURES"
+	#endif
+	#ifdef RAWR_SET_SANFEATURES
+	    #if RAWR_SET_SANFEATURES & ~RAWR_SANFEATUREID_ALL
+	        #error "rawr: RAWR_SET_SANFEATURES contains bits that are not RAWR_SANFEATUREID_* values"
+	    #endif
+	    #define RAWR_SANFEATURES           RAWR_SET_SANFEATURES
+	    #define RAWR_SANFEATURES_DETECTED  0
+	    #define RAWR_SANFEATURES_OVERRIDEN 1
+	#else
+	    #define RAWR_SANFEATURES           RAWR_DETECTED_SANFEATURES
+	    #define RAWR_SANFEATURES_DETECTED  1
+	    #define RAWR_SANFEATURES_OVERRIDEN 0
+	#endif
+
+	// --- Canonical macros. ---
+
+	#define RAWR_SANFEATURE_ASAN 0
+	#define RAWR_SANFEATURE_HWASAN 0
+	#define RAWR_SANFEATURE_TSAN 0
+	#define RAWR_SANFEATURE_MSAN 0
+	#define RAWR_SANFEATURE_LSAN 0
+	#define RAWR_SANFEATURE_UBSAN 0
+	#define RAWR_SANFEATURE_CFI 0
+	#define RAWR_SANFEATURE_SAFESTACK 0
+	#define RAWR_SANFEATURE_RTC 0
+	#if RAWR_SANFEATURES & RAWR_SANFEATURE_ASAN
+	    #undef  RAWR_SANFEATURE_ASAN
+	    #define RAWR_SANFEATURE_ASAN 1
+	#endif
+	#if RAWR_SANFEATURES & RAWR_SANFEATURE_HWASAN
+	    #undef  RAWR_SANFEATURE_HWASAN
+	    #define RAWR_SANFEATURE_HWASAN 1
+	#endif
+	#if RAWR_SANFEATURES & RAWR_SANFEATURE_TSAN
+	    #undef  RAWR_SANFEATURE_TSAN
+	    #define RAWR_SANFEATURE_TSAN 1
+	#endif
+	#if RAWR_SANFEATURES & RAWR_SANFEATURE_MSAN
+	    #undef  RAWR_SANFEATURE_MSAN
+	    #define RAWR_SANFEATURE_MSAN 1
+	#endif
+	#if RAWR_SANFEATURES & RAWR_SANFEATURE_LSAN
+	    #undef  RAWR_SANFEATURE_LSAN
+	    #define RAWR_SANFEATURE_LSAN 1
+	#endif
+	#if RAWR_SANFEATURES & RAWR_SANFEATURE_UBSAN
+	    #undef  RAWR_SANFEATURE_UBSAN
+	    #define RAWR_SANFEATURE_UBSAN 1
+	#endif
+	#if RAWR_SANFEATURES & RAWR_SANFEATURE_CFI
+	    #undef  RAWR_SANFEATURE_CFI
+	    #define RAWR_SANFEATURE_CFI 1
+	#endif
+	#if RAWR_SANFEATURES & RAWR_SANFEATURE_SAFESTACK
+	    #undef  RAWR_SANFEATURE_SAFESTACK
+	    #define RAWR_SANFEATURE_SAFESTACK 1
+	#endif
+	#if RAWR_SANFEATURES & RAWR_SANFEATURE_RTC
+	    #undef  RAWR_SANFEATURE_RTC
+	    #define RAWR_SANFEATURE_RTC 1
+	#endif
+
+#if !defined(RAWR_AMALGAM_NO_SECTIONS) || !RAWR_AMALGAM_NO_SECTIONS
+	#pragma endsection "rawr/san/detection.pp"
+#endif
+#if !RAWR_AMALGAM_NO_SECTIONS
+	#pragma section "rawr/abi/cc/sysv/trampolines.pp"
+#endif
+	#if !defined(RAWR_AMALGAM_NO_SOURCE_MAPPING) || !RAWR_AMALGAM_NO_SOURCE_MAPPING
+		#line 3 "rawr/abi/cc/sysv/trampolines.pp"
+	#endif
+	#pragma once
+
+	#ifdef RAWR_METADATA
+	    #define RAWR_PP_MODULE rawr.abi.cc.sysv.trampolines.pp
+	#endif
+
+	#include "rawr.amalgam.hpp"
+
+	// Most of these get a Tail‑call (jmp/b/j) – preserves kernel‑provided
+	// 16‑byte alignment, no stack push, no alignment fixup needed.
+	// Except x86-32: esp points to argc at entry. Pass original esp as void* sp argument.
+	// Push before align — otherwise the push itself breaks the alignment we just set.
+	// "and $-16, %esp" first would lose the original esp value.
+	#define RAWR_ABI_CC_SYSV_TRAMPOLINE_X86 \
+	    "movl %esp, %eax\n\t"    /* save original sp */ \
+	    "andl $-16, %esp\n\t"    /* align (kernel may deliver esp-4 ≡ 0 mod 16; verify per ABI) */ \
+	    "pushl %eax\n\t"         /* push sp as argument */ \
+	    "call rawr_main"         /* must be call, not jmp — arg is on stack */
+	#define RAWR_ABI_CC_SYSV_TRAMPOLINE_X64     "mov %rsp, %rdi\n\tjmp rawr_main"
+	#define RAWR_ABI_CC_SYSV_TRAMPOLINE_ARM32   "mov r0, sp\n\tb rawr_main"
+	#define RAWR_ABI_CC_SYSV_TRAMPOLINE_ARM64   "mov x0, sp\n\tb rawr_main"
+	#define RAWR_ABI_CC_SYSV_TRAMPOLINE_RISCV32 "mv a0, sp\n\tj rawr_main"
+	#define RAWR_ABI_CC_SYSV_TRAMPOLINE_RISCV64 "mv a0, sp\n\tj rawr_main"
+
+	#define RAWR_ABI_CC_SYSV_HAS_TRAMPOLINE 1
+	#if RAWR_ARCH_IA32
+	    #define RAWR_ABI_CC_SYSV_TRAMPOLINE RAWR_ABI_CC_SYSV_TRAMPOLINE_X86
+	#elif RAWR_ARCH_X64
+	    #define RAWR_ABI_CC_SYSV_TRAMPOLINE RAWR_ABI_CC_SYSV_TRAMPOLINE_X64
+	#elif RAWR_ARCH_ARM32
+	    #define RAWR_ABI_CC_SYSV_TRAMPOLINE RAWR_ABI_CC_SYSV_TRAMPOLINE_ARM32
+	#elif RAWR_ARCH_ARM64
+	    #define RAWR_ABI_CC_SYSV_TRAMPOLINE RAWR_ABI_CC_SYSV_TRAMPOLINE_ARM64
+	#elif RAWR_ARCH_RISCV32
+	    #define RAWR_ABI_CC_SYSV_TRAMPOLINE RAWR_ABI_CC_SYSV_TRAMPOLINE_RISCV32
+	#elif RAWR_ARCH_RISCV64
+	    #define RAWR_ABI_CC_SYSV_TRAMPOLINE RAWR_ABI_CC_SYSV_TRAMPOLINE_RISCV64
+	#else
+	    #define RAWR_ABI_CC_SYSV_TRAMPOLINE ".error \"Missing trampoline\""
+	    #undef  RAWR_ABI_CC_SYSV_HAS_TRAMPOLINE
+	    #define RAWR_ABI_CC_SYSV_HAS_TRAMPOLINE 0
+	#endif
+
+#if !defined(RAWR_AMALGAM_NO_SECTIONS) || !RAWR_AMALGAM_NO_SECTIONS
+	#pragma endsection "rawr/abi/cc/sysv/trampolines.pp"
+#endif
+#if !RAWR_AMALGAM_NO_SECTIONS
+	#pragma section "rawr/arch/endian.pp"
+#endif
+	#if !defined(RAWR_AMALGAM_NO_SOURCE_MAPPING) || !RAWR_AMALGAM_NO_SOURCE_MAPPING
+		#line 3 "rawr/arch/endian.pp"
+	#endif
+	#pragma once
+
+	#ifdef RAWR_METADATA
+	    #define RAWR_PP_MODULE rawr.arch.endian.pp
+	#endif
+
+	#include "rawr.amalgam.hpp"
+
+	// --- Ids. ---
+
+	#define RAWR_ARCH_ENDIANID_UNKNOWN 1
+	#define RAWR_ARCH_ENDIANID_LE      2
+	#define RAWR_ARCH_ENDIANID_BE      3
+	#define RAWR_ARCH_ENDIANID_MAX     3
+
+	// --- Detection. ---
+
+	// __BYTE_ORDER__ is the authoritative source — covers bi-endian ARM correctly
+	#if defined(__BYTE_ORDER__) && defined(__ORDER_LITTLE_ENDIAN__)
+	    #if __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
+	        #define RAWR_DETECTED_ARCH_ENDIANID RAWR_ARCH_ENDIANID_LE
+	    #elif __BYTE_ORDER__ == __ORDER_BIG_ENDIAN__
+	        #define RAWR_DETECTED_ARCH_ENDIANID RAWR_ARCH_ENDIANID_BE
+	    #else
+	        #define RAWR_DETECTED_ARCH_ENDIANID RAWR_ARCH_ENDIANID_UNKNOWN
+	    #endif
+	#elif defined(__MIPSEL__) || defined(__MIPSEL) || defined(_MIPSEL)
+	    #define RAWR_DETECTED_ARCH_ENDIANID RAWR_ARCH_ENDIANID_LE
+	#elif defined(__MIPSEB__) || defined(__MIPSEB) || defined(_MIPSEB)
+	    #define RAWR_DETECTED_ARCH_ENDIANID RAWR_ARCH_ENDIANID_BE
+	// Fallback for toolchains without __BYTE_ORDER__ or not otherwise detectable:
+	#elif RAWR_ARCH_S390X || RAWR_ARCH_S390 || RAWR_ARCH_SPARC64 || RAWR_ARCH_SPARC32
+	    #define RAWR_DETECTED_ARCH_ENDIANID RAWR_ARCH_ENDIANID_BE
+	#elif                    \
+	    RAWR_ARCH_X86     || \
+	    RAWR_ARCH_ARM     || \
+	    RAWR_ARCH_RISCV   || \
+	    RAWR_ARCH_WASM    || \
+	    RAWR_ARCH_XTENSA  || \
+	    RAWR_ARCH_LOONG64 || \
+	    RAWR_ARCH_AVR     || \
+	    RAWR_ARCH_MSP430
+	    #define RAWR_DETECTED_ARCH_ENDIANID RAWR_ARCH_ENDIANID_LE
+	#else
+	    #define RAWR_DETECTED_ARCH_ENDIANID RAWR_ARCH_ENDIANID_UNKNOWN
+	#endif
+
+	// --- User override. ---
+
+	// -DRAWR_SET_ARCH_ENDIANID=RAWR_ARCH_ENDIANID_<VALUE> replaces detection (UNKNOWN is a legal value). RAWR_DETECTED_ARCH_ENDIANID always keeps what
+	// detection found. Id 0 is reserved as "malformed": a misspelled name evaluates to 0.
+	#ifdef RAWR_ARCH_ENDIANID
+	    #error "rawr: RAWR_ARCH_ENDIANID is an output of detection; to override it define RAWR_SET_ARCH_ENDIANID"
+	#endif
+	#ifdef RAWR_SET_ARCH_ENDIANID
+	    #if RAWR_SET_ARCH_ENDIANID < 1 || RAWR_SET_ARCH_ENDIANID > RAWR_ARCH_ENDIANID_MAX
+	        #error "rawr: RAWR_SET_ARCH_ENDIANID must be one of the RAWR_ARCH_ENDIANID_* values (a misspelled name evaluates to 0, which is never valid)"
+	    #endif
+	    #define RAWR_ARCH_ENDIANID           RAWR_SET_ARCH_ENDIANID
+	    #define RAWR_ARCH_ENDIANID_DETECTED  0
+	    #define RAWR_ARCH_ENDIANID_OVERRIDEN 1
+	#else
+	    #define RAWR_ARCH_ENDIANID           RAWR_DETECTED_ARCH_ENDIANID
+	    #define RAWR_ARCH_ENDIANID_DETECTED  1
+	    #define RAWR_ARCH_ENDIANID_OVERRIDEN 0
+	#endif
+
+	// --- Canonical macros. ---
+
+	#define RAWR_ARCH_LE             0
+	#define RAWR_ARCH_BE             0
+	#define RAWR_ARCH_ENDIAN_UNKNOWN 0
+	#if RAWR_ARCH_ENDIANID == RAWR_ARCH_ENDIANID_UNKNOWN
+	    #undef  RAWR_ARCH_ENDIAN_UNKNOWN
+	    #define RAWR_ARCH_ENDIAN_UNKNOWN 1
+	#elif RAWR_ARCH_ENDIANID == RAWR_ARCH_ENDIANID_LE
+	    #undef  RAWR_ARCH_LE
+	    #define RAWR_ARCH_LE 1
+	#elif RAWR_ARCH_ENDIANID == RAWR_ARCH_ENDIANID_BE
+	    #undef  RAWR_ARCH_BE
+	    #define RAWR_ARCH_BE 1
+	#endif
+
+#if !defined(RAWR_AMALGAM_NO_SECTIONS) || !RAWR_AMALGAM_NO_SECTIONS
+	#pragma endsection "rawr/arch/endian.pp"
+#endif
+#if !RAWR_AMALGAM_NO_SECTIONS
+	#pragma section "rawr/arch/riscv/detection.pp"
+#endif
+	#if !defined(RAWR_AMALGAM_NO_SOURCE_MAPPING) || !RAWR_AMALGAM_NO_SOURCE_MAPPING
+		#line 3 "rawr/arch/riscv/detection.pp"
+	#endif
+	#pragma once
+
+	#ifdef RAWR_METADATA
+	    #define RAWR_PP_MODULE rawr.arch.riscv.detection.pp
+	#endif
+
+	#include "rawr.amalgam.hpp"
+
+	// --- Ids. ---
+
+	#define RAWR_ARCH_RISCVFEATUREID_ATOMIC 1
+	#define RAWR_ARCH_RISCVFEATUREID_ALL    1
+
+	// --- Detection. ---
+
+	#define RAWR_DETECTED_ARCH_RISCVFEATURE_ATOMIC 0
+	#if RAWR_ARCH_RISCV
+	    // Set by GCC/Clang when the 'A' (atomic) extension is targeted
+	    // (-matomic, or an "a"-suffixed -march, e.g. rv32ima). Many minimal
+	    // embedded RV32I cores omit the A extension deliberately to save area.
+	    #if defined(__riscv_atomic)
+	        #undef  RAWR_DETECTED_ARCH_RISCVFEATURE_ATOMIC
+	        #define RAWR_DETECTED_ARCH_RISCVFEATURE_ATOMIC 1
+	    #endif
+	#endif
+
+	// --- Detected aggregate. ---
+
+	#define RAWR_DETECTED_ARCH_RISCVFEATURES ( \
+	    (RAWR_DETECTED_ARCH_RISCVFEATURE_ATOMIC * RAWR_ARCH_RISCVFEATUREID_ATOMIC) | \
+	0 )
+
+	// --- User override. ---
+	// -DRAWR_SET_ARCH_RISCVFEATURES=(RAWR_ARCH_RISCVFEATURE_A|RAWR_ARCH_RISCVFEATURE_B) replaces detection (RAWR_DETECTED_ARCH_RISCVFEATURES keeps the detected set).
+	#ifdef RAWR_ARCH_RISCVFEATURES
+	    #error "rawr: RAWR_ARCH_RISCVFEATURES is an output of detection; to override it define RAWR_SET_ARCH_RISCVFEATURES"
+	#endif
+	#ifdef RAWR_SET_ARCH_RISCVFEATURES
+	    #if RAWR_SET_ARCH_RISCVFEATURES & ~RAWR_ARCH_RISCVFEATUREID_ALL
+	        #error "rawr: RAWR_SET_ARCH_RISCVFEATURES contains bits that are not RAWR_ARCH_RISCVFEATUREID_* values"
+	    #endif
+	    #define RAWR_ARCH_RISCVFEATURES           RAWR_SET_ARCH_RISCVFEATURES
+	    #define RAWR_ARCH_RISCVFEATURES_DETECTED  0
+	    #define RAWR_ARCH_RISCVFEATURES_OVERRIDEN 1
+	#else
+	    #define RAWR_ARCH_RISCVFEATURES           RAWR_DETECTED_ARCH_RISCVFEATURES
+	    #define RAWR_ARCH_RISCVFEATURES_DETECTED  1
+	    #define RAWR_ARCH_RISCVFEATURES_OVERRIDEN 0
+	#endif
+
+	// --- Canonical macros. ---
+
+	#define RAWR_ARCH_RISCV_ATOMIC 0
+	#if RAWR_ARCH_RISCVFEATURES & RAWR_ARCH_RISCVFEATUREID_ATOMIC
+	    #undef  RAWR_ARCH_RISCV_ATOMIC
+	    #define RAWR_ARCH_RISCV_ATOMIC 1
+	#endif
+
+#if !defined(RAWR_AMALGAM_NO_SECTIONS) || !RAWR_AMALGAM_NO_SECTIONS
+	#pragma endsection "rawr/arch/riscv/detection.pp"
+#endif
+#if !RAWR_AMALGAM_NO_SECTIONS
+	#pragma section "rawr/arch/wasm/detection.pp"
+#endif
+	#if !defined(RAWR_AMALGAM_NO_SOURCE_MAPPING) || !RAWR_AMALGAM_NO_SOURCE_MAPPING
+		#line 3 "rawr/arch/wasm/detection.pp"
+	#endif
+	#pragma once
+
+	#ifdef RAWR_METADATA
+	    #define RAWR_PP_MODULE rawr.arch.wasm.detection.pp
+	#endif
+
+	#include "rawr.amalgam.hpp"
+
+	// --- Ids. ---
+
+	#define RAWR_ARCH_WASMFEATUREID_ATOMICS 1
+	#define RAWR_ARCH_WASMFEATUREID_ALL     1
+
+	// --- Detection. ---
+
+	#define RAWR_DETECTED_ARCH_WASMFEATURE_ATOMICS 0
+	#if RAWR_ARCH_WASM
+	    // Set by Clang when compiled with -matomics (the threads/atomics
+	    // proposal). Without it, a wasm module has no shared memory across
+	    // execution agents — see RAWR_ARCH_HAS_CAS below.
+	    #if defined(__wasm_atomics__)
+	        #undef  RAWR_DETECTED_ARCH_WASMFEATURE_ATOMICS
+	        #define RAWR_DETECTED_ARCH_WASMFEATURE_ATOMICS 1
+	    #endif
+	#endif
+
+	// --- Detected aggregate. ---
+
+	#define RAWR_DETECTED_ARCH_WASMFEATURES ( \
+	    (RAWR_DETECTED_ARCH_WASMFEATURE_ATOMICS * RAWR_ARCH_WASMFEATUREID_ATOMICS) | \
+	0 )
+
+	// --- User override. ---
+
+	// -DRAWR_SET_ARCH_WASMFEATURES=(RAWR_ARCH_WASMFEATURE_A|RAWR_ARCH_WASMFEATURE_B) replaces detection (RAWR_DETECTED_ARCH_WASMFEATURES keeps the detected set).
+	#ifdef RAWR_ARCH_WASMFEATURES
+	    #error "rawr: RAWR_ARCH_WASMFEATURES is an output of detection; to override it define RAWR_SET_ARCH_WASMFEATURES"
+	#endif
+	#ifdef RAWR_SET_ARCH_WASMFEATURES
+	    #if RAWR_SET_ARCH_WASMFEATURES & ~RAWR_ARCH_WASMFEATUREID_ALL
+	        #error "rawr: RAWR_SET_ARCH_WASMFEATURES contains bits that are not RAWR_ARCH_WASMFEATUREID_* values"
+	    #endif
+	    #define RAWR_ARCH_WASMFEATURES           RAWR_SET_ARCH_WASMFEATURES
+	    #define RAWR_ARCH_WASMFEATURES_DETECTED  0
+	    #define RAWR_ARCH_WASMFEATURES_OVERRIDEN 1
+	#else
+	    #define RAWR_ARCH_WASMFEATURES           RAWR_DETECTED_ARCH_WASMFEATURES
+	    #define RAWR_ARCH_WASMFEATURES_DETECTED  1
+	    #define RAWR_ARCH_WASMFEATURES_OVERRIDEN 0
+	#endif
+
+	// --- Canonical macros. ---
+
+	#define RAWR_ARCH_WASM_ATOMICS 0
+	#if RAWR_ARCH_WASMFEATURES & RAWR_ARCH_WASMFEATUREID_ATOMICS
+	    #undef  RAWR_ARCH_WASM_ATOMICS
+	    #define RAWR_ARCH_WASM_ATOMICS 1
+	#endif
+
+#if !defined(RAWR_AMALGAM_NO_SECTIONS) || !RAWR_AMALGAM_NO_SECTIONS
+	#pragma endsection "rawr/arch/wasm/detection.pp"
+#endif
+#if !RAWR_AMALGAM_NO_SECTIONS
+	#pragma section "rawr/arch/x86/detection.pp"
+#endif
+	#if !defined(RAWR_AMALGAM_NO_SOURCE_MAPPING) || !RAWR_AMALGAM_NO_SOURCE_MAPPING
+		#line 3 "rawr/arch/x86/detection.pp"
+	#endif
+	#pragma once
+
+	#ifdef RAWR_METADATA
+	    #define RAWR_PP_MODULE rawr.arch.x86.detection.pp
+	#endif
+
+	#include "rawr.amalgam.hpp"
+
+	// --- Ids. ---
+
+	#define RAWR_ARCH_X86FEATUREID_SSE     1
+	#define RAWR_ARCH_X86FEATUREID_SSE2    2
+	#define RAWR_ARCH_X86FEATUREID_SSE41   4
+	#define RAWR_ARCH_X86FEATUREID_SSE42   8
+	#define RAWR_ARCH_X86FEATUREID_AVX     16
+	#define RAWR_ARCH_X86FEATUREID_AVX2    32
+	#define RAWR_ARCH_X86FEATUREID_AVX512F 64
+	#define RAWR_ARCH_X86FEATUREID_FMA     128
+	#define RAWR_ARCH_X86FEATUREID_BMI1    256
+	#define RAWR_ARCH_X86FEATUREID_BMI2    512
+	#define RAWR_ARCH_X86FEATUREID_POPCNT  1024
+	#define RAWR_ARCH_X86FEATUREID_LZCNT   2048
+	#define RAWR_ARCH_X86FEATUREID_CLWB    4096
+	#define RAWR_ARCH_X86FEATUREID_ALL     8191
+
+	// --- Detection. ---
+
+	#define RAWR_DETECTED_ARCH_X86FEATURE_SSE     0
+	#define RAWR_DETECTED_ARCH_X86FEATURE_SSE2    0
+	#define RAWR_DETECTED_ARCH_X86FEATURE_SSE41   0
+	#define RAWR_DETECTED_ARCH_X86FEATURE_SSE42   0
+	#define RAWR_DETECTED_ARCH_X86FEATURE_AVX     0
+	#define RAWR_DETECTED_ARCH_X86FEATURE_AVX2    0
+	#define RAWR_DETECTED_ARCH_X86FEATURE_AVX512F 0
+	#define RAWR_DETECTED_ARCH_X86FEATURE_FMA     0
+	#define RAWR_DETECTED_ARCH_X86FEATURE_BMI1    0
+	#define RAWR_DETECTED_ARCH_X86FEATURE_BMI2    0
+	#define RAWR_DETECTED_ARCH_X86FEATURE_POPCNT  0
+	#define RAWR_DETECTED_ARCH_X86FEATURE_LZCNT   0
+	#define RAWR_DETECTED_ARCH_X86FEATURE_CLWB    0
+	#if RAWR_ARCH_X86
+	    // SSE / SSE2 are guaranteed on x64 by ABI, so we use ||, not &&
+	    #if RAWR_ARCH_X64 || defined(__SSE__)
+	        #undef  RAWR_DETECTED_ARCH_X86FEATURE_SSE
+	        #define RAWR_DETECTED_ARCH_X86FEATURE_SSE 1
+	    #endif
+	    #if RAWR_ARCH_X64 || defined(__SSE2__)
+	        #undef  RAWR_DETECTED_ARCH_X86FEATURE_SSE2
+	        #define RAWR_DETECTED_ARCH_X86FEATURE_SSE2 1
+	    #endif
+	    #if defined(__SSE4_1__)
+	        #undef  RAWR_DETECTED_ARCH_X86FEATURE_SSE41
+	        #define RAWR_DETECTED_ARCH_X86FEATURE_SSE41 1
+	    #endif
+	    #if defined(__SSE4_2__)
+	        #undef  RAWR_DETECTED_ARCH_X86FEATURE_SSE42
+	        #define RAWR_DETECTED_ARCH_X86FEATURE_SSE42 1
+	    #endif
+	    #if defined(__AVX__)
+	        #undef  RAWR_DETECTED_ARCH_X86FEATURE_AVX
+	        #define RAWR_DETECTED_ARCH_X86FEATURE_AVX 1
+	    #endif
+	    #if defined(__AVX2__)
+	        #undef  RAWR_DETECTED_ARCH_X86FEATURE_AVX2
+	        #define RAWR_DETECTED_ARCH_X86FEATURE_AVX2 1
+	    #endif
+	    #if defined(__AVX512F__)
+	        #undef  RAWR_DETECTED_ARCH_X86FEATURE_AVX512F
+	        #define RAWR_DETECTED_ARCH_X86FEATURE_AVX512F 1
+	    #endif
+	    #if defined(__FMA__)
+	        #undef  RAWR_DETECTED_ARCH_X86FEATURE_FMA
+	        #define RAWR_DETECTED_ARCH_X86FEATURE_FMA 1
+	    #endif
+	    #if defined(__BMI__)
+	        #undef  RAWR_DETECTED_ARCH_X86FEATURE_BMI1
+	        #define RAWR_DETECTED_ARCH_X86FEATURE_BMI1 1
+	    #endif
+	    #if defined(__BMI2__)
+	        #undef  RAWR_DETECTED_ARCH_X86FEATURE_BMI2
+	        #define RAWR_DETECTED_ARCH_X86FEATURE_BMI2 1
+	    #endif
+	    #if defined(__POPCNT__)
+	        #undef  RAWR_DETECTED_ARCH_X86FEATURE_POPCNT
+	        #define RAWR_DETECTED_ARCH_X86FEATURE_POPCNT 1
+	    #endif
+	    #if defined(__LZCNT__)
+	        #undef  RAWR_DETECTED_ARCH_X86FEATURE_LZCNT
+	        #define RAWR_DETECTED_ARCH_X86FEATURE_LZCNT 1
+	    #endif
+	    #if defined(__CLWB__)
+	        #undef  RAWR_DETECTED_ARCH_X86FEATURE_CLWB
+	        #define RAWR_DETECTED_ARCH_X86FEATURE_CLWB 1
+	    #endif
+	    // Note: MSVC exposes few independent ISA flags — only AVX/AVX2/AVX512 via /arch:.
+	    // CLWB, FMA, BMI etc. must be injected via -DRAWR_ARCH_X86_CLWB=1
+	    // in the build system when targeting those features on MSVC.
+	#endif
+
+	// --- Detected aggregate. ---
+
+	#define RAWR_DETECTED_ARCH_X86FEATURES ( \
+	    (RAWR_DETECTED_ARCH_X86FEATURE_SSE     * RAWR_ARCH_X86FEATUREID_SSE)     | \
+	    (RAWR_DETECTED_ARCH_X86FEATURE_SSE2    * RAWR_ARCH_X86FEATUREID_SSE2)    | \
+	    (RAWR_DETECTED_ARCH_X86FEATURE_SSE41   * RAWR_ARCH_X86FEATUREID_SSE41)   | \
+	    (RAWR_DETECTED_ARCH_X86FEATURE_SSE42   * RAWR_ARCH_X86FEATUREID_SSE42)   | \
+	    (RAWR_DETECTED_ARCH_X86FEATURE_AVX     * RAWR_ARCH_X86FEATUREID_AVX)     | \
+	    (RAWR_DETECTED_ARCH_X86FEATURE_AVX2    * RAWR_ARCH_X86FEATUREID_AVX2)    | \
+	    (RAWR_DETECTED_ARCH_X86FEATURE_AVX512F * RAWR_ARCH_X86FEATUREID_AVX512F) | \
+	    (RAWR_DETECTED_ARCH_X86FEATURE_FMA     * RAWR_ARCH_X86FEATUREID_FMA)     | \
+	    (RAWR_DETECTED_ARCH_X86FEATURE_BMI1    * RAWR_ARCH_X86FEATUREID_BMI1)    | \
+	    (RAWR_DETECTED_ARCH_X86FEATURE_BMI2    * RAWR_ARCH_X86FEATUREID_BMI2)    | \
+	    (RAWR_DETECTED_ARCH_X86FEATURE_POPCNT  * RAWR_ARCH_X86FEATUREID_POPCNT)  | \
+	    (RAWR_DETECTED_ARCH_X86FEATURE_LZCNT   * RAWR_ARCH_X86FEATUREID_LZCNT)   | \
+	    (RAWR_DETECTED_ARCH_X86FEATURE_CLWB    * RAWR_ARCH_X86FEATUREID_CLWB)    | \
+	0 )
+
+	// --- User override. ---
+
+	// -DRAWR_SET_ARCH_X86FEATURES=(RAWR_ARCH_X86FEATURE_A|RAWR_ARCH_X86FEATURE_B) replaces detection (RAWR_DETECTED_ARCH_X86FEATURES keeps the detected set).
+	#ifdef RAWR_ARCH_X86FEATURES
+	    #error "rawr: RAWR_ARCH_X86FEATURES is an output of detection; to override it define RAWR_SET_ARCH_X86FEATURES"
+	#endif
+	#ifdef RAWR_SET_ARCH_X86FEATURES
+	    #if RAWR_SET_ARCH_X86FEATURES & ~RAWR_ARCH_X86FEATUREID_ALL
+	        #error "rawr: RAWR_SET_ARCH_X86FEATURES contains bits that are not RAWR_ARCH_X86FEATUREID_* values"
+	    #endif
+	    #define RAWR_ARCH_X86FEATURES           RAWR_SET_ARCH_X86FEATURES
+	    #define RAWR_ARCH_X86FEATURES_DETECTED  0
+	    #define RAWR_ARCH_X86FEATURES_OVERRIDEN 1
+	#else
+	    #define RAWR_ARCH_X86FEATURES          RAWR_DETECTED_ARCH_X86FEATURES
+	    #define RAWR_ARCH_X86FEATURES_DETECTED  1
+	    #define RAWR_ARCH_X86FEATURES_OVERRIDEN 0
+	#endif
+
+	// --- Canonical macros. ---
+
+	#define RAWR_ARCH_X86FEATURE_SSE     0
+	#define RAWR_ARCH_X86FEATURE_SSE2    0
+	#define RAWR_ARCH_X86FEATURE_SSE41   0
+	#define RAWR_ARCH_X86FEATURE_SSE42   0
+	#define RAWR_ARCH_X86FEATURE_AVX     0
+	#define RAWR_ARCH_X86FEATURE_AVX2    0
+	#define RAWR_ARCH_X86FEATURE_AVX512F 0
+	#define RAWR_ARCH_X86FEATURE_FMA     0
+	#define RAWR_ARCH_X86FEATURE_BMI1    0
+	#define RAWR_ARCH_X86FEATURE_BMI2    0
+	#define RAWR_ARCH_X86FEATURE_POPCNT  0
+	#define RAWR_ARCH_X86FEATURE_LZCNT   0
+	#define RAWR_ARCH_X86FEATURE_CLWB    0
+	#if RAWR_ARCH_X86FEATURES & RAWR_ARCH_X86FEATUREID_SSE
+	    #undef  RAWR_ARCH_X86FEATURE_SSE
+	    #define RAWR_ARCH_X86FEATURE_SSE 1
+	#endif
+	#if RAWR_ARCH_X86FEATURES & RAWR_ARCH_X86FEATUREID_SSE2
+	    #undef  RAWR_ARCH_X86FEATURE_SSE2
+	    #define RAWR_ARCH_X86FEATURE_SSE2 1
+	#endif
+	#if RAWR_ARCH_X86FEATURES & RAWR_ARCH_X86FEATUREID_SSE41
+	    #undef  RAWR_ARCH_X86FEATURE_SSE41
+	    #define RAWR_ARCH_X86FEATURE_SSE41 1
+	#endif
+	#if RAWR_ARCH_X86FEATURES & RAWR_ARCH_X86FEATUREID_SSE42
+	    #undef  RAWR_ARCH_X86FEATURE_SSE42
+	    #define RAWR_ARCH_X86FEATURE_SSE42 1
+	#endif
+	#if RAWR_ARCH_X86FEATURES & RAWR_ARCH_X86FEATUREID_AVX
+	    #undef  RAWR_ARCH_X86FEATURE_AVX
+	    #define RAWR_ARCH_X86FEATURE_AVX 1
+	#endif
+	#if RAWR_ARCH_X86FEATURES & RAWR_ARCH_X86FEATUREID_AVX2
+	    #undef  RAWR_ARCH_X86FEATURE_AVX2
+	    #define RAWR_ARCH_X86FEATURE_AVX2 1
+	#endif
+	#if RAWR_ARCH_X86FEATURES & RAWR_ARCH_X86FEATUREID_AVX512F
+	    #undef  RAWR_ARCH_X86FEATURE_AVX512F
+	    #define RAWR_ARCH_X86FEATURE_AVX512F 1
+	#endif
+	#if RAWR_ARCH_X86FEATURES & RAWR_ARCH_X86FEATUREID_FMA
+	    #undef  RAWR_ARCH_X86FEATURE_FMA
+	    #define RAWR_ARCH_X86FEATURE_FMA 1
+	#endif
+	#if RAWR_ARCH_X86FEATURES & RAWR_ARCH_X86FEATUREID_BMI1
+	    #undef  RAWR_ARCH_X86FEATURE_BMI1
+	    #define RAWR_ARCH_X86FEATURE_BMI1 1
+	#endif
+	#if RAWR_ARCH_X86FEATURES & RAWR_ARCH_X86FEATUREID_BMI2
+	    #undef  RAWR_ARCH_X86FEATURE_BMI2
+	    #define RAWR_ARCH_X86FEATURE_BMI2 1
+	#endif
+	#if RAWR_ARCH_X86FEATURES & RAWR_ARCH_X86FEATUREID_POPCNT
+	    #undef  RAWR_ARCH_X86FEATURE_POPCNT
+	    #define RAWR_ARCH_X86FEATURE_POPCNT 1
+	#endif
+	#if RAWR_ARCH_X86FEATURES & RAWR_ARCH_X86FEATUREID_LZCNT
+	    #undef  RAWR_ARCH_X86FEATURE_LZCNT
+	    #define RAWR_ARCH_X86FEATURE_LZCNT 1
+	#endif
+	#if RAWR_ARCH_X86FEATURES & RAWR_ARCH_X86FEATUREID_CLWB
+	    #undef  RAWR_ARCH_X86FEATURE_CLWB
+	    #define RAWR_ARCH_X86FEATURE_CLWB 1
+	#endif
+
+#if !defined(RAWR_AMALGAM_NO_SECTIONS) || !RAWR_AMALGAM_NO_SECTIONS
+	#pragma endsection "rawr/arch/x86/detection.pp"
+#endif
+#if !RAWR_AMALGAM_NO_SECTIONS
+	#pragma section "rawr/platform/detection.pp"
+#endif
+	#if !defined(RAWR_AMALGAM_NO_SOURCE_MAPPING) || !RAWR_AMALGAM_NO_SOURCE_MAPPING
+		#line 3 "rawr/platform/detection.pp"
+	#endif
+	#pragma once
+
+	#ifdef RAWR_METADATA
+	    #define RAWR_PP_MODULE rawr.platform.detection.pp
 	#endif
 
 	#include "rawr.amalgam.hpp"
 
 	RAWR_TODO("detect wasi")
+
+	// --- Ids. ---
+
+	#define RAWR_PLATFORMID_UNKNOWN        1
+	#define RAWR_PLATFORMID_LINUX          2
+	#define RAWR_PLATFORMID_WINDOWS        3
+	#define RAWR_PLATFORMID_FREEBSD        4
+	#define RAWR_PLATFORMID_OPENBSD        5
+	#define RAWR_PLATFORMID_NETBSD         6
+	#define RAWR_PLATFORMID_MACOS          7
+	#define RAWR_PLATFORMID_IOS            8
+	#define RAWR_PLATFORMID_ANDROID        9
+	#define RAWR_PLATFORMID_WASM           10
+	#define RAWR_PLATFORMID_ESP32          11
+	#define RAWR_PLATFORMID_ESP8266        12
+	#define RAWR_PLATFORMID_STM32          13
+	#define RAWR_PLATFORMID_NORDIC         14
+	#define RAWR_PLATFORMID_PICO           15
+	#define RAWR_PLATFORMID_TEENSY         16
+	#define RAWR_PLATFORMID_AVR            17
+	#define RAWR_PLATFORMID_MAX            17
+
+	// --- Detection. ---
+
+	// WASM: both Emscripten and standalone WASM runtimes
+	#if defined(__EMSCRIPTEN__) || defined(__wasm__)
+	    #define RAWR_DETECTED_PLATFORMID RAWR_PLATFORMID_WASM
+	// ESP32: ESP-IDF defines ESP_PLATFORM; Arduino framework defines ARDUINO_ARCH_ESP32
+	#elif defined(ESP_PLATFORM) || defined(ARDUINO_ARCH_ESP32)
+	    #define RAWR_DETECTED_PLATFORMID RAWR_PLATFORMID_ESP32
+	// ESP8266: Arduino framework
+	#elif defined(ESP8266) || defined(ARDUINO_ARCH_ESP8266)
+	    #define RAWR_DETECTED_PLATFORMID RAWR_PLATFORMID_ESP8266
+	// Apple: requires TargetConditionals.h to distinguish iOS from macOS
+	#elif defined(__APPLE__)
+	    #if defined(__ENVIRONMENT_MAC_OS_X_VERSION_MIN_REQUIRED__)
+	        #define RAWR_DETECTED_PLATFORMID RAWR_PLATFORMID_MACOS
+	    #elif defined(__ENVIRONMENT_IPHONE_OS_VERSION_MIN_REQUIRED__) || \
+	          defined(__ENVIRONMENT_TV_OS_VERSION_MIN_REQUIRED__)       || \
+	          defined(__ENVIRONMENT_WATCH_OS_VERSION_MIN_REQUIRED__)
+	        #define RAWR_DETECTED_PLATFORMID RAWR_PLATFORMID_IOS
+	    #else
+	        #define RAWR_DETECTED_PLATFORMID RAWR_PLATFORMID_UNKNOWN
+	    #endif
+	// Android defines both __ANDROID__ and __linux__ — must come before Linux
+	#elif defined(__ANDROID__)
+	    #define RAWR_DETECTED_PLATFORMID RAWR_PLATFORMID_ANDROID
+	#elif defined(__linux__)
+	    #undef  linux // Some compilers define 'linux' as a bare macro alongside '__linux__',
+	                  // truly god has failed us.
+	    #define RAWR_DETECTED_PLATFORMID RAWR_PLATFORMID_LINUX
+	// Windows: _WIN32 is defined on both 32 and 64-bit Windows including under MinGW and Cygwin.
+	// Cygwin and MinGW are distinguished at the ENV layer, not the HOST layer.
+	// HOST_WINDOWS means "running on Windows hardware", regardless of compatibility layer.
+	#elif defined(_WIN32) || defined(_WIN64) || defined(__CYGWIN__)  // Cygwin defines no _WIN32; the ENV axis says Cygwin
+	    #define RAWR_DETECTED_PLATFORMID RAWR_PLATFORMID_WINDOWS
+	// STM32: ST HAL or CubeMX defines USE_HAL_DRIVER; bare CMSIS defines STM32 family macros.
+	// STM32F0..STM32WL cover the main families.
+	#elif defined(USE_HAL_DRIVER)           || \
+	      defined(STM32F0) || defined(STM32F1) || defined(STM32F2) || \
+	      defined(STM32F3) || defined(STM32F4) || defined(STM32F7) || \
+	      defined(STM32G0) || defined(STM32G4) || \
+	      defined(STM32H7) || defined(STM32L0) || defined(STM32L1) || \
+	      defined(STM32L4) || defined(STM32L5) || \
+	      defined(STM32U5) || defined(STM32WB) || defined(STM32WL)
+	    #define RAWR_DETECTED_PLATFORMID RAWR_PLATFORMID_STM32
+	// Nordic nRF: family macros cover nRF51 and nRF52 series including all variants.
+	// nRF9160 is a separate SiP but same SDK — include NRF9160 if needed.
+	#elif defined(NRF51) || defined(NRF52) || defined(NRF9160)
+	    #define RAWR_DETECTED_PLATFORMID RAWR_PLATFORMID_NORDIC
+	// Raspberry Pi Pico: Pico SDK defines PICO_BOARD; some configs define RASPBERRYPI_PICO
+	#elif defined(PICO_BOARD) || defined(RASPBERRYPI_PICO)
+	    #define RAWR_DETECTED_PLATFORMID RAWR_PLATFORMID_PICO
+	// Teensy: TEENSYDUINO covers all Teensy boards (3.x, 4.x) when using Teensyduino.
+	// Bare metal Teensy 4.x: __IMXRT1062__. Bare metal Teensy 3.x: __MK*__ variants.
+	#elif defined(TEENSYDUINO) || defined(__IMXRT1062__) || \
+	      defined(__MK20DX128__) || defined(__MK20DX256__) || \
+	      defined(__MK64FX512__) || defined(__MK66FX1M0__)
+	    #define RAWR_DETECTED_PLATFORMID RAWR_PLATFORMID_TEENSY
+	#elif defined(__AVR__)
+	    #define RAWR_DETECTED_PLATFORMID RAWR_PLATFORMID_AVR
+	#elif defined(__FreeBSD__)
+	    #define RAWR_DETECTED_PLATFORMID RAWR_PLATFORMID_FREEBSD
+	#elif defined(__OpenBSD__)
+	    #define RAWR_DETECTED_PLATFORMID RAWR_PLATFORMID_OPENBSD
+	#elif defined(__NetBSD__)
+	    #define RAWR_DETECTED_PLATFORMID RAWR_PLATFORMID_NETBSD
+	#else
+	    #define RAWR_DETECTED_PLATFORMID RAWR_PLATFORMID_UNKNOWN
+	#endif
+
+	// --- User override. ---
+
+	// -DRAWR_SET_PLATFORMID=RAWR_PLATFORMID_<VALUE> replaces detection (UNKNOWN is a legal value). RAWR_DETECTED_PLATFORMID always keeps what
+	// detection found. Id 0 is reserved as "malformed": a misspelled name evaluates to 0.
+	#ifdef RAWR_PLATFORMID
+	    #error "rawr: RAWR_PLATFORMID is an output of detection; to override it define RAWR_SET_PLATFORMID"
+	#endif
+	#ifdef RAWR_SET_PLATFORMID
+	    #if RAWR_SET_PLATFORMID < 1 || RAWR_SET_PLATFORMID > RAWR_PLATFORMID_MAX
+	        #error "rawr: RAWR_SET_PLATFORMID must be one of the RAWR_PLATFORMID_* values (a misspelled name evaluates to 0, which is never valid)"
+	    #endif
+	    #define RAWR_PLATFORMID           RAWR_SET_PLATFORMID
+	    #define RAWR_PLATFORMID_DETECTED  0
+	    #define RAWR_PLATFORMID_OVERRIDEN 1
+	#else
+	    #define RAWR_PLATFORMID           RAWR_DETECTED_PLATFORMID
+	    #define RAWR_PLATFORMID_DETECTED  1
+	    #define RAWR_PLATFORMID_OVERRIDEN 0
+	#endif
+
+	// --- Canonical macros. ---
 
 	#define RAWR_PLATFORM_LINUX   0
 	#define RAWR_PLATFORM_WINDOWS 0
@@ -1204,218 +2209,234 @@
 	#define RAWR_PLATFORM_TEENSY  0
 	#define RAWR_PLATFORM_AVR     0
 	#define RAWR_PLATFORM_UNKNOWN 0
-	// WASM: both Emscripten and standalone WASM runtimes
-	#if defined(__EMSCRIPTEN__) || defined(__wasm__)
-	    #undef  RAWR_PLATFORM_WASM
-	    #define RAWR_PLATFORM_WASM 1
-	// ESP32: ESP-IDF defines ESP_PLATFORM; Arduino framework defines ARDUINO_ARCH_ESP32
-	#elif defined(ESP_PLATFORM) || defined(ARDUINO_ARCH_ESP32)
-	    #undef  RAWR_PLATFORM_ESP32
-	    #define RAWR_PLATFORM_ESP32 1
-	// ESP8266: Arduino framework
-	#elif defined(ESP8266) || defined(ARDUINO_ARCH_ESP8266)
-	    #undef  RAWR_PLATFORM_ESP8266
-	    #define RAWR_PLATFORM_ESP8266 1
-	// Apple: requires TargetConditionals.h to distinguish iOS from macOS
-	#elif defined(__APPLE__)
-	    #if defined(__ENVIRONMENT_MAC_OS_X_VERSION_MIN_REQUIRED__)
-	        #undef  RAWR_PLATFORM_MACOS
-	        #define RAWR_PLATFORM_MACOS 1
-	    #elif defined(__ENVIRONMENT_IPHONE_OS_VERSION_MIN_REQUIRED__) || \
-	          defined(__ENVIRONMENT_TV_OS_VERSION_MIN_REQUIRED__)       || \
-	          defined(__ENVIRONMENT_WATCH_OS_VERSION_MIN_REQUIRED__)
-	        #undef  RAWR_PLATFORM_IOS
-	        #define RAWR_PLATFORM_IOS 1
-	    #else
-	        #undef  RAWR_PLATFORM_UNKNOWN
-	        #define RAWR_PLATFORM_UNKNOWN 1
-	    #endif
-	// Android defines both __ANDROID__ and __linux__ — must come before Linux
-	#elif defined(__ANDROID__)
-	    #undef  RAWR_PLATFORM_ANDROID
-	    #define RAWR_PLATFORM_ANDROID 1
-	#elif defined(__linux__)
-	    #undef  linux // Some compilers define 'linux' as a bare macro alongside '__linux__',
-	                  // truly god has failed us.
-	    #undef  RAWR_PLATFORM_LINUX
-	    #define RAWR_PLATFORM_LINUX 1
-	// Windows: _WIN32 is defined on both 32 and 64-bit Windows including under MinGW and Cygwin.
-	// Cygwin and MinGW are distinguished at the ENV layer, not the HOST layer.
-	// HOST_WINDOWS means "running on Windows hardware", regardless of compatibility layer.
-	#elif defined(_WIN32) || defined(_WIN64)
-	    #undef  RAWR_PLATFORM_WINDOWS
-	    #define RAWR_PLATFORM_WINDOWS 1
-	// STM32: ST HAL or CubeMX defines USE_HAL_DRIVER; bare CMSIS defines STM32 family macros.
-	// STM32F0..STM32WL cover the main families.
-	#elif defined(USE_HAL_DRIVER)           || \
-	      defined(STM32F0) || defined(STM32F1) || defined(STM32F2) || \
-	      defined(STM32F3) || defined(STM32F4) || defined(STM32F7) || \
-	      defined(STM32G0) || defined(STM32G4) || \
-	      defined(STM32H7) || defined(STM32L0) || defined(STM32L1) || \
-	      defined(STM32L4) || defined(STM32L5) || \
-	      defined(STM32U5) || defined(STM32WB) || defined(STM32WL)
-	    #undef  RAWR_PLATFORM_STM32
-	    #define RAWR_PLATFORM_STM32 1
-	// Nordic nRF: family macros cover nRF51 and nRF52 series including all variants.
-	// nRF9160 is a separate SiP but same SDK — include NRF9160 if needed.
-	#elif defined(NRF51) || defined(NRF52) || defined(NRF9160)
-	    #undef  RAWR_PLATFORM_NORDIC
-	    #define RAWR_PLATFORM_NORDIC 1
-	// Raspberry Pi Pico: Pico SDK defines PICO_BOARD; some configs define RASPBERRYPI_PICO
-	#elif defined(PICO_BOARD) || defined(RASPBERRYPI_PICO)
-	    #undef  RAWR_PLATFORM_PICO
-	    #define RAWR_PLATFORM_PICO 1
-	// Teensy: TEENSYDUINO covers all Teensy boards (3.x, 4.x) when using Teensyduino.
-	// Bare metal Teensy 4.x: __IMXRT1062__. Bare metal Teensy 3.x: __MK*__ variants.
-	#elif defined(TEENSYDUINO) || defined(__IMXRT1062__) || \
-	      defined(__MK20DX128__) || defined(__MK20DX256__) || \
-	      defined(__MK64FX512__) || defined(__MK66FX1M0__)
-	    #undef  RAWR_PLATFORM_TEENSY
-	    #define RAWR_PLATFORM_TEENSY 1
-	#elif defined(__AVR__)
-	    #undef  RAWR_PLATFORM_AVR
-	    #define RAWR_PLATFORM_AVR 1
-	#elif defined(__FreeBSD__)
-	    #undef  RAWR_PLATFORM_FREEBSD
-	    #define RAWR_PLATFORM_FREEBSD 1
-	#elif defined(__OpenBSD__)
-	    #undef  RAWR_PLATFORM_OPENBSD
-	    #define RAWR_PLATFORM_OPENBSD 1
-	#elif defined(__NetBSD__)
-	    #undef  RAWR_PLATFORM_NETBSD
-	    #define RAWR_PLATFORM_NETBSD 1
-	#else
+	#if RAWR_PLATFORMID == RAWR_PLATFORMID_UNKNOWN
 	    #undef  RAWR_PLATFORM_UNKNOWN
 	    #define RAWR_PLATFORM_UNKNOWN 1
+	#elif RAWR_PLATFORMID == RAWR_PLATFORMID_LINUX
+	    #undef  RAWR_PLATFORM_LINUX
+	    #define RAWR_PLATFORM_LINUX 1
+	#elif RAWR_PLATFORMID == RAWR_PLATFORMID_WINDOWS
+	    #undef  RAWR_PLATFORM_WINDOWS
+	    #define RAWR_PLATFORM_WINDOWS 1
+	#elif RAWR_PLATFORMID == RAWR_PLATFORMID_FREEBSD
+	    #undef  RAWR_PLATFORM_FREEBSD
+	    #define RAWR_PLATFORM_FREEBSD 1
+	#elif RAWR_PLATFORMID == RAWR_PLATFORMID_OPENBSD
+	    #undef  RAWR_PLATFORM_OPENBSD
+	    #define RAWR_PLATFORM_OPENBSD 1
+	#elif RAWR_PLATFORMID == RAWR_PLATFORMID_NETBSD
+	    #undef  RAWR_PLATFORM_NETBSD
+	    #define RAWR_PLATFORM_NETBSD 1
+	#elif RAWR_PLATFORMID == RAWR_PLATFORMID_MACOS
+	    #undef  RAWR_PLATFORM_MACOS
+	    #define RAWR_PLATFORM_MACOS 1
+	#elif RAWR_PLATFORMID == RAWR_PLATFORMID_IOS
+	    #undef  RAWR_PLATFORM_IOS
+	    #define RAWR_PLATFORM_IOS 1
+	#elif RAWR_PLATFORMID == RAWR_PLATFORMID_ANDROID
+	    #undef  RAWR_PLATFORM_ANDROID
+	    #define RAWR_PLATFORM_ANDROID 1
+	#elif RAWR_PLATFORMID == RAWR_PLATFORMID_WASM
+	    #undef  RAWR_PLATFORM_WASM
+	    #define RAWR_PLATFORM_WASM 1
+	#elif RAWR_PLATFORMID == RAWR_PLATFORMID_ESP32
+	    #undef  RAWR_PLATFORM_ESP32
+	    #define RAWR_PLATFORM_ESP32 1
+	#elif RAWR_PLATFORMID == RAWR_PLATFORMID_ESP8266
+	    #undef  RAWR_PLATFORM_ESP8266
+	    #define RAWR_PLATFORM_ESP8266 1
+	#elif RAWR_PLATFORMID == RAWR_PLATFORMID_STM32
+	    #undef  RAWR_PLATFORM_STM32
+	    #define RAWR_PLATFORM_STM32 1
+	#elif RAWR_PLATFORMID == RAWR_PLATFORMID_NORDIC
+	    #undef  RAWR_PLATFORM_NORDIC
+	    #define RAWR_PLATFORM_NORDIC 1
+	#elif RAWR_PLATFORMID == RAWR_PLATFORMID_PICO
+	    #undef  RAWR_PLATFORM_PICO
+	    #define RAWR_PLATFORM_PICO 1
+	#elif RAWR_PLATFORMID == RAWR_PLATFORMID_TEENSY
+	    #undef  RAWR_PLATFORM_TEENSY
+	    #define RAWR_PLATFORM_TEENSY 1
+	#elif RAWR_PLATFORMID == RAWR_PLATFORMID_AVR
+	    #undef  RAWR_PLATFORM_AVR
+	    #define RAWR_PLATFORM_AVR 1
 	#endif
 
-#if !RAWR_AMALGAM_NO_SECTIONS
-	#pragma endsection "rawr/detection/platform.pp"
+#if !defined(RAWR_AMALGAM_NO_SECTIONS) || !RAWR_AMALGAM_NO_SECTIONS
+	#pragma endsection "rawr/platform/detection.pp"
 #endif
 #if !RAWR_AMALGAM_NO_SECTIONS
-	#pragma section "rawr/detection/cxx_abi.pp"
+	#pragma section "rawr/cxx/detection.pp"
 #endif
-	#if !RAWR_AMALGAM_NO_SOURCE_MAPPING
-		#line 3 "rawr/detection/cxx_abi.pp"
+	#if !defined(RAWR_AMALGAM_NO_SOURCE_MAPPING) || !RAWR_AMALGAM_NO_SOURCE_MAPPING
+		#line 3 "rawr/cxx/detection.pp"
 	#endif
 	#pragma once
 
-	#if RAWRSCAN_METADATA
-	    #define RAWR_PP_MODULE rawr.detection.cxx_abi.pp
+	#ifdef RAWR_METADATA
+	    #define RAWR_PP_MODULE rawr.cxx.detection.pp
 	#endif
 
 	#include "rawr.amalgam.hpp"
 
-	// Determined by compiler and target. Describes what the compiler
-	// emits for __cxa_atexit, guards, vtables, RTTI, exception tables.
-	#define RAWR_CXX_ABI_ITANIUM 0  // GCC, Clang (non-MSVC target)
-	#define RAWR_CXX_ABI_MSVC    0  // MSVC, clang-cl
-	#define RAWR_CXX_ABI_UNKNOWN 0
+	// --- Ids. ---
+
+	#define RAWR_CXXID_UNKNOWN        1
+	#define RAWR_CXXID_ITANIUM        2
+	#define RAWR_CXXID_MSVC           3
+	#define RAWR_CXXID_MAX            3
+
+	// --- Detection. ---
+
 	// _MSC_VER is defined by both MSVC and clang-cl (Clang targeting MSVC ABI).
 	// That is the correct discriminator — it's about the target ABI, not the compiler.
 	#if defined(_MSC_VER)
-	    #undef  RAWR_CXX_ABI_MSVC
-	    #define RAWR_CXX_ABI_MSVC 1
+	    #define RAWR_DETECTED_CXXID RAWR_CXXID_MSVC
 	#elif RAWR_COMPILER_GCC || RAWR_COMPILER_CLANG
-	    #undef  RAWR_CXX_ABI_ITANIUM
-	    #define RAWR_CXX_ABI_ITANIUM 1
+	    #define RAWR_DETECTED_CXXID RAWR_CXXID_ITANIUM
 	#else
-	    #undef  RAWR_CXX_ABI_UNKNOWN
-	    #define RAWR_CXX_ABI_UNKNOWN 1
+	    #define RAWR_DETECTED_CXXID RAWR_CXXID_UNKNOWN
 	#endif
 
-#if !RAWR_AMALGAM_NO_SECTIONS
-	#pragma endsection "rawr/detection/cxx_abi.pp"
+	// --- User override. ---
+
+	// -DRAWR_SET_CXXID=RAWR_CXXID_<VALUE> replaces detection (UNKNOWN is a legal value). RAWR_DETECTED_CXXID always keeps what
+	// detection found. Id 0 is reserved as "malformed": a misspelled name evaluates to 0.
+	#ifdef RAWR_CXXID
+	    #error "rawr: RAWR_CXXID is an output of detection; to override it define RAWR_SET_CXXID"
+	#endif
+	#ifdef RAWR_SET_CXXID
+	    #if RAWR_SET_CXXID < 1 || RAWR_SET_CXXID > RAWR_CXXID_MAX
+	        #error "rawr: RAWR_SET_CXXID must be one of the RAWR_CXXID_* values (a misspelled name evaluates to 0, which is never valid)"
+	    #endif
+	    #define RAWR_CXXID           RAWR_SET_CXXID
+	    #define RAWR_CXXID_DETECTED  0
+	    #define RAWR_CXXID_OVERRIDEN 1
+	#else
+	    #define RAWR_CXXID           RAWR_DETECTED_CXXID
+	    #define RAWR_CXXID_DETECTED  1
+	    #define RAWR_CXXID_OVERRIDEN 0
+	#endif
+
+	// --- Canonical macros. ---
+
+	#if RAWR_CXXID == RAWR_CXXID_UNKNOWN
+	    #undef  RAWR_CXX_UNKNOWN
+	    #define RAWR_CXX_UNKNOWN 1
+	#elif RAWR_CXXID == RAWR_CXXID_ITANIUM
+	    #undef  RAWR_CXX_ITANIUM
+	    #define RAWR_CXX_ITANIUM 1
+	#elif RAWR_CXXID == RAWR_CXXID_MSVC
+	    #undef  RAWR_CXX_MSVC
+	    #define RAWR_CXX_MSVC 1
+	#endif
+
+#if !defined(RAWR_AMALGAM_NO_SECTIONS) || !RAWR_AMALGAM_NO_SECTIONS
+	#pragma endsection "rawr/cxx/detection.pp"
 #endif
 #if !RAWR_AMALGAM_NO_SECTIONS
-	#pragma section "rawr/detection/feature.pp"
+	#pragma section "rawr/cxx/feature.pp"
 #endif
-	#if !RAWR_AMALGAM_NO_SOURCE_MAPPING
-		#line 3 "rawr/detection/feature.pp"
+	#if !defined(RAWR_AMALGAM_NO_SOURCE_MAPPING) || !RAWR_AMALGAM_NO_SOURCE_MAPPING
+		#line 3 "rawr/cxx/feature.pp"
 	#endif
 	#pragma once
 
-	#if RAWRSCAN_METADATA
-	    #define RAWR_PP_MODULE rawr.detection.feature.pp
+	#ifdef RAWR_METADATA
+	    #define RAWR_PP_MODULE rawr.cxx.feature.pp
 	#endif
 
 	#include "rawr.amalgam.hpp"
 
-	#if defined(__SIZEOF_INT128__)
-	    #define RAWR_HAS_INT128 1
-	#else
-	    #define RAWR_HAS_INT128 0
-	#endif
+	// --- Ids. ---
 
+	#define RAWR_CXXFEATUREID_HAS_EXCEPTIONS 1
+	#define RAWR_CXXFEATUREID_HAS_CFI_ASM    2
+	#define RAWR_CXXFEATUREID_HAS_RTTI       4
+	#define RAWR_CXXFEATUREID_IS_HOSTED      8
+	#define RAWR_CXXFEATUREID_ALL            15
+
+	// --- Detection. ---
+
+	#define RAWR_DETECTED_CXXFEATURE_HAS_EXCEPTIONS 0
+	#define RAWR_DETECTED_CXXFEATURE_HAS_CFI_ASM    0
+	#define RAWR_DETECTED_CXXFEATURE_HAS_RTTI       0
+	#define RAWR_DETECTED_CXXFEATURE_IS_HOSTED      0
 	#if defined(__cpp_exceptions) || defined(__EXCEPTIONS) || defined(_CPPUNWIND)
-	    #define RAWR_HAS_EXCEPTIONS 1
-	#else
-	    #define RAWR_HAS_EXCEPTIONS 0
+	    #undef  RAWR_DETECTED_CXXFEATURE_HAS_EXCEPTIONS
+	    #define RAWR_DETECTED_CXXFEATURE_HAS_EXCEPTIONS 1
 	#endif
-
-	#if RAWR_COMPILER_FAMILY_GNU && defined(__GCC_HAVE_DWARF2_CFI_ASM)
-	    #define RAWR_HAS_CFI_ASM 1
-	#else
-	    #define RAWR_HAS_CFI_ASM 0
+	#if RAWR_COMPILER_GNU && defined(__GCC_HAVE_DWARF2_CFI_ASM)
+	    #undef  RAWR_DETECTED_CXXFEATURE_HAS_CFI_ASM
+	    #define RAWR_DETECTED_CXXFEATURE_HAS_CFI_ASM 1
 	#endif
-
 	#if defined(__cpp_rtti) || defined(__GXX_RTTI) || defined(_CPPRTTI)
-	    #define RAWR_HAS_RTTI 1
+	    #undef  RAWR_DETECTED_CXXFEATURE_HAS_RTTI
+	    #define RAWR_DETECTED_CXXFEATURE_HAS_RTTI 1
+	#endif
+	#if !(defined(__STDC_HOSTED__) && __STDC_HOSTED__ == 0)
+	    // __STDC_HOSTED__ == 0 means the compiler was invoked in freestanding mode (-ffreestanding).
+	    // Bare-metal toolchains (arm-none-eabi, avr-gcc, xtensa, riscv) default to hosted unless -ffreestanding is passed.
+	    #undef  RAWR_DETECTED_CXXFEATURE_IS_HOSTED
+	    #define RAWR_DETECTED_CXXFEATURE_IS_HOSTED 1
+	#endif
+
+
+	// --- Detected aggregate. ---
+
+	#define RAWR_DETECTED_CXXFEATURES ( \
+	    (RAWR_DETECTED_CXXFEATURE_HAS_EXCEPTIONS * RAWR_CXXFEATUREID_HAS_EXCEPTIONS) | \
+	    (RAWR_DETECTED_CXXFEATURE_HAS_CFI_ASM    * RAWR_CXXFEATUREID_HAS_CFI_ASM) | \
+	    (RAWR_DETECTED_CXXFEATURE_HAS_RTTI       * RAWR_CXXFEATUREID_HAS_RTTI) | \
+	    (RAWR_DETECTED_CXXFEATURE_IS_HOSTED      * RAWR_CXXFEATUREID_IS_HOSTED) | \
+	0 )
+
+	// --- User override. ---
+	// -DRAWR_SET_CXXFEATURES=(RAWR_CXXFEATURE_A|RAWR_CXXFEATURE_B) replaces detection (RAWR_DETECTED_CXXFEATURES keeps the detected set).
+	#ifdef RAWR_CXXFEATURES
+	    #error "rawr: RAWR_CXXFEATURES is an output of detection; to override it define RAWR_SET_CXXFEATURES"
+	#endif
+	#ifdef RAWR_SET_CXXFEATURES
+	    #if RAWR_SET_CXXFEATURES & ~RAWR_CXXFEATUREID_ALL
+	        #error "rawr: RAWR_SET_CXXFEATURES contains bits that are not RAWR_CXXFEATUREID_* values"
+	    #endif
+	    #define RAWR_CXXFEATURES        RAWR_SET_CXXFEATURES
+	    #define RAWR_CXXFEATURES_SOURCE RAWR_IDSOURCE_OVERRIDE
 	#else
-	    #define RAWR_HAS_RTTI 0
+	    #define RAWR_CXXFEATURES        RAWR_DETECTED_CXXFEATURES
+	    #define RAWR_CXXFEATURES_SOURCE RAWR_IDSOURCE_DETECTED
 	#endif
 
-#if !RAWR_AMALGAM_NO_SECTIONS
-	#pragma endsection "rawr/detection/feature.pp"
-#endif
-#if !RAWR_AMALGAM_NO_SECTIONS
-	#pragma section "rawr/lib/simd/storage.pp"
-#endif
-	#if !RAWR_AMALGAM_NO_SOURCE_MAPPING
-		#line 3 "rawr/lib/simd/storage.pp"
+	// --- Canonical macros. ---
+
+	#define RAWR_CXXFEATURE_HAS_EXCEPTIONS 0
+	#define RAWR_CXXFEATURE_HAS_CFI_ASM 0
+	#define RAWR_CXXFEATURE_HAS_RTTI 0
+	#define RAWR_CXXFEATURE_IS_HOSTED 0
+	#if RAWR_CXXFEATURES & RAWR_CXXFEATUREID_HAS_EXCEPTIONS
+	    #undef  RAWR_CXXFEATURE_HAS_EXCEPTIONS
+	    #define RAWR_CXXFEATURE_HAS_EXCEPTIONS 1
 	#endif
-	#pragma once
-
-	#if RAWRSCAN_METADATA
-	    #define RAWR_PP_MODULE rawr.lib.simd.storage.pp
+	#if RAWR_CXXFEATURES & RAWR_CXXFEATUREID_HAS_CFI_ASM
+	    #undef  RAWR_CXXFEATURE_HAS_CFI_ASM
+	    #define RAWR_CXXFEATURE_HAS_CFI_ASM 1
 	#endif
-
-	#include "rawr.amalgam.hpp"
-
-	// TODO: refactor to use RAWR_DECLSPEC and RAWR_ATTRIBUTE (?).
-
-	#if RAWR_COMPILER_FAMILY_GNU
-	    // By wrapping the vector attribute in a struct, we completely disable
-	    // the implicit GNU math operators (+, -, *, /) making the types inert.
-	    // The x64 System V and ARM64 ABIs guarantee this is still passed in
-	    // SIMD registers with zero overhead.
-	    #define RAWR_LIB_SIMD_STORAGE(Type, Lanes)                 \
-	        struct Type##x##Lanes {                                \
-	            using value_type = Type;                           \
-	            static constexpr auto lane_count = Lanes;          \
-	            value_type                                         \
-	            __attribute__((vector_size(sizeof(Type) * Lanes))) \
-	                lanes;                                         \
-	        }
-	#elif RAWR_COMPILER_MSVC
-	    #define RAWR_LIB_SIMD_STORAGE(Type, Lanes)        \
-	        struct                                        \
-	        __declspec(intrin_type)                       \
-	        alignas(sizeof(Type) * Lanes)                 \
-	        Type##x##Lanes {                              \
-	            using value_type = Type;                  \
-	            static constexpr auto lane_count = Lanes; \
-	            value_type lanes[Lanes];                  \
-	        }
+	#if RAWR_CXXFEATURES & RAWR_CXXFEATUREID_HAS_RTTI
+	    #undef  RAWR_CXXFEATURE_HAS_RTTI
+	    #define RAWR_CXXFEATURE_HAS_RTTI 1
+	#endif
+	#if RAWR_CXXFEATURES & RAWR_CXXFEATUREID_IS_HOSTED
+	    #undef  RAWR_CXXFEATURE_IS_HOSTED
+	    #define RAWR_CXXFEATURE_IS_HOSTED 1
 	#endif
 
-#if !RAWR_AMALGAM_NO_SECTIONS
-	#pragma endsection "rawr/lib/simd/storage.pp"
+#if !defined(RAWR_AMALGAM_NO_SECTIONS) || !RAWR_AMALGAM_NO_SECTIONS
+	#pragma endsection "rawr/cxx/feature.pp"
 #endif
 #if !RAWR_AMALGAM_NO_SECTIONS
 	#pragma section "rawr/lib/source_location.cppm"
 #endif
-	#if !RAWR_AMALGAM_NO_SOURCE_MAPPING
+	#if !defined(RAWR_AMALGAM_NO_SOURCE_MAPPING) || !RAWR_AMALGAM_NO_SOURCE_MAPPING
 		#line 1 "rawr/lib/source_location.hpp"
 	#endif
 	
@@ -1440,13 +2461,13 @@
 	    };
 	}
 
-#if !RAWR_AMALGAM_NO_SECTIONS
+#if !defined(RAWR_AMALGAM_NO_SECTIONS) || !RAWR_AMALGAM_NO_SECTIONS
 	#pragma endsection "rawr/lib/source_location.cppm"
 #endif
 #if !RAWR_AMALGAM_NO_SECTIONS
 	#pragma section "rawr/lib/type_name.cppm"
 #endif
-	#if !RAWR_AMALGAM_NO_SOURCE_MAPPING
+	#if !defined(RAWR_AMALGAM_NO_SOURCE_MAPPING) || !RAWR_AMALGAM_NO_SOURCE_MAPPING
 		#line 1 "rawr/lib/type_name.hpp"
 	#endif
 	
@@ -1479,7 +2500,7 @@
 	
 	    template <typename T>
 	    consteval auto get_tn_info() -> tn_info {
-	        #if RAWR_COMPILER_FAMILY_GNU
+	        #if RAWR_COMPILER_GNU
 	            constexpr auto name           = __PRETTY_FUNCTION__;
 	            constexpr char start_marker[] = "T = ";
 	            constexpr char end_marker[]   = "]";
@@ -1526,128 +2547,79 @@
 	    }();
 	}
 
-#if !RAWR_AMALGAM_NO_SECTIONS
+#if !defined(RAWR_AMALGAM_NO_SECTIONS) || !RAWR_AMALGAM_NO_SECTIONS
 	#pragma endsection "rawr/lib/type_name.cppm"
 #endif
 #if !RAWR_AMALGAM_NO_SECTIONS
-	#pragma section "rawr/abi/sysv/trampolines.pp"
+	#pragma section "rawr/lib/bits.cppm"
 #endif
-	#if !RAWR_AMALGAM_NO_SOURCE_MAPPING
-		#line 3 "rawr/abi/sysv/trampolines.pp"
+	#if !defined(RAWR_AMALGAM_NO_SOURCE_MAPPING) || !RAWR_AMALGAM_NO_SOURCE_MAPPING
+		#line 1 "rawr/lib/bits.hpp"
 	#endif
-	#pragma once
+	
+	namespace rawr::inline lib::inline bits
+	{
+	    inline constexpr auto bits_in_byte = RAWR_ABI_DM_BITS_IN_BYTE;
+	
+	    struct bitwidth {
+	        unsigned long long val{};
+	        [[nodiscard]] constexpr auto is_zero() const noexcept -> bool { return val == 0; }
+	    };
+	
+	    struct bytewidth {
+	        unsigned long long val{};
+	        [[nodiscard]] constexpr auto is_zero() const noexcept -> bool { return val == 0; }
+	
+	        constexpr operator bitwidth() const noexcept { return bitwidth{val * bits_in_byte}; }
+	    };
+	
+	    constexpr auto operator>(bitwidth  const lhs, bitwidth const rhs) -> bool { return lhs.val > rhs.val; }
+	    constexpr auto operator<(bitwidth  const lhs, bitwidth const rhs) -> bool { return lhs.val < rhs.val; }
+	    constexpr auto operator==(bitwidth const lhs, bitwidth const rhs) -> bool { return lhs.val == rhs.val; }
+	
+	    inline namespace literals
+	    {
+	        constexpr auto operator""_biw(unsigned long long val) noexcept { return bitwidth{val}; }
+	        constexpr auto operator""_byw(unsigned long long val) noexcept { return bytewidth{val}; }
+	    }
+	
+	    inline constexpr auto biw0   = 0_biw;
+	    inline constexpr auto biw8   = 8_biw;
+	    inline constexpr auto biw16  = 16_biw;
+	    inline constexpr auto biw32  = 32_biw;
+	    inline constexpr auto biw64  = 64_biw;
+	    inline constexpr auto biw128 = 128_biw;
+	    inline constexpr auto byw0   = 0_byw;
+	    inline constexpr auto byw1   = 1_byw;
+	    inline constexpr auto byw2   = 2_byw;
+	    inline constexpr auto byw4   = 4_byw;
+	    inline constexpr auto byw8   = 8_byw;
+	    inline constexpr auto byw16  = 16_byw;
+	
+	    template <typename T> inline constexpr auto bitsof = bitwidth{ sizeof(T) * bits_in_byte };
+	    template <typename T>        constexpr auto bitsofe([[maybe_unused]] T&& expr) noexcept { return bitsof<T>; }
+	
+	    template <typename T> inline constexpr auto bytesof = bytewidth{ sizeof(T) };
+	    template <typename T>        constexpr auto bytesofe([[maybe_unused]] T&& expr) noexcept { return bytesof<T>; }
+	
+	    enum class byte : unsigned char {};
+	    template <unsigned long long N> struct byte_array { byte data[N]{}; };
+	}
 
-	#if RAWRSCAN_METADATA
-	    #define RAWR_PP_MODULE rawr.abi.sysv.trampolines.pp
-	#endif
-
-	#include "rawr.amalgam.hpp"
-
-	// Most of these get a Tail‑call (jmp/b/j) – preserves kernel‑provided
-	// 16‑byte alignment, no stack push, no alignment fixup needed.
-	// Except x86-32: esp points to argc at entry. Pass original esp as void* sp argument.
-	// Push before align — otherwise the push itself breaks the alignment we just set.
-	// "and $-16, %esp" first would lose the original esp value.
-	#define RAWR_ABI_SYSV_TRAMPOLINE_X86 \
-	    "movl %esp, %eax\n\t"    /* save original sp */ \
-	    "andl $-16, %esp\n\t"    /* align (kernel may deliver esp-4 ≡ 0 mod 16; verify per ABI) */ \
-	    "pushl %eax\n\t"         /* push sp as argument */ \
-	    "call rawr_main"         /* must be call, not jmp — arg is on stack */
-	#define RAWR_ABI_SYSV_TRAMPOLINE_X64     "mov %rsp, %rdi\n\tjmp rawr_main"
-	#define RAWR_ABI_SYSV_TRAMPOLINE_ARM32   "mov r0, sp\n\tb rawr_main"
-	#define RAWR_ABI_SYSV_TRAMPOLINE_ARM64   "mov x0, sp\n\tb rawr_main"
-	#define RAWR_ABI_SYSV_TRAMPOLINE_RISCV32 "mv a0, sp\n\tj rawr_main"
-	#define RAWR_ABI_SYSV_TRAMPOLINE_RISCV64 "mv a0, sp\n\tj rawr_main"
-
-	#define RAWR_ABI_SYSV_HAS_TRAMPOLINE 1
-	#if RAWR_ARCH_X86
-	    #define RAWR_ABI_SYSV_TRAMPOLINE RAWR_ABI_SYSV_TRAMPOLINE_X86
-	#elif RAWR_ARCH_X64
-	    #define RAWR_ABI_SYSV_TRAMPOLINE RAWR_ABI_SYSV_TRAMPOLINE_X64
-	#elif RAWR_ARCH_ARM32
-	    #define RAWR_ABI_SYSV_TRAMPOLINE RAWR_ABI_SYSV_TRAMPOLINE_ARM32
-	#elif RAWR_ARCH_ARM64
-	    #define RAWR_ABI_SYSV_TRAMPOLINE RAWR_ABI_SYSV_TRAMPOLINE_ARM64
-	#elif RAWR_ARCH_RISCV32
-	    #define RAWR_ABI_SYSV_TRAMPOLINE RAWR_ABI_SYSV_TRAMPOLINE_RISCV32
-	#elif RAWR_ARCH_RISCV64
-	    #define RAWR_ABI_SYSV_TRAMPOLINE RAWR_ABI_SYSV_TRAMPOLINE_RISCV64
-	#else
-	    #define RAWR_ABI_SYSV_TRAMPOLINE ".error \"Missing trampoline\""
-	    #undef  RAWR_ABI_SYSV_HAS_TRAMPOLINE
-	    #define RAWR_ABI_SYSV_HAS_TRAMPOLINE 0
-	#endif
-
-#if !RAWR_AMALGAM_NO_SECTIONS
-	#pragma endsection "rawr/abi/sysv/trampolines.pp"
-#endif
-#if !RAWR_AMALGAM_NO_SECTIONS
-	#pragma section "rawr/detection/endian.pp"
-#endif
-	#if !RAWR_AMALGAM_NO_SOURCE_MAPPING
-		#line 3 "rawr/detection/endian.pp"
-	#endif
-	#pragma once
-
-	#if RAWRSCAN_METADATA
-	    #define RAWR_PP_MODULE rawr.detection.endian.pp
-	#endif
-
-	#include "rawr.amalgam.hpp"
-
-	// ============================================================
-	// Endianness
-	// ============================================================
-	#define RAWR_ENDIAN_LITTLE  0
-	#define RAWR_ENDIAN_BIG     0
-	#define RAWR_ENDIAN_UNKNOWN 0
-	// __BYTE_ORDER__ is the authoritative source — covers bi-endian ARM correctly
-	#if defined(__BYTE_ORDER__) && defined(__ORDER_LITTLE_ENDIAN__)
-	    #if __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
-	        #undef  RAWR_ENDIAN_LITTLE
-	        #define RAWR_ENDIAN_LITTLE 1
-	    #elif __BYTE_ORDER__ == __ORDER_BIG_ENDIAN__
-	        #undef  RAWR_ENDIAN_BIG
-	        #define RAWR_ENDIAN_BIG 1
-	    #else
-	        #undef  RAWR_ENDIAN_UNKNOWN
-	        #define RAWR_ENDIAN_UNKNOWN 1
-	    #endif
-	#elif defined(__MIPSEL__) || defined(__MIPSEL) || defined(_MIPSEL)
-	    #undef  RAWR_ENDIAN_LITTLE
-	    #define RAWR_ENDIAN_LITTLE 1
-	#elif defined(__MIPSEB__) || defined(__MIPSEB) || defined(_MIPSEB)
-	    #undef  RAWR_ENDIAN_BIG
-	    #define RAWR_ENDIAN_BIG 1
-	// Fallback for toolchains without __BYTE_ORDER__ or not otherwise detectable:
-	#elif RAWR_ARCH_S390X || RAWR_ARCH_S390 || RAWR_ARCH_SPARC64 || RAWR_ARCH_SPARC32
-	    #undef  RAWR_ENDIAN_BIG
-	    #define RAWR_ENDIAN_BIG 1
-	#elif RAWR_ARCH_X64    || RAWR_ARCH_X86       || RAWR_ARCH_ARM64  || \
-	      RAWR_ARCH_ARM32  || RAWR_ARCH_RISCV64   || RAWR_ARCH_RISCV32|| \
-	      RAWR_ARCH_XTENSA || RAWR_ARCH_LOONG64   || RAWR_ARCH_AVR    || \
-	      RAWR_ARCH_WASM   || RAWR_ARCH_MSP430
-	    #undef  RAWR_ENDIAN_LITTLE
-	    #define RAWR_ENDIAN_LITTLE 1
-	#else
-	    #undef  RAWR_ENDIAN_UNKNOWN
-	    #define RAWR_ENDIAN_UNKNOWN 1
-	#endif
-
-#if !RAWR_AMALGAM_NO_SECTIONS
-	#pragma endsection "rawr/detection/endian.pp"
+#if !defined(RAWR_AMALGAM_NO_SECTIONS) || !RAWR_AMALGAM_NO_SECTIONS
+	#pragma endsection "rawr/lib/bits.cppm"
 #endif
 #if !RAWR_AMALGAM_NO_SECTIONS
-	#pragma section "rawr/lib/compiler.pp"
+	#pragma section "rawr/compiler/utils.pp"
 #endif
-	#if !RAWR_AMALGAM_NO_SOURCE_MAPPING
-		#line 3 "rawr/lib/compiler.pp"
+	#if !defined(RAWR_AMALGAM_NO_SOURCE_MAPPING) || !RAWR_AMALGAM_NO_SOURCE_MAPPING
+		#line 3 "rawr/compiler/utils.pp"
 	#endif
 	// Macro utilities for ergonomic compiler gating.
 	#pragma once
 
-	#if RAWRSCAN_METADATA
-	    #define RAWR_PP_MODULE rawr.lib.compiler.pp
+	#ifdef RAWR_METADATA
+	    #define RAWR_PP_MODULE rawr.compiler.utils.pp
 	#endif
 
 	#include "rawr.amalgam.hpp"
@@ -1750,7 +2722,7 @@
 	    #define RAWR_MSVC_INTRIN(Cond, Name, ...) auto Name __VA_ARGS__
 	#endif
 
-	#if RAWR_COMPILER_FAMILY_GNU
+	#if RAWR_COMPILER_GNU
 	    #define RAWR_GNU(...)              __VA_ARGS__
 	    #define RAWR_NOT_GNU(...)
 	    #define RAWR_GNU_ELSE(GNU, NotGNU) GNU
@@ -1759,7 +2731,7 @@
 	#else
 	    #define RAWR_GNU(...)
 	    #define RAWR_NOT_GNU(...)          __VA_ARGS__
-	    #define RAWR_GNU_ELSE(GNU, NotGNU) NotGnu
+	    #define RAWR_GNU_ELSE(GNU, NotGNU) NotGNU
 	    #define RAWR_GNU_AND(Cond, ...)
 	    #define RAWR_GNU_PRAGMA(...)
 	#endif
@@ -1792,13 +2764,13 @@
 	    #define RAWR_GCC_PRAGMA(...)
 	#endif
 
-#if !RAWR_AMALGAM_NO_SECTIONS
-	#pragma endsection "rawr/lib/compiler.pp"
+#if !defined(RAWR_AMALGAM_NO_SECTIONS) || !RAWR_AMALGAM_NO_SECTIONS
+	#pragma endsection "rawr/compiler/utils.pp"
 #endif
 #if !RAWR_AMALGAM_NO_SECTIONS
 	#pragma section "rawr/lib/rich_enum.pp"
 #endif
-	#if !RAWR_AMALGAM_NO_SOURCE_MAPPING
+	#if !defined(RAWR_AMALGAM_NO_SOURCE_MAPPING) || !RAWR_AMALGAM_NO_SOURCE_MAPPING
 		#line 3 "rawr/lib/rich_enum.pp"
 	#endif
 	// Rawr's strong enumeration abstraction:
@@ -1806,7 +2778,7 @@
 	// MSVC: /Zc:preprocessor required.
 	#pragma once
 
-	#if RAWRSCAN_METADATA
+	#ifdef RAWR_METADATA
 	    #define RAWR_PP_MODULE rawr.lib.rich_enum.pp
 	#endif
 
@@ -2000,19 +2972,24 @@
 	#define RAWR_RF_HAS_2(Name, ident)      [[nodiscard]] constexpr auto has_##ident() const noexcept -> bool { return has(from_enum_type(Name::enum_type::ident)); }
 	#define RAWR_RF_HAS_3(Name, ident, val) [[nodiscard]] constexpr auto has_##ident() const noexcept -> bool { return has(from_enum_type(Name::enum_type::ident)); }
 
-#if !RAWR_AMALGAM_NO_SECTIONS
+#if !defined(RAWR_AMALGAM_NO_SECTIONS) || !RAWR_AMALGAM_NO_SECTIONS
 	#pragma endsection "rawr/lib/rich_enum.pp"
 #endif
 #if !RAWR_AMALGAM_NO_SECTIONS
-	#pragma section "rawr/detection/abi.pp"
+	#pragma section "rawr/abi/cc/detection.pp"
 #endif
-	#if !RAWR_AMALGAM_NO_SOURCE_MAPPING
-		#line 3 "rawr/detection/abi.pp"
+	#if !defined(RAWR_AMALGAM_NO_SOURCE_MAPPING) || !RAWR_AMALGAM_NO_SOURCE_MAPPING
+		#line 3 "rawr/abi/cc/detection.pp"
 	#endif
+	// An ABI is two independent facts:
+	//   cc : calling convention - register usage, stack layout, entry parameter passing (what rawr's trampolines must obey)
+	//   dm : data model         - the widths of int / long / pointer (what struct layouts and size_t-like types depend on)
+	// They vary independently: x32 is (SysV, ILP32), Cygwin x64 is (Win64, LP64), MinGW x64 is (Win64, LLP64),
+	// watchOS arm64_32 is (AAPCS64 Apple, ILP32), RISC-V is (RISCV, ILP32|LP64).
 	#pragma once
 
-	#if RAWRSCAN_METADATA
-	    #define RAWR_PP_MODULE rawr.detection.abi.pp
+	#ifdef RAWR_METADATA
+	    #define RAWR_PP_MODULE rawr.abi.cc.detection.pp
 	#endif
 
 	#include "rawr.amalgam.hpp"
@@ -2020,209 +2997,330 @@
 	#include "rawr.amalgam.hpp"
 
 	RAWR_TODO("Wasm32 and wasm64 may need different abis.")
+	RAWR_TODO("IA32 has several calling conventions (cdecl/stdcall/fastcall/...) and no id yet.")
+	RAWR_TODO("Float ABI (soft/softfp/hard) is part of the calling convention on ARM32 and RISC-V and is not modeled yet.")
 
-	// Determined by CPU + host. Describes the register usage, stack layout,
-	// and entry parameter passing convention rawr's trampolines must conform to.
-	#define RAWR_ABI_SYSV          0  // x86-64 SysV AMD64 — Linux, macOS, BSD
-	#define RAWR_ABI_WIN64         0  // Microsoft x64 — Windows x86-64
-	#define RAWR_ABI_AAPCS64       0  // AArch64 PCS — Linux, bare metal AArch64
-	#define RAWR_ABI_AAPCS64_APPLE 0  // AArch64 Apple variant — Apple Silicon, iOS
-	#define RAWR_ABI_AAPCS32       0  // ARM 32-bit PCS
-	#define RAWR_ABI_RISCV_LP64    0  // RISC-V LP64 — 64-bit RISC-V
-	#define RAWR_ABI_RISCV_ILP32   0  // RISC-V ILP32 — 32-bit RISC-V
-	#define RAWR_ABI_XTENSA        0  // Xtensa — ESP32 (windowed or call0, toolchain decides)
-	#define RAWR_ABI_AVR           0  // AVR — 8-bit Atmel/Microchip
-	#define RAWR_ABI_WASM          0  // WebAssembly
-	#define RAWR_ABI_UNKNOWN       0
+	// --- Ids. ---
+
+	#define RAWR_ABI_CCID_UNKNOWN        1
+	#define RAWR_ABI_CCID_SYSV           2
+	#define RAWR_ABI_CCID_WIN64          3
+	#define RAWR_ABI_CCID_AAPCS64        4
+	#define RAWR_ABI_CCID_AAPCS64_APPLE  5
+	#define RAWR_ABI_CCID_AAPCS64_WIN    6
+	#define RAWR_ABI_CCID_ARM64EC        7
+	#define RAWR_ABI_CCID_AAPCS32        8
+	#define RAWR_ABI_CCID_RISCV          9
+	#define RAWR_ABI_CCID_XTENSA         10
+	#define RAWR_ABI_CCID_AVR            11
+	#define RAWR_ABI_CCID_WASM           12
+	#define RAWR_ABI_CCID_MAX            12
+
+	// --- Detection. ---
+
 	#if RAWR_ARCH_WASM
-	    #undef  RAWR_ABI_WASM
-	    #define RAWR_ABI_WASM 1
+	    #define RAWR_DETECTED_ABI_CCID RAWR_ABI_CCID_WASM
 	#elif RAWR_ARCH_X64
 	    #if RAWR_PLATFORM_WINDOWS
-	        #undef  RAWR_ABI_WIN64
-	        #define RAWR_ABI_WIN64 1
+	        #define RAWR_DETECTED_ABI_CCID RAWR_ABI_CCID_WIN64
 	    #else
 	        // x86-64 on Linux, macOS (pre-M1), BSD, Android all use SysV AMD64
-	        #undef  RAWR_ABI_SYSV
-	        #define RAWR_ABI_SYSV 1
+	        #define RAWR_DETECTED_ABI_CCID RAWR_ABI_CCID_SYSV
 	    #endif
 	#elif RAWR_ARCH_ARM64
-	    #if RAWR_PLATFORM_MACOS || RAWR_PLATFORM_IOS
-	        #undef  RAWR_ABI_AAPCS64_APPLE
-	        #define RAWR_ABI_AAPCS64_APPLE 1
+	    #if defined(__arm64ec__) || defined(_M_ARM64EC)
+	        #define RAWR_DETECTED_ABI_CCID RAWR_ABI_CCID_ARM64EC
+	    #elif RAWR_PLATFORM_WINDOWS
+	        #define RAWR_DETECTED_ABI_CCID RAWR_ABI_CCID_AAPCS64_WIN
+	    #elif RAWR_PLATFORM_MACOS || RAWR_PLATFORM_IOS
+	        #define RAWR_DETECTED_ABI_CCID RAWR_ABI_CCID_AAPCS64_APPLE
 	    #else
-	        #undef  RAWR_ABI_AAPCS64
-	        #define RAWR_ABI_AAPCS64 1
+	        #define RAWR_DETECTED_ABI_CCID RAWR_ABI_CCID_AAPCS64
 	    #endif
 	#elif RAWR_ARCH_ARM32
-	    #undef  RAWR_ABI_AAPCS32
-	    #define RAWR_ABI_AAPCS32 1
-	#elif RAWR_ARCH_RISCV64
-	    #undef  RAWR_ABI_RISCV_LP64
-	    #define RAWR_ABI_RISCV_LP64 1
-	#elif RAWR_ARCH_RISCV32
-	    #undef  RAWR_ABI_RISCV_ILP32
-	    #define RAWR_ABI_RISCV_ILP32 1
+	    #define RAWR_DETECTED_ABI_CCID RAWR_ABI_CCID_AAPCS32
+	#elif RAWR_ARCH_RISCV
+	    #define RAWR_DETECTED_ABI_CCID RAWR_ABI_CCID_RISCV
 	#elif RAWR_ARCH_XTENSA
-	    #undef  RAWR_ABI_XTENSA
-	    #define RAWR_ABI_XTENSA 1
+	    #define RAWR_DETECTED_ABI_CCID RAWR_ABI_CCID_XTENSA
 	#elif RAWR_ARCH_AVR
-	    #undef  RAWR_ABI_AVR
-	    #define RAWR_ABI_AVR 1
+	    #define RAWR_DETECTED_ABI_CCID RAWR_ABI_CCID_AVR
 	#else
-	    #undef  RAWR_ABI_UNKNOWN
-	    #define RAWR_ABI_UNKNOWN 1
+	    #define RAWR_DETECTED_ABI_CCID RAWR_ABI_CCID_UNKNOWN
 	#endif
 
-#if !RAWR_AMALGAM_NO_SECTIONS
-	#pragma endsection "rawr/detection/abi.pp"
+	// --- User override. ---
+
+	// -DRAWR_SET_ABI_CCID=RAWR_ABI_CCID_<VALUE> replaces detection (UNKNOWN is a legal value). RAWR_DETECTED_ABI_CCID always keeps what
+	// detection found. Id 0 is reserved as "malformed": a misspelled name evaluates to 0.
+	#ifdef RAWR_ABI_CCID
+	    #error "rawr: RAWR_ABI_CCID is an output of detection; to override it define RAWR_SET_ABI_CCID"
+	#endif
+	#ifdef RAWR_SET_ABI_CCID
+	    #if RAWR_SET_ABI_CCID < 1 || RAWR_SET_ABI_CCID > RAWR_ABI_CCID_MAX
+	        #error "rawr: RAWR_SET_ABI_CCID must be one of the RAWR_ABI_CCID_* values (a misspelled name evaluates to 0, which is never valid)"
+	    #endif
+	    #define RAWR_ABI_CCID           RAWR_SET_ABI_CCID
+	    #define RAWR_ABI_CCID_DETECTED  0
+	    #define RAWR_ABI_CCID_OVERRIDEN 1
+	#else
+	    #define RAWR_ABI_CCID           RAWR_DETECTED_ABI_CCID
+	    #define RAWR_ABI_CCID_DETECTED  1
+	    #define RAWR_ABI_CCID_OVERRIDEN 0
+	#endif
+
+	// --- Canonical macros. ---
+
+	#define RAWR_ABI_CC_SYSV          0  // x86-64 SysV AMD64 - Linux, macOS, BSD
+	#define RAWR_ABI_CC_WIN64         0  // Microsoft x64 - Windows x86-64 (also Cygwin/MinGW)
+	#define RAWR_ABI_CC_AAPCS64       0  // AArch64 PCS - Linux, bare metal AArch64
+	#define RAWR_ABI_CC_AAPCS64_APPLE 0  // AArch64 Apple variant - Apple Silicon, iOS
+	#define RAWR_ABI_CC_AAPCS64_WIN   0  // AArch64 Windows variant (x18 = TEB, own variadic rules)
+	#define RAWR_ABI_CC_ARM64EC       0  // Arm64EC: ARM64 code using the x64-compatible ABI
+	#define RAWR_ABI_CC_AAPCS32       0  // ARM 32-bit PCS
+	#define RAWR_ABI_CC_RISCV         0  // RISC-V psABI (the data model is RAWR_DM_*)
+	#define RAWR_ABI_CC_XTENSA        0  // Xtensa - ESP32 (windowed or call0, toolchain decides)
+	#define RAWR_ABI_CC_AVR           0  // AVR - 8-bit Atmel/Microchip
+	#define RAWR_ABI_CC_WASM          0  // WebAssembly
+	#define RAWR_ABI_CC_UNKNOWN       0
+	#if RAWR_ABI_CCID == RAWR_ABI_CCID_UNKNOWN
+	    #undef  RAWR_ABI_CC_UNKNOWN
+	    #define RAWR_ABI_CC_UNKNOWN 1
+	#elif RAWR_ABI_CCID == RAWR_ABI_CCID_SYSV
+	    #undef  RAWR_ABI_CC_SYSV
+	    #define RAWR_ABI_CC_SYSV 1
+	#elif RAWR_ABI_CCID == RAWR_ABI_CCID_WIN64
+	    #undef  RAWR_ABI_CC_WIN64
+	    #define RAWR_ABI_CC_WIN64 1
+	#elif RAWR_ABI_CCID == RAWR_ABI_CCID_AAPCS64
+	    #undef  RAWR_ABI_CC_AAPCS64
+	    #define RAWR_ABI_CC_AAPCS64 1
+	#elif RAWR_ABI_CCID == RAWR_ABI_CCID_AAPCS64_APPLE
+	    #undef  RAWR_ABI_CC_AAPCS64_APPLE
+	    #define RAWR_ABI_CC_AAPCS64_APPLE 1
+	#elif RAWR_ABI_CCID == RAWR_ABI_CCID_AAPCS64_WIN
+	    #undef  RAWR_ABI_CC_AAPCS64_WIN
+	    #define RAWR_ABI_CC_AAPCS64_WIN 1
+	#elif RAWR_ABI_CCID == RAWR_ABI_CCID_ARM64EC
+	    #undef  RAWR_ABI_CC_ARM64EC
+	    #define RAWR_ABI_CC_ARM64EC 1
+	#elif RAWR_ABI_CCID == RAWR_ABI_CCID_AAPCS32
+	    #undef  RAWR_ABI_CC_AAPCS32
+	    #define RAWR_ABI_CC_AAPCS32 1
+	#elif RAWR_ABI_CCID == RAWR_ABI_CCID_RISCV
+	    #undef  RAWR_ABI_CC_RISCV
+	    #define RAWR_ABI_CC_RISCV 1
+	#elif RAWR_ABI_CCID == RAWR_ABI_CCID_XTENSA
+	    #undef  RAWR_ABI_CC_XTENSA
+	    #define RAWR_ABI_CC_XTENSA 1
+	#elif RAWR_ABI_CCID == RAWR_ABI_CCID_AVR
+	    #undef  RAWR_ABI_CC_AVR
+	    #define RAWR_ABI_CC_AVR 1
+	#elif RAWR_ABI_CCID == RAWR_ABI_CCID_WASM
+	    #undef  RAWR_ABI_CC_WASM
+	    #define RAWR_ABI_CC_WASM 1
+	#endif
+
+#if !defined(RAWR_AMALGAM_NO_SECTIONS) || !RAWR_AMALGAM_NO_SECTIONS
+	#pragma endsection "rawr/abi/cc/detection.pp"
 #endif
 #if !RAWR_AMALGAM_NO_SECTIONS
-	#pragma section "rawr/detection/bin.pp"
+	#pragma section "rawr/bin/detection.pp"
 #endif
-	#if !RAWR_AMALGAM_NO_SOURCE_MAPPING
-		#line 3 "rawr/detection/bin.pp"
+	#if !defined(RAWR_AMALGAM_NO_SOURCE_MAPPING) || !RAWR_AMALGAM_NO_SOURCE_MAPPING
+		#line 3 "rawr/bin/detection.pp"
 	#endif
 	#pragma once
 
-	#if RAWRSCAN_METADATA
-	    #define RAWR_PP_MODULE rawr.detection.bin.pp
+	#ifdef RAWR_METADATA
+	    #define RAWR_PP_MODULE rawr.bin.detection.pp
 	#endif
 
 	#include "rawr.amalgam.hpp"
 
+	// --- Ids. ---
+
+	#define RAWR_BINID_UNKNOWN 1
+	#define RAWR_BINID_ELF     2
+	#define RAWR_BINID_MACHO   3
+	#define RAWR_BINID_PE      4
+	#define RAWR_BINID_WASM    5
+	#define RAWR_BINID_MAX     5
+
+	// --- Detection. ---
+
+	#if defined(__ELF__)
+	    #define RAWR_DETECTED_BINID RAWR_BINID_ELF
+	#elif defined(__MACH__)
+	    #define RAWR_DETECTED_BINID RAWR_BINID_MACHO
+	#elif defined(_WIN32) || defined(__CYGWIN__)  // Cygwin is PE/COFF but defines no _WIN32
+	    #define RAWR_DETECTED_BINID RAWR_BINID_PE
+	#elif RAWR_PLATFORM_WASM
+	    #define RAWR_DETECTED_BINID RAWR_BINID_WASM
+	#else
+	    #define RAWR_DETECTED_BINID RAWR_BINID_UNKNOWN
+	#endif
+
+	// --- User override. ---
+
+	// -DRAWR_SET_BINID=RAWR_BINID_<VALUE> replaces detection (UNKNOWN is a legal value). RAWR_DETECTED_BINID always keeps what
+	// detection found. Id 0 is reserved as "malformed": a misspelled name evaluates to 0.
+	#ifdef RAWR_BINID
+	    #error "rawr: RAWR_BINID is an output of detection; to override it define RAWR_SET_BINID"
+	#endif
+	#ifdef RAWR_SET_BINID
+	    #if RAWR_SET_BINID < 1 || RAWR_SET_BINID > RAWR_BINID_MAX
+	        #error "rawr: RAWR_SET_BINID must be one of the RAWR_BINID_* values (a misspelled name evaluates to 0, which is never valid)"
+	    #endif
+	    #define RAWR_BINID           RAWR_SET_BINID
+	    #define RAWR_BINID_DETECTED  0
+	    #define RAWR_BINID_OVERRIDEN 1
+	#else
+	    #define RAWR_BINID           RAWR_DETECTED_BINID
+	    #define RAWR_BINID_DETECTED  1
+	    #define RAWR_BINID_OVERRIDEN 0
+	#endif
+
+	// --- Canonical macros. ---
+
+	#define RAWR_BIN_UNKNOWN 0
 	#define RAWR_BIN_ELF     0
 	#define RAWR_BIN_MACHO   0
 	#define RAWR_BIN_PE      0
 	#define RAWR_BIN_WASM    0
-	#define RAWR_BIN_UNKNOWN 0
-	#if defined(__ELF__)
-	    #undef  RAWR_BIN_ELF
-	    #define RAWR_BIN_ELF 1
-	#elif defined(__MACH__)
-	    #undef  RAWR_BIN_MACHO
-	    #define RAWR_BIN_MACHO 1
-	#elif defined(_WIN32)
-	    #undef  RAWR_BIN_PE
-	    #define RAWR_BIN_PE 1
-	#elif RAWR_PLATFORM_WASM
-	    #undef  RAWR_BIN_WASM
-	    #define RAWR_BIN_WASM 1
-	#else
+	#if RAWR_BINID == RAWR_BINID_UNKNOWN
 	    #undef  RAWR_BIN_UNKNOWN
 	    #define RAWR_BIN_UNKNOWN 1
+	#elif RAWR_BINID == RAWR_BINID_ELF
+	    #undef  RAWR_BIN_ELF
+	    #define RAWR_BIN_ELF 1
+	#elif RAWR_BINID == RAWR_BINID_MACHO
+	    #undef  RAWR_BIN_MACHO
+	    #define RAWR_BIN_MACHO 1
+	#elif RAWR_BINID == RAWR_BINID_PE
+	    #undef  RAWR_BIN_PE
+	    #define RAWR_BIN_PE 1
+	#elif RAWR_BINID == RAWR_BINID_WASM
+	    #undef  RAWR_BIN_WASM
+	    #define RAWR_BIN_WASM 1
 	#endif
 
-#if !RAWR_AMALGAM_NO_SECTIONS
-	#pragma endsection "rawr/detection/bin.pp"
+#if !defined(RAWR_AMALGAM_NO_SECTIONS) || !RAWR_AMALGAM_NO_SECTIONS
+	#pragma endsection "rawr/bin/detection.pp"
 #endif
 #if !RAWR_AMALGAM_NO_SECTIONS
-	#pragma section "rawr/detection/posix.pp"
+	#pragma section "rawr/env/detection.pp"
 #endif
-	#if !RAWR_AMALGAM_NO_SOURCE_MAPPING
-		#line 3 "rawr/detection/posix.pp"
+	#if !defined(RAWR_AMALGAM_NO_SOURCE_MAPPING) || !RAWR_AMALGAM_NO_SOURCE_MAPPING
+		#line 3 "rawr/env/detection.pp"
 	#endif
+	// ENV describes the execution environment layered above the host.
+	// A HOST_LINUX target with freestanding toolchain gets ENV_FREESTANDING.
+	// A HOST_WINDOWS target with Cygwin gets ENV_CYGWIN AND HOST_WINDOWS.
 	#pragma once
 
-	#if RAWRSCAN_METADATA
-	    #define RAWR_PP_MODULE rawr.detection.posix.pp
+	#ifdef RAWR_METADATA
+	    #define RAWR_PP_MODULE rawr.env.detection.pp
 	#endif
 
 	#include "rawr.amalgam.hpp"
-	#include "rawr.amalgam.hpp"
 
-	// POSIX: meaningful syscall-level POSIX APIs exist.
-	// WASM deliberately excluded — Emscripten emulates POSIX in userspace,
-	// standalone WASM/WASI has a completely different interface.
-	// Cygwin provides POSIX over Windows, hence included.
-	#define RAWR_IS_POSIX 0
-	#if RAWR_PLATFORM_LINUX   || \
-	    RAWR_PLATFORM_MACOS   || \
-	    RAWR_PLATFORM_IOS     || \
-	    RAWR_PLATFORM_ANDROID || \
-	    RAWR_PLATFORM_OPENBSD || \
-	    RAWR_PLATFORM_FREEBSD || \
-	    RAWR_PLATFORM_NETBSD  || \
-	    RAWR_ENV_CYGWIN
-	    #undef  RAWR_IS_POSIX
-	    #define RAWR_IS_POSIX 1
-	#endif
+	// --- Ids. ---
 
-#if !RAWR_AMALGAM_NO_SECTIONS
-	#pragma endsection "rawr/detection/posix.pp"
-#endif
-#if !RAWR_AMALGAM_NO_SECTIONS
-	#pragma section "rawr/detection/ptr.pp"
-#endif
-	#if !RAWR_AMALGAM_NO_SOURCE_MAPPING
-		#line 3 "rawr/detection/ptr.pp"
-	#endif
-	#pragma once
+	#define RAWR_ENVID_UNKNOWN        1
+	#define RAWR_ENVID_CYGWIN         2
+	#define RAWR_ENVID_MINGW          3
+	#define RAWR_ENVID_EMSCRIPTEN     4
+	#define RAWR_ENVID_NATIVE         5
+	#define RAWR_ENVID_MAX            5
 
-	#if RAWRSCAN_METADATA
-	    #define RAWR_PP_MODULE rawr.detection.ptr.pp
-	#endif
+	// --- Detection. ---
 
-	#include "rawr.amalgam.hpp"
-	#include "rawr.amalgam.hpp"
-
-	#if defined(__SIZEOF_POINTER__)
-	    #define RAWR_PTR_SIZE __SIZEOF_POINTER__
-	#elif RAWR_PLATFORM_WINDOWS && defined(_WIN64)
-	    #define RAWR_PTR_SIZE 8
+	#if defined(__EMSCRIPTEN__)
+	    #define RAWR_DETECTED_ENVID RAWR_ENVID_EMSCRIPTEN
+	#elif defined(__CYGWIN__)
+	    #define RAWR_DETECTED_ENVID RAWR_ENVID_CYGWIN
+	#elif defined(__MINGW32__) || defined(__MINGW64__)
+	    #define RAWR_DETECTED_ENVID RAWR_ENVID_MINGW
+	#elif RAWR_PLATFORM_LINUX   || RAWR_PLATFORM_MACOS  || RAWR_PLATFORM_IOS || \
+	      RAWR_PLATFORM_ANDROID || RAWR_PLATFORM_WINDOWS
+	    #define RAWR_DETECTED_ENVID RAWR_ENVID_NATIVE
 	#else
-	    #define RAWR_PTR_SIZE 4
+	    #define RAWR_DETECTED_ENVID RAWR_ENVID_UNKNOWN
 	#endif
 
-	#define RAWR_IS_64BIT 0
-	#define RAWR_IS_32BIT 0
-	#if RAWR_PTR_SIZE == 8
-	    #undef  RAWR_IS_64BIT
-	    #define RAWR_IS_64BIT 1
-	#endif
-	#if RAWR_PTR_SIZE == 4
-	    #undef  RAWR_IS_32BIT
-	    #define RAWR_IS_32BIT 1
-	#endif
+	// --- User override. ---
 
-	#if defined(__CHAR_BIT__)
-	    #define RAWR_BITS_IN_BYTE __CHAR_BIT__
-	#elif RAWR_COMPILER_MSVC
-	    #define RAWR_BITS_IN_BYTE 8
-	#else
-	    #ifndef RAWR_BITS_IN_BYTE
-	        #error How many bits in byte?
+	// -DRAWR_SET_ENVID=RAWR_ENVID_<VALUE> replaces detection (UNKNOWN is a legal value). RAWR_DETECTED_ENVID always keeps what
+	// detection found. Id 0 is reserved as "malformed": a misspelled name evaluates to 0.
+	#ifdef RAWR_ENVID
+	    #error "rawr: RAWR_ENVID is an output of detection; to override it define RAWR_SET_ENVID"
+	#endif
+	#ifdef RAWR_SET_ENVID
+	    #if RAWR_SET_ENVID < 1 || RAWR_SET_ENVID > RAWR_ENVID_MAX
+	        #error "rawr: RAWR_SET_ENVID must be one of the RAWR_ENVID_* values (a misspelled name evaluates to 0, which is never valid)"
 	    #endif
+	    #define RAWR_ENVID           RAWR_SET_ENVID
+	    #define RAWR_ENVID_DETECTED  0
+	    #define RAWR_ENVID_OVERRIDEN 1
+	#else
+	    #define RAWR_ENVID           RAWR_DETECTED_ENVID
+	    #define RAWR_ENVID_DETECTED  1
+	    #define RAWR_ENVID_OVERRIDEN 0
 	#endif
 
-#if !RAWR_AMALGAM_NO_SECTIONS
-	#pragma endsection "rawr/detection/ptr.pp"
+	// --- Canonical macros. ---
+
+	#define RAWR_ENV_CYGWIN     0
+	#define RAWR_ENV_MINGW      0
+	#define RAWR_ENV_EMSCRIPTEN 0
+	#define RAWR_ENV_NATIVE     0
+	#define RAWR_ENV_UNKNOWN    0
+	#if RAWR_ENVID == RAWR_ENVID_UNKNOWN
+	    #undef  RAWR_ENV_UNKNOWN
+	    #define RAWR_ENV_UNKNOWN 1
+	#elif RAWR_ENVID == RAWR_ENVID_CYGWIN
+	    #undef  RAWR_ENV_CYGWIN
+	    #define RAWR_ENV_CYGWIN 1
+	#elif RAWR_ENVID == RAWR_ENVID_MINGW
+	    #undef  RAWR_ENV_MINGW
+	    #define RAWR_ENV_MINGW 1
+	#elif RAWR_ENVID == RAWR_ENVID_EMSCRIPTEN
+	    #undef  RAWR_ENV_EMSCRIPTEN
+	    #define RAWR_ENV_EMSCRIPTEN 1
+	#elif RAWR_ENVID == RAWR_ENVID_NATIVE
+	    #undef  RAWR_ENV_NATIVE
+	    #define RAWR_ENV_NATIVE 1
+	#endif
+
+#if !defined(RAWR_AMALGAM_NO_SECTIONS) || !RAWR_AMALGAM_NO_SECTIONS
+	#pragma endsection "rawr/env/detection.pp"
 #endif
 #if !RAWR_AMALGAM_NO_SECTIONS
-	#pragma section "rawr/abi/win64/main.pp"
+	#pragma section "rawr/abi/cc/win64/main.pp"
 #endif
-	#if !RAWR_AMALGAM_NO_SOURCE_MAPPING
-		#line 3 "rawr/abi/win64/main.pp"
+	#if !defined(RAWR_AMALGAM_NO_SOURCE_MAPPING) || !RAWR_AMALGAM_NO_SOURCE_MAPPING
+		#line 3 "rawr/abi/cc/win64/main.pp"
 	#endif
 	#pragma once
 
-	#if RAWRSCAN_METADATA
-	    #define RAWR_PP_MODULE rawr.abi.win64.main.pp
+	#ifdef RAWR_METADATA
+	    #define RAWR_PP_MODULE rawr.abi.cc.win64.main.pp
 	#endif
 
 	#include "rawr.amalgam.hpp"
 
-	#define RAWR_ABI_WIN64_MAIN_NOCTX                         \
+	#define RAWR_ABI_CC_WIN64_MAIN_NOCTX                      \
 	    _Pragma("comment(linker, \"/entry:rawr_user_main\")") \
 	    extern "C" RAWR_NORETURN void rawr_user_main() noexcept
 
-#if !RAWR_AMALGAM_NO_SECTIONS
-	#pragma endsection "rawr/abi/win64/main.pp"
+#if !defined(RAWR_AMALGAM_NO_SECTIONS) || !RAWR_AMALGAM_NO_SECTIONS
+	#pragma endsection "rawr/abi/cc/win64/main.pp"
 #endif
 #if !RAWR_AMALGAM_NO_SECTIONS
 	#pragma section "rawr/bin/elf.cppm"
 #endif
-	#if !RAWR_AMALGAM_NO_SOURCE_MAPPING
+	#if !defined(RAWR_AMALGAM_NO_SOURCE_MAPPING) || !RAWR_AMALGAM_NO_SOURCE_MAPPING
 		#line 1 "rawr/bin/elf.hpp"
 	#endif
 	
@@ -2285,17 +3383,17 @@
 	    }
 	}
 
-#if !RAWR_AMALGAM_NO_SECTIONS
+#if !defined(RAWR_AMALGAM_NO_SECTIONS) || !RAWR_AMALGAM_NO_SECTIONS
 	#pragma endsection "rawr/bin/elf.cppm"
 #endif
 #if !RAWR_AMALGAM_NO_SECTIONS
-	#pragma section "rawr/cxx_abi/itanium.cppm"
+	#pragma section "rawr/cxx/itanium.cppm"
 #endif
-	#if !RAWR_AMALGAM_NO_SOURCE_MAPPING
-		#line 1 "rawr/cxx_abi/itanium.hpp"
+	#if !defined(RAWR_AMALGAM_NO_SOURCE_MAPPING) || !RAWR_AMALGAM_NO_SOURCE_MAPPING
+		#line 1 "rawr/cxx/itanium.hpp"
 	#endif
 	
-	namespace rawr::cxx_abi::itanium
+	namespace rawr::cxx::itanium
 	{
 	    using cxa_atexit_fn = void(*)(void*);
 	
@@ -2308,649 +3406,171 @@
 	    RAWR_ASM("__cxa_atexit");
 	}
 
-#if !RAWR_AMALGAM_NO_SECTIONS
-	#pragma endsection "rawr/cxx_abi/itanium.cppm"
+#if !defined(RAWR_AMALGAM_NO_SECTIONS) || !RAWR_AMALGAM_NO_SECTIONS
+	#pragma endsection "rawr/cxx/itanium.cppm"
 #endif
 #if !RAWR_AMALGAM_NO_SECTIONS
-	#pragma section "rawr/san/attributes.pp"
+	#pragma section "rawr/intrin/base.cppm"
 #endif
-	#if !RAWR_AMALGAM_NO_SOURCE_MAPPING
-		#line 3 "rawr/san/attributes.pp"
+	#if !defined(RAWR_AMALGAM_NO_SOURCE_MAPPING) || !RAWR_AMALGAM_NO_SOURCE_MAPPING
+		#line 1 "rawr/intrin/base.hpp"
 	#endif
-	#pragma once
-
-	#if RAWRSCAN_METADATA
-	    #define RAWR_PP_MODULE rawr.san.attributes.pp
-	#endif
-
 	#include "rawr.amalgam.hpp"
-
-	#define RAWR_NO_SANITIZE_THREAD    RAWR_ATTRIBUTE(no_sanitize("thread"))
-	#define RAWR_NO_SANITIZE_MEMORY    RAWR_ATTRIBUTE(no_sanitize("memory"))
-	#define RAWR_NO_SANITIZE_UNDEFINED RAWR_ATTRIBUTE(no_sanitize("undefined"))
-	#define RAWR_NO_SANITIZE_HWADDRESS RAWR_ATTRIBUTE(no_sanitize("hwaddress"))
-	#define RAWR_NO_SANITIZE_ADDRESS   RAWR_ATTRIBUTE(no_sanitize("address"))  RAWR_DECLSPEC(no_sanitize_address)
-	#define RAWR_NO_SANITIZE_CFI       RAWR_ATTRIBUTE(no_sanitize("cfi"))      RAWR_DECLSPEC(guard(nocf))
-
-#if !RAWR_AMALGAM_NO_SECTIONS
-	#pragma endsection "rawr/san/attributes.pp"
-#endif
-#if !RAWR_AMALGAM_NO_SECTIONS
-	#pragma section "rawr/lib/linker_section.pp"
-#endif
-	#if !RAWR_AMALGAM_NO_SOURCE_MAPPING
-		#line 3 "rawr/lib/linker_section.pp"
-	#endif
-	// Decentralised typed linker-section registry.
-	//
-	// A section is basically a section_name (actual section string) + tag_name (c++ acessor).
-	// Defining a section will define section_name in the binary and a tag_name acessor for said
-	// section in the current namespace.
-	//
-	// section_name has to be unique, it is best practice to follow c namespacing standards here:
-	// prefix with the framework and context.
-	// E.g: Declaring a section for holding tests for rawr would have a section_name "rawr_tests" or similar,
-	//      *not* just "tests", as that could potentially conflict with any number of other people's section.
-	//
-	// Conflicting section names are a huge footgun, follow this rule religiously.
-	//
-	// The linker might complain, it might now, it will likely just put everything in one bucket
-	// and call it a day, with complete disregard for the underlying entry type.
-	//
-	// API:
-	//   RAWR_LINKER_SECTION_DEFINE(section_name, tag_name, entry_type) - declare a section registry (namespace scope)
-	//   RAWR_LINKER_SECTION_REGISTER(section_name, tag_name, ...)      - register one T entry; args brace-init T
-	//   for (auto& e : tag_name) { ... }                               - iterate at runtime
-	//
-	// NOTE: On MSVC the tag_name iterators are forward iterators due to platform constraints.
-	//       If you are just using the suggested iteration syntax you can ignore this limitation.
-	//
-	// If you define a section, its best practice to also define an accompanying macro
-	// for registering into that section. such as (pseudocode, not actually what RAWR_TEST does):
-	//     namespace rawr::inline lib::test
-	//     {
-	//         struct section_entry { ... };
-	//         RAWR_LINKER_SECTION_DEFINE(rawr_lib_test_section, section, section_entry)
-	//         #define RAWR_REGISTER_TEST(Test) RAWR_LINKER_SECTION_REGISTER(rawr_lib_test_section, ::rawr::lib::test::section, Test)
-	//     }
-	//
-	// Its also best practice to define a section in a namespace and not in the global
-	// or file scope.
-	//
-	// -- Entry ordering ------------------------------------------------------------
-	// Entries appear in link order - the order .o files are passed to the linker.
-	// This is a de-facto property of all major linkers, not a standard guarantee.
-	// Do not build ordering-dependent logic on it silently. If a guaranteed order
-	// is required, include an index field in T and sort in the runner.
-	//
-	// -- Section name constraint - all platforms -----------------------------------
-	// `tag` must be a valid C identifier (a-z A-Z 0-9 _). No dots, slashes, or $
-	// characters. On ELF the __start_/__stop_ auto-symbols are derived from the
-	// section name and must satisfy C identifier rules. Validated at compile time.
-	//
-	// -- Section name constraint - Mach-O additional -------------------------------
-	// Mach-O section names are stored in a 16-byte null-terminated field.
-	// Names longer than 16 characters produce silent truncation or a linker error
-	// depending on ld64 version. A separate static_assert enforces this limit.
-	//
-	// -- LTO ----------------------------------------------------------------------
-	// RAWR_ATTRIBUTE(used) prevents DCE at the object-file level. In modern
-	// GCC (>=11) and Clang (>=13), pairing it with RAWR_ATTRIBUTE(retain) defeats
-	// linker-level garbage collection (--gc-sections) and survives LTO (-flto)
-	// completely. The MSVC path uses the /include linker pragma to achieve the
-	// same effect under /GL /LTCG.
-	// If this code is ever backported to older compilers lacking `retain`, build
-	// with -fno-lto or add KEEP(*(.section_name)) to your linker script.
-	//
-	// -- Empty sections - ELF -----------------------------------------------------
-	// ld.bfd, lld, mold: emit __start_X / __stop_X for any section referenced by
-	// an extern declaration, even with no REGISTER calls.
-	// gold: may omit these symbols when no entries exist. The externs are declared
-	// RAWR_ATTRIBUTE(weak) so that absent symbols resolve to null: start() ==
-	// stop() == nullptr and the loop body never executes. No crash.
-	//
-	// -- Empty sections - Mach-O --------------------------------------------------
-	// ld64 does not emit section$start / section$end for sections with no entries.
-	// RAWR_ATTRIBUTE(weak) on Darwin maps to Mach-O weak_import: absent symbols
-	// resolve to null. start() == stop() == nullptr; loop body never executes.
-	//
-	// -- Empty sections - PE -------------------------------------------------------
-	// Unlike ELF/Mach-O, the PE implementation does not depend on linker-generated
-	// start/stop symbols. The explicitly allocated $A and $Z sentinel objects are
-	// themselves the boundaries of the range, so begin()/end() remain valid even
-	// when no registrations exist.
-	//
-	// The $A/$Z contributions also establish the ordering envelope for $I:
-	// section$A < section$I < section$Z.
-	//
-	// The iterator still has to tolerate linker-inserted padding inside $I; see
-	// the MSVC implementation below.
-	//
-	// -- Bare-metal ELF -----------------------------------------------------------
-	// __start_/__stop_ auto-symbols require a hosted linker with its default
-	// internal script. On bare-metal with a custom linker script, declare them:
-	//
-	//   .my_section : {
-	//       __start_my_section = .;
-	//       KEEP(*(.my_section))
-	//       __stop_my_section  = .;
-	//   }
-	//
-	// If the script omits them, the weak externs resolve to null and the section
-	// appears empty rather than crashing.
-	//
-	// -- Supported targets ---------------------------------------------------------
-	//   ELF    ld.bfd, lld, gold, mold - Linux, embedded ARM / RISC-V / Xtensa
-	//   Mach-O ld64, lld/MachO        - macOS, iOS
-	//   PE     MSVC link, lld-link    - Windows (MSVC and MinGW / Clang)
-	//   WASM                          - not supported; no equivalent mechanism
-	//
-	// NOTE: For some more reference on how to properly use this, look at how rawr/lib/test.(h)pp
-	//       declares a section with RAWR_LINKER_SECTION_DEFINE and how RAWR_TEST registers a
-	//       test into that section with RAWR_LINKER_SECTION_REGISTER. Note the namespace scoping
-	//       on declaration/registration and the way the arguments are passed around inside the macros.
-	#pragma once
-
-	#if RAWRSCAN_METADATA
-	    #define RAWR_PP_MODULE rawr.lib.linker_section.pp
-	#endif
-
-	// NOTE: This is *not* generic code, it's very explicit on what compiler/bin its selecting, thats why
-	//       we dont use RAWR_DECLSPEC or RAWR_ATTRIBUTE: We know what compiler is compiling this as a fact,
-	//       so we use __attribute__ and __declspec directly to save on macro expansions.
-
-	#include "rawr.amalgam.hpp"
-	#include "rawr.amalgam.hpp"
-	#if RAWR_COMPILER_MSVC
-	    #include "rawr.amalgam.hpp"
-	#endif
-
-	#define RAWR_LS_CONCAT_(a_, b_) a_##b_
-	#define RAWR_LS_CONCAT(a_, b_)  RAWR_LS_CONCAT_(a_, b_)
-	#define RAWR_LS_STR_(x) #x
-	#define RAWR_LS_STR(x) RAWR_LS_STR_(x)
-
-	// The #section_name stringification embeds the invalid name in the diagnostic.
-	#define RAWR_LS_DETAIL_VALIDATE_NAME_(section_name)                    \
-	    static_assert(                                                     \
-	        []() constexpr noexcept -> bool {                              \
-	            const char* s_ = #section_name;                            \
-	            for (; *s_; ++s_)                                          \
-	                if (!((*s_ >= 'a' && *s_ <= 'z') ||                    \
-	                      (*s_ >= 'A' && *s_ <= 'Z') ||                    \
-	                      (*s_ >= '0' && *s_ <= '9') ||                    \
-	                       *s_ == '_'))                                    \
-	                    return false;                                      \
-	            return true;                                               \
-	        }(),                                                           \
-	        "rawr::linker_section: '" #section_name "'"                    \
-	        " - section name must be a plain C identifier (a-z A-Z 0-9 _)" \
-	    )
-
-	// ============================================================================
-	// PE / MSVC
-	// ============================================================================
-	#if RAWR_BIN_PE && RAWR_COMPILER_MSVC
-
-	    // MSVC/COFF does not provide ELF-like __start_/__stop_ symbols for arbitrary
-	    // user sections. Instead, we construct an ordered range using three COFF
-	    // dollar-subsections:
-	    //
-	    //     section$A   begin sentinel
-	    //     section$I   registered entries
-	    //     section$Z   end sentinel
-	    //
-	    // The PE linker groups dollar-subsections by the part before '$' and then
-	    // sorts the suffixes lexicographically. Consequently $A < $I < $Z, giving
-	    // us stable begin/end anchors regardless of the order in which individual
-	    // object files and section contributions are encountered.
-	    //
-	    // We deliberately use $I rather than the base section name for registrations:
-	    // it leaves the ordering scheme explicit and gives us a place between the two
-	    // sentinels for all registered entries.
-	    //
-	    // Reference:
-	    //   Raymond Chen, "Using linker segments and __declspec(allocate(...)) to
-	    //   arrange data in a specific order"
-	    //   https://devblogs.microsoft.com/oldnewthing/20181107-00/?p=100155
-	    //
-	    //
-	    // MSVC's linker may insert padding between separate COFF section
-	    // contributions. That means a section containing:
-	    //
-	    //     T, T, T, ...
-	    //
-	    // cannot safely be treated as one contiguous C++ array of T objects:
-	    // pointer arithmetic through the range may encounter linker padding that
-	    // is not part of any T object and need not be a multiple of sizeof(T).
-	    //
-	    // Instead, $I contains pointers to the actual T objects:
-	    //
-	    //     T const*, T const*, T const*, ...
-	    //
-	    // The iterator operates on those pointer slots and skips null slots,
-	    // allowing linker-inserted padding to be ignored. This is also the pattern
-	    // recommended for robust section walking on MSVC/COFF.
-	    //
-	    // The actual T objects remain ordinary TU-local objects; only pointers to
-	    // them are allocated into the linker section.
-	    //
-	    // Reference:
-	    //   Raymond Chen, "Gotchas when using linker sections to arrange data,
-	    //   part 2"
-	    //   https://devblogs.microsoft.com/oldnewthing/20181109-00/?p=100165
-	    //
-	    //
-	    // Keeping a section contribution alive is a separate problem from placing it
-	    // into the section. __declspec(allocate(...)) only specifies where an object
-	    // is emitted; it does not by itself make an otherwise-unreferenced object
-	    // survive compiler/linker dead-stripping.
-	    //
-	    // Each registration therefore gets a compiler-generated anchor function whose
-	    // symbol is forced into the final link with:
-	    //
-	    //     #pragma comment(linker, "/include:<symbol>")
-	    //
-	    // The anchor takes the address of the corresponding pointer in $I. This gives
-	    // the linker a live reference to the section entry, while the pointer itself
-	    // keeps the underlying T object alive.
-	    //
-	    // The anchor's symbol must be externally linkable because /include operates
-	    // on linker symbol names. A TU-local anonymous-namespace function cannot be
-	    // used for this purpose.
-	    //
-	    // We therefore encode __FILE__ and __COUNTER__ into a template specialization
-	    // of linker_anchor. __FILE__ is represented by a private fixed_string NTTP,
-	    // producing a TU-specific external symbol without requiring build-system
-	    // cooperation or another globally-generated identifier.
-	    //
-	    // __COUNTER__ only needs to be unique within the translation unit here; the
-	    // file component supplies the cross-TU identity.
-	    //
-	    // The resulting chain is:
-	    //
-	    //     /include anchor
-	    //          |
-	    //          v
-	    //     linker_anchor<file, counter>::fn()
-	    //          |
-	    //          v
-	    //     rawr_ls_ptr_N
-	    //          |
-	    //          v
-	    //     rawr_ls_item_N
-	    //
-	    // This is the MSVC equivalent of the used/retain mechanism used by the
-	    // ELF and Mach-O implementations.
-	    //
-	    //
-	    // RAWR_LS_STR(...) is needed around section names because
-	    // section_name##$A / $I / $Z first has to undergo token pasting and then be
-	    // converted into a string literal for __pragma(section(...)) and
-	    // __declspec(allocate(...)).
-	    //
-	    // A single-level stringification macro would stringify the token-pasted
-	    // spelling before macro expansion, producing the wrong section name.
-	    #define RAWR_LINKER_SECTION_DEFINE(section_name, tag_name, T_)                        \
-	        RAWR_LS_DETAIL_VALIDATE_NAME_(section_name);                                      \
-	        __pragma(section(RAWR_LS_STR(section_name##$A), read))                            \
-	        __pragma(section(RAWR_LS_STR(section_name##$I), read))                            \
-	        __pragma(section(RAWR_LS_STR(section_name##$Z), read))                            \
-	        namespace RAWR_LS_CONCAT(rawr_ls_, section_name)                                  \
-	        {                                                                                 \
-	            using value_type_ = T_;                                                       \
-	            using pointer_type_ = value_type_ const*;                                     \
-	                                                                                          \
-	            __declspec(allocate(RAWR_LS_STR(section_name##$A)))                           \
-	            inline pointer_type_ sent_start_ = nullptr;                                   \
-	                                                                                          \
-	            __declspec(allocate(RAWR_LS_STR(section_name##$Z)))                           \
-	            inline pointer_type_ sent_stop_ = nullptr;                                    \
-	                                                                                          \
-	            struct tag_type                                                               \
-	            {                                                                             \
-	                using value_type = value_type_;                                           \
-	                using iterator =                                                          \
-	                    ::rawr::lib::linker_section::msvc::iterator<value_type const*>;       \
-	                                                                                          \
-	                auto begin() const noexcept -> iterator                                   \
-	                {                                                                         \
-	                    auto const first = &sent_start_ + 1;                                  \
-	                    auto const last = &sent_stop_;                                        \
-	                    iterator it { first, last };                                          \
-	                    it.skip_nulls();                                                      \
-	                    return it;                                                            \
-	                }                                                                         \
-	                                                                                          \
-	                auto end() const noexcept -> iterator                                     \
-	                {                                                                         \
-	                    auto const last = &sent_stop_;                                        \
-	                    return iterator { last, last };                                       \
-	                }                                                                         \
-	                                                                                          \
-	                auto size() const noexcept -> decltype(sizeof(0))                         \
-	                {                                                                         \
-	                    auto result = decltype(sizeof(0)){};                                  \
-	                    for (auto it = begin(), last = end(); it != last; ++it) ++result;     \
-	                    return result;                                                        \
-	                }                                                                         \
-	                                                                                          \
-	                auto empty() const noexcept -> bool                                       \
-	                { return size() == 0; }                                                   \
-	            };                                                                            \
-	        }                                                                                 \
-	        inline constexpr RAWR_LS_CONCAT(rawr_ls_, section_name)::tag_type tag_name {}
-
-	    #define RAWR_LS_DETAIL_REGISTER_(section_name, tag_name, ctr_, ...)                                                      \
-	        namespace                                                                                                            \
-	        {                                                                                                                    \
-	            const decltype(tag_name)::value_type RAWR_LS_CONCAT(rawr_ls_item_, ctr_) __VA_ARGS__;                            \
-	                                                                                                                             \
-	            __pragma(section(RAWR_LS_STR(section_name##$I), read))                                                           \
-	            __declspec(allocate(RAWR_LS_STR(section_name##$I)))                                                              \
-	            const decltype(tag_name)::value_type* RAWR_LS_CONCAT(rawr_ls_ptr_, ctr_) = &RAWR_LS_CONCAT(rawr_ls_item_, ctr_); \
-	        }                                                                                                                    \
-	        template<>                                                                                                           \
-	        auto ::rawr::lib::linker_section::msvc::linker_anchor<__FILE__, ctr_>::fn() -> void                                  \
-	        {                                                                                                                    \
-	            volatile auto p = &RAWR_LS_CONCAT(rawr_ls_ptr_, ctr_);                                                           \
-	            (void)p;                                                                                                         \
-	            __pragma(comment(linker, "/include:" __FUNCDNAME__))                                                             \
-	        }
-
-	// ============================================================================
-	// PE / GNU - MinGW (GCC or Clang targeting Windows PE)
-	// ============================================================================
-	// TODO: Validate non-msvc PE.
-	#elif RAWR_BIN_PE
-
-	    // MinGW sentinels use __attribute__(weak) for COMDAT deduplication - the linker
-	    // picks one definition across TUs.
-	    // Equivalent to __declspec(selectany) on this toolchain.
-	    #define RAWR_LINKER_SECTION_DEFINE(section_name, tag_name, T_)        \
-	        RAWR_LS_DETAIL_VALIDATE_NAME_(section_name);                      \
-	        namespace RAWR_LS_CONCAT(rawr_ls_, section_name) {                \
-	            struct sentinel_t_ { alignas(T_) char _[sizeof(T_)]; };       \
-	            __attribute__((weak))                                         \
-	            __attribute__((section(#section_name "$A")))                  \
-	            __attribute__((used, retain))                                 \
-	            static const sentinel_t_ sent_start_{};                       \
-	            __attribute__((weak))                                         \
-	            __attribute__((section(#section_name "$Z")))                  \
-	            __attribute__((used, retain))                                 \
-	            static const sentinel_t_ sent_stop_{};                        \
-	            struct tag_type {                                             \
-	                using value_type = T_;                                    \
-	                auto begin() const -> const T_* {                         \
-	                    return reinterpret_cast<const T_*>(&sent_start_ + 1); \
-	                }                                                         \
-	                auto end()   const -> const T_* {                         \
-	                    return reinterpret_cast<const T_*>(&sent_stop_);      \
-	                }                                                         \
-	                auto size()  const -> decltype(end() - begin()) {         \
-	                    return end() - begin();                               \
-	                }                                                         \
-	                auto empty() const -> bool { return begin() == end(); }   \
-	            };                                                            \
-	        }                                                                 \
-	        inline constexpr RAWR_LS_CONCAT(rawr_ls_, section_name)::tag_type tag_name {}
-
-	    #define RAWR_LS_DETAIL_REGISTER_(section_name, tag_name, ctr_, ...) \
-	        __attribute__((section(#section_name "$I")))                    \
-	        __attribute__((used, retain))                                   \
-	        static const decltype(tag_name)::value_type RAWR_LS_CONCAT(rawr_ls_item_, ctr_) __VA_ARGS__
-
-	// ============================================================================
-	// Mach-O - macOS, iOS (ld64, lld/MachO)
-	// ============================================================================
-	// TODO: validate MACHO.
-	#elif RAWR_BIN_MACHO
-
-	    // ld64 generates section$start$SEGMENT$section and section$end$SEGMENT$section
-	    // for non-empty sections. __asm__ binds the C++ extern to those raw
-	    // linker symbols regardless of which namespace the declaration lives in.
-	    // __attribute__((weak)) maps to Mach-O weak_import: absent symbol → null.
-	    //
-	    // Section name limit: Mach-O section names are stored in a 16-byte field.
-	    // Names longer than 16 characters produce silent truncation or a linker error.
-	    #define RAWR_LINKER_SECTION_DEFINE(section_name, tag_name, T_)      \
-	        RAWR_LS_DETAIL_VALIDATE_NAME_(section_name);                    \
-	        static_assert(                                                  \
-	            []() constexpr noexcept -> bool {                           \
-	                const char* s_ = #section_name;                         \
-	                int n_ = 0;                                             \
-	                while (*s_++) ++n_;                                     \
-	                return n_ <= 16;                                        \
-	            }(),                                                        \
-	            "rawr::linker_section: '" #section_name "'"                 \
-	            " - Mach-O section names are limited to 16 characters"      \
-	        );                                                              \
-	        namespace RAWR_LS_CONCAT(rawr_ls_, section_name) {              \
-	            extern const T_ begin_[]                                    \
-	                __attribute__((weak))                                   \
-	                __asm__("section$start$__DATA$" #section_name);         \
-	            extern const T_ end_[]                                      \
-	                __attribute__((weak))                                   \
-	                __asm__("section$end$__DATA$"   #section_name);         \
-	            struct tag_type {                                           \
-	                using value_type = T_;                                  \
-	                auto begin() const  -> const T_* { return begin_; }     \
-	                auto end()   const  -> const T_* { return end_;  }      \
-	                auto size()  const  -> decltype(end() - begin()) {      \
-	                    return end() - begin();                             \
-	                }                                                       \
-	                auto empty() const -> bool { return begin() == end(); } \
-	            };                                                          \
-	        }                                                               \
-	        inline constexpr RAWR_LS_CONCAT(rawr_ls_, section_name)::tag_type tag_name {}
-
-	    // Adjacent string literal concat: "__DATA," #tag_name_ → "__DATA,foo".
-	    #define RAWR_LS_DETAIL_REGISTER_(section_name, tag_name, ctr_, ...) \
-	        __attribute__((section("__DATA," #section_name)))               \
-	        __attribute__((used, retain))                                   \
-	        static const decltype(tag_name)::value_type RAWR_LS_CONCAT(rawr_ls_item_, ctr_) __VA_ARGS__
-
-	// ============================================================================
-	// ELF - Linux, bare-metal (any ELF toolchain)
-	// ============================================================================
-	#elif RAWR_BIN_ELF
-
-	    // __asm__ binds the C++ name to the raw linker-generated symbol,
-	    // bypassing name mangling and namespace qualification entirely.
-	    // The namespace the extern lives in is irrelevant to the linker symbol binding.
-	    // __attribute__((weak)): if the linker omits __start_X or __stop_X (gold +
-	    // empty section; bare-metal without explicit linker script entries), the symbol
-	    // resolves to null rather than a link error. start() == stop() == nullptr;
-	    // the loop body never executes. See bare-metal note in file header.
-	    #define RAWR_LINKER_SECTION_DEFINE(section_name, tag_name, T_)                            \
-	        RAWR_LS_DETAIL_VALIDATE_NAME_(section_name);                                          \
-	        namespace RAWR_LS_CONCAT(rawr_ls_, section_name) {                                    \
-	            __attribute__((weak)) extern const T_ start_[] __asm__("__start_" #section_name); \
-	            __attribute__((weak)) extern const T_ stop_[]  __asm__("__stop_"  #section_name); \
-	            struct tag_type {                                                                 \
-	                using value_type = T_;                                                        \
-	                auto begin() const -> const T_* { return start_; }                            \
-	                auto end()   const -> const T_* { return stop_;  }                            \
-	                auto size()  const  -> decltype(end() - begin()) {                            \
-	                    return end() - begin();                                                   \
-	                }                                                                             \
-	                auto empty() const -> bool { return begin() == end(); }                       \
-	            };                                                                                \
-	        }                                                                                     \
-	        inline constexpr RAWR_LS_CONCAT(rawr_ls_, section_name)::tag_type tag_name {}
-
-	    // static: internal linkage prevents ODR conflicts across TUs registering into
-	    // the same section. __attribute__((used)) suppresses object-file-level DCE.
-	    // See LTO note in file header.
-	    #define RAWR_LS_DETAIL_REGISTER_(section_name, tag_name, ctr_, ...) \
-	        __attribute__((section(#section_name)))                         \
-	        __attribute__((used, retain))                                   \
-	        static const decltype(tag_name)::value_type RAWR_LS_CONCAT(rawr_ls_item_, ctr_) __VA_ARGS__
-
-	// ============================================================================
-	// Unsupported
-	// ============================================================================
-	#elif RAWR_BIN_WASM
-	    #error "rawr/data/linker_section.pp: WASM has no linker-section equivalent;" \
-	          " a compile-time registration array is required for this target"
-	#else
-	    #error "rawr/data/linker_section.pp: unrecognised binary format"
-	#endif
-
-	// -- RAWR_LINKER_SECTION_REGISTER ---------------------------------------------
-	// Registers one entry into the section section_name. Ideally tag_name is the fully
-	// scoped symbol to avoid any shenanigans.
-	//
-	// Remaining arguments initialise T directly, sorta-like so:
-	//     decltype(tag_name)::value_type some_generated_name __VA_ARGS__;
-	// some examples that should compile on most cases (prefer the first one):
-	//     RAWR_LINKER_SECTION_REGISTER(my_hooks, tag_name, {"label", arg2})
-	//     RAWR_LINKER_SECTION_REGISTER(my_hooks, tag_name, = {"label", arg2})
-	//     RAWR_LINKER_SECTION_REGISTER(my_hooks, tag_name, = Some_precomputed_value)
-	//
-	// RAWR_LS_DETAIL_REGISTER_ is not #undef'd: it is an expansion-time dependency
-	// of this macro. Do not call it directly.
-	//
-	// Two-level indirection forces __COUNTER__ to expand to its integer value
-	// before token-pasting. ## suppresses expansion of adjacent tokens, so the
-	// expansion must happen at the call boundary via argument passing.
-	#define RAWR_LINKER_SECTION_REGISTER(section_name, tag_name, ...) \
-	    RAWR_LS_DETAIL_REGISTER_(section_name, tag_name, __COUNTER__, __VA_ARGS__)
-
-#if !RAWR_AMALGAM_NO_SECTIONS
-	#pragma endsection "rawr/lib/linker_section.pp"
-#endif
-#if !RAWR_AMALGAM_NO_SECTIONS
-	#pragma section "rawr/detection.pp"
-#endif
-	#if !RAWR_AMALGAM_NO_SOURCE_MAPPING
-		#line 3 "rawr/detection.pp"
-	#endif
-	// We could cheat and ask the build system to sneak this info to us
-	// ... but whats the fun in that?
-	// Also, we want this to be somewhat portable, why rely on others?
-	//
-	// All macros default to 0 so consumers can write:
-	//     #if RAWR_COMPILER_CLANG && !RAWR_PLATFORM_WINDOWS
-	// instead of:
-	//     #if defined(RAWR_COMPILER_CLANG) && !defined(RAWR_PLATFORM_WINDOWS)
-	//
-	// Composite flags are defined in #if blocks to allow things like RAWR_PP_IF(COMPOSITE, ...),
-	// If we naiively did
-	//     #define RAWR_IS_64BIT (RAWR_PTR_SIZE == 8)
-	// The following expansion would happen
-	//     RAWR_PP_IF(RAWR_IS_64BIT, ...) => RAWR_PP_IF_(4 == 8)
-	// That doesn't compile, instead we define it inside an #if block and the expansion
-	// behaves as you'd expect.
-	// It's a little more work on our end, but thats what we're here for, right?
-	#pragma once
-
-	#if RAWRSCAN_METADATA
-	    #define RAWR_PP_MODULE rawr.detection.pp
-	#endif
-
-	#include "rawr.amalgam.hpp"
-	#include "rawr.amalgam.hpp"
-	#include "rawr.amalgam.hpp"
-	#include "rawr.amalgam.hpp"
-	#include "rawr.amalgam.hpp"
-	#include "rawr.amalgam.hpp"
-	#include "rawr.amalgam.hpp"
-	#include "rawr.amalgam.hpp"
-	#include "rawr.amalgam.hpp"
-	#include "rawr.amalgam.hpp"
-	#include "rawr.amalgam.hpp"
-	#include "rawr.amalgam.hpp"
-	#include "rawr.amalgam.hpp"
-
-#if !RAWR_AMALGAM_NO_SECTIONS
-	#pragma endsection "rawr/detection.pp"
-#endif
-#if !RAWR_AMALGAM_NO_SECTIONS
-	#pragma section "rawr/lib/bits.cppm"
-#endif
-	#if !RAWR_AMALGAM_NO_SOURCE_MAPPING
-		#line 1 "rawr/lib/bits.hpp"
-	#endif
 	
-	namespace rawr::inline lib::inline bits
+	namespace rawr::intrin::inline base
 	{
-	    inline constexpr auto bits_in_byte = RAWR_BITS_IN_BYTE;
+	    template <typename T> T&& declval() noexcept;
 	
-	    struct bitwidth {
-	        unsigned long long val{};
-	        [[nodiscard]] constexpr auto is_zero() const noexcept -> bool { return val == 0; }
-	    };
-	
-	    struct bytewidth {
-	        unsigned long long val{};
-	        [[nodiscard]] constexpr auto is_zero() const noexcept -> bool { return val == 0; }
-	
-	        constexpr operator bitwidth() const noexcept { return bitwidth{val * bits_in_byte}; }
-	    };
-	
-	    constexpr auto operator>(bitwidth  const lhs, bitwidth const rhs) -> bool { return lhs.val > rhs.val; }
-	    constexpr auto operator<(bitwidth  const lhs, bitwidth const rhs) -> bool { return lhs.val < rhs.val; }
-	    constexpr auto operator==(bitwidth const lhs, bitwidth const rhs) -> bool { return lhs.val == rhs.val; }
-	
-	    inline namespace literals
+	    namespace soft
 	    {
-	        constexpr auto operator""_biw(unsigned long long val) noexcept { return bitwidth{val}; }
-	        constexpr auto operator""_byw(unsigned long long val) noexcept { return bytewidth{val}; }
+	        template <typename T, typename U> struct is_same       { static constexpr auto value = false; };
+	        template <typename T>             struct is_same<T, T> { static constexpr auto value = true; };
+	
+	        template <typename From, typename To>
+	        concept ImplictlyConvertible = requires {
+	            // This tests if an expression of type 'From' can be passed
+	            // to a function expecting 'To' (implicit conversion)
+	            void(declval<void(*)(To)>()(declval<From>()));
+	        };
+	
+	        template <typename T> struct remove_cvref                   { using type = T; };
+	        template <typename T> struct remove_cvref<const T>          { using type = T; };
+	        template <typename T> struct remove_cvref<volatile T>       { using type = T; };
+	        template <typename T> struct remove_cvref<const volatile T> { using type = T; };
+	        template <typename T> struct remove_cvref<T&>  : remove_cvref<T> {};
+	        template <typename T> struct remove_cvref<T&&> : remove_cvref<T> {};
 	    }
 	
-	    inline constexpr auto biw0   = 0_biw;
-	    inline constexpr auto biw8   = 8_biw;
-	    inline constexpr auto biw16  = 16_biw;
-	    inline constexpr auto biw32  = 32_biw;
-	    inline constexpr auto biw64  = 64_biw;
-	    inline constexpr auto biw128 = 128_biw;
-	    inline constexpr auto byw0   = 0_byw;
-	    inline constexpr auto byw1   = 1_byw;
-	    inline constexpr auto byw2   = 2_byw;
-	    inline constexpr auto byw4   = 4_byw;
-	    inline constexpr auto byw8   = 8_byw;
-	    inline constexpr auto byw16  = 16_byw;
+	    template <typename T>
+	    using bare =
+	        #if RAWR_COMPILER_MSVC || \
+	            (RAWR_COMPILER_CLANG && RAWR_COMPILER_VERSION_MAJOR < 16) || \
+	            (RAWR_COMPILER_GCC && RAWR_COMPILER_VERSION_MAJOR < 13)
+	            typename soft::remove_cvref<T>::type;
+	        #else
+	            __remove_cvref(T);
+	        #endif
 	
-	    template <typename T> inline constexpr auto bitsof = bitwidth{ sizeof(T) * bits_in_byte };
-	    template <typename T>        constexpr auto bitsofe([[maybe_unused]] T&& expr) noexcept { return bitsof<T>; }
+	    [[nodiscard]] RAWR_ALWAYS_INLINE constexpr auto is_consteval() noexcept -> bool
+	    { return __builtin_is_constant_evaluated(); }
 	
-	    template <typename T> inline constexpr auto bytesof = bytewidth{ sizeof(T) };
-	    template <typename T>        constexpr auto bytesofe([[maybe_unused]] T&& expr) noexcept { return bytesof<T>; }
+	    // MSVC is quite picky with __is_same.
+	    template<typename T, typename... Us>
+	    concept Is = (RAWR_MSVC(soft::is_same<T, Us>::value) RAWR_NOT_MSVC(__is_same(T, Us)) || ... );
 	
-	    enum class byte : unsigned char {};
-	    template <unsigned long long N> struct byte_array { byte data[N]{}; };
+	    template <typename T> concept Enum  = __is_enum(T);
+	    template <typename T> concept Class = __is_class(T);
+	    template <typename T> concept Empty = __is_empty(T);
+	    template <typename T> concept Union = __is_union(T);
+	
+	    template <
+	        typename T,
+	        typename... Args
+	    >                     concept Constructible        = __is_constructible(T, Args...);
+	    template <typename T> concept DefaultConstructible = __is_constructible(T);
+	    template <typename T> concept CopyConstructible    = __is_constructible(T, const T&);
+	    template <typename T> concept MoveConstructible    = __is_constructible(T, T&&);
+	    template <
+	        typename T,
+	        typename... Args
+	    >                     concept Assignable           = __is_assignable(T&, Args...);
+	    template <typename T> concept CopyAssignable       = __is_assignable(T&, const T&);
+	    template <typename T> concept MoveAssignable       = __is_assignable(T&, T&&);
+	    template <typename T> concept Destructible         =
+	        #if RAWR_COMPILER_MSVC || \
+	            (RAWR_COMPILER_CLANG && RAWR_COMPILER_VERSION_MAJOR >= 16) || \
+	            (RAWR_COMPILER_GCC && RAWR_COMPILER_VERSION_MAJOR >= 16)
+	            __is_destructible(T);
+	        #else
+	            requires { declval<T&>().~T(); };
+	        #endif
+	
+	    template <
+	        typename T,
+	        typename... Args
+	    >                     concept TriviallyConstructible        = __is_trivially_constructible(T, Args...);
+	    template <typename T> concept TriviallyDefaultConstructible = __is_trivially_constructible(T);
+	    template <typename T> concept TriviallyCopyConstructible    = __is_trivially_constructible(T, const T&);
+	    template <typename T> concept TriviallyMoveConstructible    = __is_trivially_constructible(T, T&&);
+	    template <
+	        typename T,
+	        typename... Args
+	    >                     concept TriviallyAssignable           = __is_trivially_assignable(T&, Args...);
+	    template <typename T> concept TriviallyCopyAssignable       = __is_trivially_assignable(T&, const T&);
+	    template <typename T> concept TriviallyMoveAssignable       = __is_trivially_assignable(T&, T&&);
+	    template <typename T> concept TriviallyDestructible         =
+	        #if !RAWR_COMPILER_GCC || (RAWR_COMPILER_GCC && RAWR_COMPILER_VERSION_MAJOR >= 16)
+	            __is_trivially_destructible(T);
+	        #else
+	            Destructible<T> && __has_trivial_destructor(T);
+	        #endif
+	
+	    template <
+	        typename T,
+	        typename... Args
+	    >                     concept NoThrowConstructible        = __is_nothrow_constructible(T, Args...);
+	    template <typename T> concept NoThrowDefaultConstructible = __is_nothrow_constructible(T);
+	    template <typename T> concept NoThrowCopyConstructible    = __is_nothrow_constructible(T, const T&);
+	    template <typename T> concept NoThrowMoveConstructible    = __is_nothrow_constructible(T, T&&);
+	        template <
+	        typename T,
+	        typename... Args
+	    >                     concept NoThrowAssignable           = __is_nothrow_assignable(T&, Args...);
+	    template <typename T> concept NoThrowCopyAssignable       = __is_nothrow_assignable(T&, const T&);
+	    template <typename T> concept NoThrowMoveAssignable       = __is_nothrow_assignable(T&, T&&);
+	    template <typename T> concept NoThrowDestructible         =
+	        #if RAWR_COMPILER_MSVC || \
+	            (RAWR_COMPILER_CLANG && RAWR_COMPILER_VERSION_MAJOR >= 16) || \
+	            (RAWR_COMPILER_GCC && RAWR_COMPILER_VERSION_MAJOR >= 16)
+	            __is_nothrow_destructible(T);
+	        #else
+	            Destructible<T> && noexcept(declval<T&>().~T());
+	        #endif
+	
+	    template <typename T> concept TriviallyCopyable = __is_trivially_copyable(T);
+	    template <typename T> concept StandardLayout    = __is_standard_layout(T);
+	
+	    #if RAWR_COMPILER_CLANG || (RAWR_COMPILER_GCC && RAWR_COMPILER_VERSION_MAJOR >= 13)
+	        template <typename From, typename To>
+	        concept ConvertibleTo = __is_convertible(From, To) && requires { static_cast<To>(declval<From>()); };
+	    #elif RAWR_COMPILER_MSVC
+	        template <typename From, typename To>
+	        concept ConvertibleTo = __is_convertible_to(From, To) && requires { static_cast<To>(declval<From>()); };
+	    #else
+	        template <typename From, typename To>
+	        concept ConvertibleTo = soft::ImplictlyConvertible<From, To> && requires { static_cast<To>(declval<From>()); };
+	    #endif
+	
+	    template <TriviallyCopyable To, TriviallyCopyable From>
+	    requires (sizeof(To) == sizeof(From))
+	    [[nodiscard]] RAWR_ALWAYS_INLINE constexpr auto bit_cast(From const& from) noexcept -> To
+	    { return __builtin_bit_cast(To, from); }
+	
+	    template <TriviallyCopyable To, TriviallyCopyable From>
+	    requires (sizeof(To) < sizeof(From))
+	    [[nodiscard]] RAWR_ALWAYS_INLINE constexpr auto bit_cast(From const& from, unsigned char ByteOffset = 0) noexcept -> To
+	    {
+	        using src_bytes = byte_array<sizeof(From)>;
+	        using dst_bytes = byte_array<sizeof(To)>;
+	
+	        auto const src = __builtin_bit_cast(src_bytes, from);
+	        dst_bytes dst{};
+	
+	        for (decltype(sizeof(0)) i = 0; i < sizeof(To); ++i) {
+	            dst.data[i] = src.data[ByteOffset + i];
+	        }
+	
+	        return __builtin_bit_cast(To, dst);
+	    }
 	}
 
-#if !RAWR_AMALGAM_NO_SECTIONS
-	#pragma endsection "rawr/lib/bits.cppm"
-#endif
-#if !RAWR_AMALGAM_NO_SECTIONS
-	#pragma section "rawr/bin.cppm"
-#endif
-	#if !RAWR_AMALGAM_NO_SOURCE_MAPPING
-		#line 1 "rawr/bin.hpp"
-	#endif
-	#include "rawr.amalgam.hpp"
-
-#if !RAWR_AMALGAM_NO_SECTIONS
-	#pragma endsection "rawr/bin.cppm"
-#endif
-#if !RAWR_AMALGAM_NO_SECTIONS
-	#pragma section "rawr/cxx_abi.cppm"
-#endif
-	#if !RAWR_AMALGAM_NO_SOURCE_MAPPING
-		#line 1 "rawr/cxx_abi.hpp"
-	#endif
-	#include "rawr.amalgam.hpp"
-
-#if !RAWR_AMALGAM_NO_SECTIONS
-	#pragma endsection "rawr/cxx_abi.cppm"
+#if !defined(RAWR_AMALGAM_NO_SECTIONS) || !RAWR_AMALGAM_NO_SECTIONS
+	#pragma endsection "rawr/intrin/base.cppm"
 #endif
 #if !RAWR_AMALGAM_NO_SECTIONS
 	#pragma section "rawr/lib/integer/base.cppm"
 #endif
-	#if !RAWR_AMALGAM_NO_SOURCE_MAPPING
+	#if !defined(RAWR_AMALGAM_NO_SOURCE_MAPPING) || !RAWR_AMALGAM_NO_SOURCE_MAPPING
 		#line 1 "rawr/lib/integer/base.hpp"
 	#endif
 	#include "rawr.amalgam.hpp"
@@ -2992,7 +3612,7 @@
 	    using select_type_by_size = decltype(select_type_by_size_helper<Bits, Types...>());
 	
 	    // Silence warning: ISO C++ does not support '__int128' for 'type name' [-Wpedantic]
-	    #if RAWR_HAS_INT128
+	    #if RAWR_INTEGER_HAS_INT128
 	        RAWR_GCC_PRAGMA(GCC diagnostic push)
 	        RAWR_GCC_PRAGMA(GCC diagnostic ignored "-Wpedantic")
 	        using int128_t  = __int128;
@@ -3027,7 +3647,7 @@
 	            signed int,
 	            signed long,
 	            signed long long
-	            #if RAWR_HAS_INT128
+	            #if RAWR_INTEGER_HAS_INT128
 	                , int128_t
 	            #endif
 	        >;
@@ -3041,7 +3661,7 @@
 	            unsigned int,
 	            unsigned long,
 	            unsigned long long
-	            #if RAWR_HAS_INT128
+	            #if RAWR_INTEGER_HAS_INT128
 	                , uint128_t
 	            #endif
 	        >;
@@ -3070,7 +3690,7 @@
 	
 	namespace rawr::inline lib::inline integer::inline base
 	{
-	    inline constexpr bool has_int128 = RAWR_HAS_INT128;
+	    inline constexpr bool has_int128 = RAWR_INTEGER_HAS_INT128;
 	    // TODO: transparently alias int128 here somehow? maybe with an error type?
 	
 	    // These encode only RAW integer types.
@@ -3084,13 +3704,13 @@
 	    #else
 	        template <typename T, bitwidth Bits = biw0> concept RSint = (
 	            __is_same(T, signed   char) || __is_same(T, signed   short) || __is_same(T, signed   int) || __is_same(T, signed   long) || __is_same(T, signed long long)
-	            #if RAWR_HAS_INT128
+	            #if RAWR_INTEGER_HAS_INT128
 	                || __is_same(T, detail::int128_t)
 	            #endif
 	            ) && (Bits == biw0 || bitsof<T> == Bits);
 	        template <typename T, bitwidth Bits = biw0> concept RUint = (
 	            __is_same(T, unsigned char) || __is_same(T, unsigned short) || __is_same(T, unsigned int) || __is_same(T, unsigned long) || __is_same(T, unsigned long long)
-	            #if RAWR_HAS_INT128
+	            #if RAWR_INTEGER_HAS_INT128
 	                || __is_same(T, detail::uint128_t)
 	            #endif
 	            )  && (Bits == biw0 || bitsof<T> == Bits);
@@ -3248,337 +3868,546 @@
 	    }
 	}
 
-#if !RAWR_AMALGAM_NO_SECTIONS
+#if !defined(RAWR_AMALGAM_NO_SECTIONS) || !RAWR_AMALGAM_NO_SECTIONS
 	#pragma endsection "rawr/lib/integer/base.cppm"
 #endif
 #if !RAWR_AMALGAM_NO_SECTIONS
-	#pragma section "rawr/lib/intrin/base.cppm"
+	#pragma section "rawr/san/attributes.pp"
 #endif
-	#if !RAWR_AMALGAM_NO_SOURCE_MAPPING
-		#line 1 "rawr/lib/intrin/base.hpp"
+	#if !defined(RAWR_AMALGAM_NO_SOURCE_MAPPING) || !RAWR_AMALGAM_NO_SOURCE_MAPPING
+		#line 3 "rawr/san/attributes.pp"
+	#endif
+	#pragma once
+
+	#ifdef RAWR_METADATA
+	    #define RAWR_PP_MODULE rawr.san.attributes.pp
+	#endif
+
+	#include "rawr.amalgam.hpp"
+
+	#define RAWR_NO_SANITIZE_THREAD    RAWR_ATTRIBUTE(no_sanitize("thread"))
+	#define RAWR_NO_SANITIZE_MEMORY    RAWR_ATTRIBUTE(no_sanitize("memory"))
+	#define RAWR_NO_SANITIZE_UNDEFINED RAWR_ATTRIBUTE(no_sanitize("undefined"))
+	#define RAWR_NO_SANITIZE_HWADDRESS RAWR_ATTRIBUTE(no_sanitize("hwaddress"))
+	#define RAWR_NO_SANITIZE_ADDRESS   RAWR_ATTRIBUTE(no_sanitize("address"))  RAWR_DECLSPEC(no_sanitize_address)
+	#define RAWR_NO_SANITIZE_CFI       RAWR_ATTRIBUTE(no_sanitize("cfi"))      RAWR_DECLSPEC(guard(nocf))
+
+#if !defined(RAWR_AMALGAM_NO_SECTIONS) || !RAWR_AMALGAM_NO_SECTIONS
+	#pragma endsection "rawr/san/attributes.pp"
+#endif
+#if !RAWR_AMALGAM_NO_SECTIONS
+	#pragma section "rawr/bin/linker_set.pp"
+#endif
+	#if !defined(RAWR_AMALGAM_NO_SOURCE_MAPPING) || !RAWR_AMALGAM_NO_SOURCE_MAPPING
+		#line 3 "rawr/bin/linker_set.pp"
+	#endif
+	// Decentralised typed linker-section registry.
+	//
+	// A section is basically a section_name (actual section string) + tag_name (c++ acessor).
+	// Defining a section will define section_name in the binary and a tag_name acessor for said
+	// section in the current namespace.
+	//
+	// section_name has to be unique, it is best practice to follow c namespacing standards here:
+	// prefix with the framework and context.
+	// E.g: Declaring a section for holding tests for rawr would have a section_name "rawr_tests" or similar,
+	//      *not* just "tests", as that could potentially conflict with any number of other people's section.
+	//
+	// Conflicting section names are a huge footgun, follow this rule religiously.
+	//
+	// The linker might complain, it might now, it will likely just put everything in one bucket
+	// and call it a day, with complete disregard for the underlying entry type.
+	//
+	// API:
+	//   RAWR_LINKER_SET_DEFINE(section_name, tag_name, entry_type) - declare a section registry (namespace scope)
+	//   RAWR_LINKER_SET_REGISTER(section_name, tag_name, ...)      - register one T entry; args brace-init T
+	//   for (auto& e : tag_name) { ... }                           - iterate at runtime
+	//
+	// NOTE: On MSVC the tag_name iterators are forward iterators due to platform constraints.
+	//       If you are just using the suggested iteration syntax you can ignore this limitation.
+	//
+	// If you define a section, its best practice to also define an accompanying macro
+	// for registering into that section. such as (pseudocode, not actually what RAWR_TEST does):
+	//     namespace rawr::inline lib::test
+	//     {
+	//         struct section_entry { ... };
+	//         RAWR_LINKER_SET_DEFINE(rawr_lib_test_section, section, section_entry)
+	//         #define RAWR_REGISTER_TEST(Test) RAWR_LINKER_SET_REGISTER(rawr_lib_test_section, ::rawr::lib::test::section, Test)
+	//     }
+	//
+	// Its also best practice to define a section in a namespace and not in the global
+	// or file scope.
+	//
+	// -- Entry ordering ------------------------------------------------------------
+	// Entries appear in link order - the order .o files are passed to the linker.
+	// This is a de-facto property of all major linkers, not a standard guarantee.
+	// Do not build ordering-dependent logic on it silently. If a guaranteed order
+	// is required, include an index field in T and sort in the runner.
+	//
+	// -- Section name constraint - all platforms -----------------------------------
+	// `tag` must be a valid C identifier (a-z A-Z 0-9 _). No dots, slashes, or $
+	// characters. On ELF the __start_/__stop_ auto-symbols are derived from the
+	// section name and must satisfy C identifier rules. Validated at compile time.
+	//
+	// -- Section name constraint - Mach-O additional -------------------------------
+	// Mach-O section names are stored in a 16-byte null-terminated field.
+	// Names longer than 16 characters produce silent truncation or a linker error
+	// depending on ld64 version. A separate static_assert enforces this limit.
+	//
+	// -- LTO ----------------------------------------------------------------------
+	// RAWR_ATTRIBUTE(used) prevents DCE at the object-file level. In modern
+	// GCC (>=11) and Clang (>=13), pairing it with RAWR_ATTRIBUTE(retain) defeats
+	// linker-level garbage collection (--gc-sections) and survives LTO (-flto)
+	// completely. The MSVC path uses the /include linker pragma to achieve the
+	// same effect under /GL /LTCG.
+	// If this code is ever backported to older compilers lacking `retain`, build
+	// with -fno-lto or add KEEP(*(.section_name)) to your linker script.
+	//
+	// -- Empty sections - ELF -----------------------------------------------------
+	// ld.bfd, lld, mold: emit __start_X / __stop_X for any section referenced by
+	// an extern declaration, even with no REGISTER calls.
+	// gold: may omit these symbols when no entries exist. The externs are declared
+	// RAWR_ATTRIBUTE(weak) so that absent symbols resolve to null: start() ==
+	// stop() == nullptr and the loop body never executes. No crash.
+	//
+	// -- Empty sections - Mach-O --------------------------------------------------
+	// ld64 does not emit section$start / section$end for sections with no entries.
+	// RAWR_ATTRIBUTE(weak) on Darwin maps to Mach-O weak_import: absent symbols
+	// resolve to null. start() == stop() == nullptr; loop body never executes.
+	//
+	// -- Empty sections - PE -------------------------------------------------------
+	// Unlike ELF/Mach-O, the PE implementation does not depend on linker-generated
+	// start/stop symbols. The explicitly allocated $A and $Z sentinel objects are
+	// themselves the boundaries of the range, so begin()/end() remain valid even
+	// when no registrations exist.
+	//
+	// The $A/$Z contributions also establish the ordering envelope for $I:
+	// section$A < section$I < section$Z.
+	//
+	// The iterator still has to tolerate linker-inserted padding inside $I; see
+	// the MSVC implementation below.
+	//
+	// -- Bare-metal ELF -----------------------------------------------------------
+	// __start_/__stop_ auto-symbols require a hosted linker with its default
+	// internal script. On bare-metal with a custom linker script, declare them:
+	//
+	//   .my_section : {
+	//       __start_my_section = .;
+	//       KEEP(*(.my_section))
+	//       __stop_my_section  = .;
+	//   }
+	//
+	// If the script omits them, the weak externs resolve to null and the section
+	// appears empty rather than crashing.
+	//
+	// -- Supported targets ---------------------------------------------------------
+	//   ELF    ld.bfd, lld, gold, mold - Linux, embedded ARM / RISC-V / Xtensa
+	//   Mach-O ld64, lld/MachO        - macOS, iOS
+	//   PE     MSVC link, lld-link    - Windows (MSVC and MinGW / Clang)
+	//   WASM                          - not supported; no equivalent mechanism
+	//
+	// NOTE: For some more reference on how to properly use this, look at how rawr/lib/test.(h)pp
+	//       declares a section with RAWR_LINKER_SET_DEFINE and how RAWR_TEST registers a
+	//       test into that section with RAWR_LINKER_SET_REGISTER. Note the namespace scoping
+	//       on declaration/registration and the way the arguments are passed around inside the macros.
+	#pragma once
+
+	#ifdef RAWR_METADATA
+	    #define RAWR_PP_MODULE rawr.bin.linker_set.pp
+	#endif
+
+	// NOTE: This is *not* generic code, it's very explicit on what compiler/bin its selecting, thats why
+	//       we dont use RAWR_DECLSPEC or RAWR_ATTRIBUTE: We know what compiler is compiling this as a fact,
+	//       so we use __attribute__ and __declspec directly to save on macro expansions.
+
+	#include "rawr.amalgam.hpp"
+	#include "rawr.amalgam.hpp"
+	#if RAWR_COMPILER_MSVC
+	    #include "rawr.amalgam.hpp"
+	#endif
+
+	#define RAWR_LS_CONCAT_(a_, b_) a_##b_
+	#define RAWR_LS_CONCAT(a_, b_)  RAWR_LS_CONCAT_(a_, b_)
+	#define RAWR_LS_STR_(x) #x
+	#define RAWR_LS_STR(x) RAWR_LS_STR_(x)
+
+	// The #section_name stringification embeds the invalid name in the diagnostic.
+	#define RAWR_LS_DETAIL_VALIDATE_NAME_(section_name)                    \
+	    static_assert(                                                     \
+	        []() constexpr noexcept -> bool {                              \
+	            const char* s_ = #section_name;                            \
+	            for (; *s_; ++s_)                                          \
+	                if (!((*s_ >= 'a' && *s_ <= 'z') ||                    \
+	                      (*s_ >= 'A' && *s_ <= 'Z') ||                    \
+	                      (*s_ >= '0' && *s_ <= '9') ||                    \
+	                       *s_ == '_'))                                    \
+	                    return false;                                      \
+	            return true;                                               \
+	        }(),                                                           \
+	        "rawr::bin::linker_set: '" #section_name "'"                   \
+	        " - section name must be a plain C identifier (a-z A-Z 0-9 _)" \
+	    )
+
+	// ============================================================================
+	// PE / MSVC
+	// ============================================================================
+	#if RAWR_BIN_PE && RAWR_COMPILER_MSVC
+
+	    // MSVC/COFF does not provide ELF-like __start_/__stop_ symbols for arbitrary
+	    // user sections. Instead, we construct an ordered range using three COFF
+	    // dollar-subsections:
+	    //
+	    //     section$A   begin sentinel
+	    //     section$I   registered entries
+	    //     section$Z   end sentinel
+	    //
+	    // The PE linker groups dollar-subsections by the part before '$' and then
+	    // sorts the suffixes lexicographically. Consequently $A < $I < $Z, giving
+	    // us stable begin/end anchors regardless of the order in which individual
+	    // object files and section contributions are encountered.
+	    //
+	    // We deliberately use $I rather than the base section name for registrations:
+	    // it leaves the ordering scheme explicit and gives us a place between the two
+	    // sentinels for all registered entries.
+	    //
+	    // Reference:
+	    //   Raymond Chen, "Using linker segments and __declspec(allocate(...)) to
+	    //   arrange data in a specific order"
+	    //   https://devblogs.microsoft.com/oldnewthing/20181107-00/?p=100155
+	    //
+	    //
+	    // MSVC's linker may insert padding between separate COFF section
+	    // contributions. That means a section containing:
+	    //
+	    //     T, T, T, ...
+	    //
+	    // cannot safely be treated as one contiguous C++ array of T objects:
+	    // pointer arithmetic through the range may encounter linker padding that
+	    // is not part of any T object and need not be a multiple of sizeof(T).
+	    //
+	    // Instead, $I contains pointers to the actual T objects:
+	    //
+	    //     T const*, T const*, T const*, ...
+	    //
+	    // The iterator operates on those pointer slots and skips null slots,
+	    // allowing linker-inserted padding to be ignored. This is also the pattern
+	    // recommended for robust section walking on MSVC/COFF.
+	    //
+	    // The actual T objects remain ordinary TU-local objects; only pointers to
+	    // them are allocated into the linker section.
+	    //
+	    // Reference:
+	    //   Raymond Chen, "Gotchas when using linker sections to arrange data,
+	    //   part 2"
+	    //   https://devblogs.microsoft.com/oldnewthing/20181109-00/?p=100165
+	    //
+	    //
+	    // Keeping a section contribution alive is a separate problem from placing it
+	    // into the section. __declspec(allocate(...)) only specifies where an object
+	    // is emitted; it does not by itself make an otherwise-unreferenced object
+	    // survive compiler/linker dead-stripping.
+	    //
+	    // Each registration therefore gets a compiler-generated anchor function whose
+	    // symbol is forced into the final link with:
+	    //
+	    //     #pragma comment(linker, "/include:<symbol>")
+	    //
+	    // The anchor takes the address of the corresponding pointer in $I. This gives
+	    // the linker a live reference to the section entry, while the pointer itself
+	    // keeps the underlying T object alive.
+	    //
+	    // The anchor's symbol must be externally linkable because /include operates
+	    // on linker symbol names. A TU-local anonymous-namespace function cannot be
+	    // used for this purpose.
+	    //
+	    // We therefore encode __FILE__ and __COUNTER__ into a template specialization
+	    // of linker_anchor. __FILE__ is represented by a private fixed_string NTTP,
+	    // producing a TU-specific external symbol without requiring build-system
+	    // cooperation or another globally-generated identifier.
+	    //
+	    // __COUNTER__ only needs to be unique within the translation unit here; the
+	    // file component supplies the cross-TU identity.
+	    //
+	    // The resulting chain is:
+	    //
+	    //     /include anchor
+	    //          |
+	    //          v
+	    //     linker_anchor<file, counter>::fn()
+	    //          |
+	    //          v
+	    //     rawr_ls_ptr_N
+	    //          |
+	    //          v
+	    //     rawr_ls_item_N
+	    //
+	    // This is the MSVC equivalent of the used/retain mechanism used by the
+	    // ELF and Mach-O implementations.
+	    //
+	    //
+	    // RAWR_LS_STR(...) is needed around section names because
+	    // section_name##$A / $I / $Z first has to undergo token pasting and then be
+	    // converted into a string literal for __pragma(section(...)) and
+	    // __declspec(allocate(...)).
+	    //
+	    // A single-level stringification macro would stringify the token-pasted
+	    // spelling before macro expansion, producing the wrong section name.
+	    #define RAWR_LINKER_SET_DEFINE(section_name, tag_name, T_)                            \
+	        RAWR_LS_DETAIL_VALIDATE_NAME_(section_name);                                      \
+	        __pragma(section(RAWR_LS_STR(section_name##$A), read))                            \
+	        __pragma(section(RAWR_LS_STR(section_name##$I), read))                            \
+	        __pragma(section(RAWR_LS_STR(section_name##$Z), read))                            \
+	        namespace RAWR_LS_CONCAT(rawr_ls_, section_name)                                  \
+	        {                                                                                 \
+	            using value_type_ = T_;                                                       \
+	            using pointer_type_ = value_type_ const*;                                     \
+	                                                                                          \
+	            __declspec(allocate(RAWR_LS_STR(section_name##$A)))                           \
+	            inline pointer_type_ sent_start_ = nullptr;                                   \
+	                                                                                          \
+	            __declspec(allocate(RAWR_LS_STR(section_name##$Z)))                           \
+	            inline pointer_type_ sent_stop_ = nullptr;                                    \
+	                                                                                          \
+	            struct tag_type                                                               \
+	            {                                                                             \
+	                using value_type = value_type_;                                           \
+	                using iterator =                                                          \
+	                    ::rawr::bin::linker_set::msvc::iterator<value_type const*>;           \
+	                                                                                          \
+	                auto begin() const noexcept -> iterator                                   \
+	                {                                                                         \
+	                    auto const first = &sent_start_ + 1;                                  \
+	                    auto const last = &sent_stop_;                                        \
+	                    iterator it { first, last };                                          \
+	                    it.skip_nulls();                                                      \
+	                    return it;                                                            \
+	                }                                                                         \
+	                                                                                          \
+	                auto end() const noexcept -> iterator                                     \
+	                {                                                                         \
+	                    auto const last = &sent_stop_;                                        \
+	                    return iterator { last, last };                                       \
+	                }                                                                         \
+	                                                                                          \
+	                auto size() const noexcept -> decltype(sizeof(0))                         \
+	                {                                                                         \
+	                    auto result = decltype(sizeof(0)){};                                  \
+	                    for (auto it = begin(), last = end(); it != last; ++it) ++result;     \
+	                    return result;                                                        \
+	                }                                                                         \
+	                                                                                          \
+	                auto empty() const noexcept -> bool                                       \
+	                { return size() == 0; }                                                   \
+	            };                                                                            \
+	        }                                                                                 \
+	        inline constexpr RAWR_LS_CONCAT(rawr_ls_, section_name)::tag_type tag_name {}
+
+	    #define RAWR_LS_DETAIL_REGISTER_(section_name, tag_name, ctr_, ...)                                                      \
+	        namespace                                                                                                            \
+	        {                                                                                                                    \
+	            const decltype(tag_name)::value_type RAWR_LS_CONCAT(rawr_ls_item_, ctr_) __VA_ARGS__;                            \
+	                                                                                                                             \
+	            __pragma(section(RAWR_LS_STR(section_name##$I), read))                                                           \
+	            __declspec(allocate(RAWR_LS_STR(section_name##$I)))                                                              \
+	            const decltype(tag_name)::value_type* RAWR_LS_CONCAT(rawr_ls_ptr_, ctr_) = &RAWR_LS_CONCAT(rawr_ls_item_, ctr_); \
+	        }                                                                                                                    \
+	        template<>                                                                                                           \
+	        auto ::rawr::bin::linker_set::msvc::linker_anchor<__FILE__, ctr_>::fn() -> void                                      \
+	        {                                                                                                                    \
+	            volatile auto p = &RAWR_LS_CONCAT(rawr_ls_ptr_, ctr_);                                                           \
+	            (void)p;                                                                                                         \
+	            __pragma(comment(linker, "/include:" __FUNCDNAME__))                                                             \
+	        }
+
+	// ============================================================================
+	// PE / GNU - MinGW (GCC or Clang targeting Windows PE)
+	// ============================================================================
+	// TODO: Validate non-msvc PE.
+	#elif RAWR_BIN_PE
+
+	    // MinGW sentinels use __attribute__(weak) for COMDAT deduplication - the linker
+	    // picks one definition across TUs.
+	    // Equivalent to __declspec(selectany) on this toolchain.
+	    #define RAWR_LINKER_SET_DEFINE(section_name, tag_name, T_)            \
+	        RAWR_LS_DETAIL_VALIDATE_NAME_(section_name);                      \
+	        namespace RAWR_LS_CONCAT(rawr_ls_, section_name) {                \
+	            struct sentinel_t_ { alignas(T_) char _[sizeof(T_)]; };       \
+	            __attribute__((weak))                                         \
+	            __attribute__((section(#section_name "$A")))                  \
+	            __attribute__((used, retain))                                 \
+	            static const sentinel_t_ sent_start_{};                       \
+	            __attribute__((weak))                                         \
+	            __attribute__((section(#section_name "$Z")))                  \
+	            __attribute__((used, retain))                                 \
+	            static const sentinel_t_ sent_stop_{};                        \
+	            struct tag_type {                                             \
+	                using value_type = T_;                                    \
+	                auto begin() const -> const T_* {                         \
+	                    return reinterpret_cast<const T_*>(&sent_start_ + 1); \
+	                }                                                         \
+	                auto end()   const -> const T_* {                         \
+	                    return reinterpret_cast<const T_*>(&sent_stop_);      \
+	                }                                                         \
+	                auto size()  const -> decltype(end() - begin()) {         \
+	                    return end() - begin();                               \
+	                }                                                         \
+	                auto empty() const -> bool { return begin() == end(); }   \
+	            };                                                            \
+	        }                                                                 \
+	        inline constexpr RAWR_LS_CONCAT(rawr_ls_, section_name)::tag_type tag_name {}
+
+	    #define RAWR_LS_DETAIL_REGISTER_(section_name, tag_name, ctr_, ...) \
+	        __attribute__((section(#section_name "$I")))                    \
+	        __attribute__((used, retain))                                   \
+	        static const decltype(tag_name)::value_type RAWR_LS_CONCAT(rawr_ls_item_, ctr_) __VA_ARGS__
+
+	// ============================================================================
+	// Mach-O - macOS, iOS (ld64, lld/MachO)
+	// ============================================================================
+	// TODO: validate MACHO.
+	#elif RAWR_BIN_MACHO
+
+	    // ld64 generates section$start$SEGMENT$section and section$end$SEGMENT$section
+	    // for non-empty sections. __asm__ binds the C++ extern to those raw
+	    // linker symbols regardless of which namespace the declaration lives in.
+	    // __attribute__((weak)) maps to Mach-O weak_import: absent symbol → null.
+	    //
+	    // Section name limit: Mach-O section names are stored in a 16-byte field.
+	    // Names longer than 16 characters produce silent truncation or a linker error.
+	    #define RAWR_LINKER_SET_DEFINE(section_name, tag_name, T_)          \
+	        RAWR_LS_DETAIL_VALIDATE_NAME_(section_name);                    \
+	        static_assert(                                                  \
+	            []() constexpr noexcept -> bool {                           \
+	                const char* s_ = #section_name;                         \
+	                int n_ = 0;                                             \
+	                while (*s_++) ++n_;                                     \
+	                return n_ <= 16;                                        \
+	            }(),                                                        \
+	            "rawr::bin::linker_set: '" #section_name "'"                \
+	            " - Mach-O section names are limited to 16 characters"      \
+	        );                                                              \
+	        namespace RAWR_LS_CONCAT(rawr_ls_, section_name) {              \
+	            extern const T_ begin_[]                                    \
+	                __attribute__((weak))                                   \
+	                __asm__("section$start$__DATA$" #section_name);         \
+	            extern const T_ end_[]                                      \
+	                __attribute__((weak))                                   \
+	                __asm__("section$end$__DATA$"   #section_name);         \
+	            struct tag_type {                                           \
+	                using value_type = T_;                                  \
+	                auto begin() const  -> const T_* { return begin_; }     \
+	                auto end()   const  -> const T_* { return end_;  }      \
+	                auto size()  const  -> decltype(end() - begin()) {      \
+	                    return end() - begin();                             \
+	                }                                                       \
+	                auto empty() const -> bool { return begin() == end(); } \
+	            };                                                          \
+	        }                                                               \
+	        inline constexpr RAWR_LS_CONCAT(rawr_ls_, section_name)::tag_type tag_name {}
+
+	    // Adjacent string literal concat: "__DATA," #tag_name_ → "__DATA,foo".
+	    #define RAWR_LS_DETAIL_REGISTER_(section_name, tag_name, ctr_, ...) \
+	        __attribute__((section("__DATA," #section_name)))               \
+	        __attribute__((used, retain))                                   \
+	        static const decltype(tag_name)::value_type RAWR_LS_CONCAT(rawr_ls_item_, ctr_) __VA_ARGS__
+
+	// ============================================================================
+	// ELF - Linux, bare-metal (any ELF toolchain)
+	// ============================================================================
+	#elif RAWR_BIN_ELF
+
+	    // __asm__ binds the C++ name to the raw linker-generated symbol,
+	    // bypassing name mangling and namespace qualification entirely.
+	    // The namespace the extern lives in is irrelevant to the linker symbol binding.
+	    // __attribute__((weak)): if the linker omits __start_X or __stop_X (gold +
+	    // empty section; bare-metal without explicit linker script entries), the symbol
+	    // resolves to null rather than a link error. start() == stop() == nullptr;
+	    // the loop body never executes. See bare-metal note in file header.
+	    #define RAWR_LINKER_SET_DEFINE(section_name, tag_name, T_)                                \
+	        RAWR_LS_DETAIL_VALIDATE_NAME_(section_name);                                          \
+	        namespace RAWR_LS_CONCAT(rawr_ls_, section_name) {                                    \
+	            __attribute__((weak)) extern const T_ start_[] __asm__("__start_" #section_name); \
+	            __attribute__((weak)) extern const T_ stop_[]  __asm__("__stop_"  #section_name); \
+	            struct tag_type {                                                                 \
+	                using value_type = T_;                                                        \
+	                auto begin() const -> const T_* { return start_; }                            \
+	                auto end()   const -> const T_* { return stop_;  }                            \
+	                auto size()  const  -> decltype(end() - begin()) {                            \
+	                    return end() - begin();                                                   \
+	                }                                                                             \
+	                auto empty() const -> bool { return begin() == end(); }                       \
+	            };                                                                                \
+	        }                                                                                     \
+	        inline constexpr RAWR_LS_CONCAT(rawr_ls_, section_name)::tag_type tag_name {}
+
+	    // static: internal linkage prevents ODR conflicts across TUs registering into
+	    // the same section. __attribute__((used)) suppresses object-file-level DCE.
+	    // See LTO note in file header.
+	    #define RAWR_LS_DETAIL_REGISTER_(section_name, tag_name, ctr_, ...) \
+	        __attribute__((section(#section_name)))                         \
+	        __attribute__((used, retain))                                   \
+	        static const decltype(tag_name)::value_type RAWR_LS_CONCAT(rawr_ls_item_, ctr_) __VA_ARGS__
+
+	// ============================================================================
+	// Unsupported
+	// ============================================================================
+	#elif RAWR_BIN_WASM
+	    #error "rawr/bin/linker_set.pp: WASM has no linker-section equivalent;" \
+	          " a compile-time registration array is required for this target"
+	#else
+	    #error "rawr/bin/linker_set.pp: unrecognised binary format"
+	#endif
+
+	// -- RAWR_LINKER_SET_REGISTER ---------------------------------------------
+	// Registers one entry into the set section_name. Ideally tag_name is the fully
+	// scoped symbol to avoid any shenanigans.
+	//
+	// Remaining arguments initialise T directly, sorta-like so:
+	//     decltype(tag_name)::value_type some_generated_name __VA_ARGS__;
+	// some examples that should compile on most cases (prefer the first one):
+	//     RAWR_LINKER_SET_REGISTER(my_hooks, tag_name, {"label", arg2})
+	//     RAWR_LINKER_SET_REGISTER(my_hooks, tag_name, = {"label", arg2})
+	//     RAWR_LINKER_SET_REGISTER(my_hooks, tag_name, = Some_precomputed_value)
+	//
+	// RAWR_LS_DETAIL_REGISTER_ is not #undef'd: it is an expansion-time dependency
+	// of this macro. Do not call it directly.
+	//
+	// Two-level indirection forces __COUNTER__ to expand to its integer value
+	// before token-pasting. ## suppresses expansion of adjacent tokens, so the
+	// expansion must happen at the call boundary via argument passing.
+	#define RAWR_LINKER_SET_REGISTER(section_name, tag_name, ...) \
+	    RAWR_LS_DETAIL_REGISTER_(section_name, tag_name, __COUNTER__, __VA_ARGS__)
+
+#if !defined(RAWR_AMALGAM_NO_SECTIONS) || !RAWR_AMALGAM_NO_SECTIONS
+	#pragma endsection "rawr/bin/linker_set.pp"
+#endif
+#if !RAWR_AMALGAM_NO_SECTIONS
+	#pragma section "rawr/bin.cppm"
+#endif
+	#if !defined(RAWR_AMALGAM_NO_SOURCE_MAPPING) || !RAWR_AMALGAM_NO_SOURCE_MAPPING
+		#line 1 "rawr/bin.hpp"
 	#endif
 	#include "rawr.amalgam.hpp"
-	
-	namespace rawr::inline lib::intrin::inline base
-	{
-	    template <typename T> T&& declval() noexcept;
-	
-	    namespace soft
-	    {
-	        template <typename T, typename U> struct is_same       { static constexpr auto value = false; };
-	        template <typename T>             struct is_same<T, T> { static constexpr auto value = true; };
-	
-	        template <typename From, typename To>
-	        concept ImplictlyConvertible = requires {
-	            // This tests if an expression of type 'From' can be passed
-	            // to a function expecting 'To' (implicit conversion)
-	            void(declval<void(*)(To)>()(declval<From>()));
-	        };
-	
-	        template <typename T> struct remove_cvref                   { using type = T; };
-	        template <typename T> struct remove_cvref<const T>          { using type = T; };
-	        template <typename T> struct remove_cvref<volatile T>       { using type = T; };
-	        template <typename T> struct remove_cvref<const volatile T> { using type = T; };
-	        template <typename T> struct remove_cvref<T&>  : remove_cvref<T> {};
-	        template <typename T> struct remove_cvref<T&&> : remove_cvref<T> {};
-	    }
-	
-	    template <typename T>
-	    using bare =
-	        #if RAWR_COMPILER_MSVC || \
-	            (RAWR_COMPILER_CLANG && RAWR_COMPILER_VERSION_MAJOR < 16) || \
-	            (RAWR_COMPILER_GCC && RAWR_COMPILER_VERSION_MAJOR < 13)
-	            typename soft::remove_cvref<T>::type;
-	        #else
-	            __remove_cvref(T);
-	        #endif
-	
-	    [[nodiscard]] RAWR_ALWAYS_INLINE constexpr auto is_consteval() noexcept -> bool
-	    { return __builtin_is_constant_evaluated(); }
-	
-	    // MSVC is quite picky with __is_same.
-	    template<typename T, typename... Us>
-	    concept Is = (RAWR_MSVC(soft::is_same<T, Us>::value) RAWR_NOT_MSVC(__is_same(T, Us)) || ... );
-	
-	    template <typename T> concept Enum  = __is_enum(T);
-	    template <typename T> concept Class = __is_class(T);
-	    template <typename T> concept Empty = __is_empty(T);
-	    template <typename T> concept Union = __is_union(T);
-	
-	    template <
-	        typename T,
-	        typename... Args
-	    >                     concept Constructible        = __is_constructible(T, Args...);
-	    template <typename T> concept DefaultConstructible = __is_constructible(T);
-	    template <typename T> concept CopyConstructible    = __is_constructible(T, const T&);
-	    template <typename T> concept MoveConstructible    = __is_constructible(T, T&&);
-	    template <
-	        typename T,
-	        typename... Args
-	    >                     concept Assignable           = __is_assignable(T&, Args...);
-	    template <typename T> concept CopyAssignable       = __is_assignable(T&, const T&);
-	    template <typename T> concept MoveAssignable       = __is_assignable(T&, T&&);
-	    template <typename T> concept Destructible         =
-	        #if RAWR_COMPILER_MSVC || \
-	            (RAWR_COMPILER_CLANG && RAWR_COMPILER_VERSION_MAJOR >= 16) || \
-	            (RAWR_COMPILER_GCC && RAWR_COMPILER_VERSION_MAJOR >= 16)
-	            __is_destructible(T);
-	        #else
-	            requires { declval<T&>().~T(); };
-	        #endif
-	
-	    template <
-	        typename T,
-	        typename... Args
-	    >                     concept TriviallyConstructible        = __is_trivially_constructible(T, Args...);
-	    template <typename T> concept TriviallyDefaultConstructible = __is_trivially_constructible(T);
-	    template <typename T> concept TriviallyCopyConstructible    = __is_trivially_constructible(T, const T&);
-	    template <typename T> concept TriviallyMoveConstructible    = __is_trivially_constructible(T, T&&);
-	    template <
-	        typename T,
-	        typename... Args
-	    >                     concept TriviallyAssignable           = __is_trivially_assignable(T&, Args...);
-	    template <typename T> concept TriviallyCopyAssignable       = __is_trivially_assignable(T&, const T&);
-	    template <typename T> concept TriviallyMoveAssignable       = __is_trivially_assignable(T&, T&&);
-	    template <typename T> concept TriviallyDestructible         =
-	        #if !RAWR_COMPILER_GCC || (RAWR_COMPILER_GCC && RAWR_COMPILER_VERSION_MAJOR >= 16)
-	            __is_trivially_destructible(T);
-	        #else
-	            Destructible<T> && __has_trivial_destructor(T);
-	        #endif
-	
-	    template <
-	        typename T,
-	        typename... Args
-	    >                     concept NoThrowConstructible        = __is_nothrow_constructible(T, Args...);
-	    template <typename T> concept NoThrowDefaultConstructible = __is_nothrow_constructible(T);
-	    template <typename T> concept NoThrowCopyConstructible    = __is_nothrow_constructible(T, const T&);
-	    template <typename T> concept NoThrowMoveConstructible    = __is_nothrow_constructible(T, T&&);
-	        template <
-	        typename T,
-	        typename... Args
-	    >                     concept NoThrowAssignable           = __is_nothrow_assignable(T&, Args...);
-	    template <typename T> concept NoThrowCopyAssignable       = __is_nothrow_assignable(T&, const T&);
-	    template <typename T> concept NoThrowMoveAssignable       = __is_nothrow_assignable(T&, T&&);
-	    template <typename T> concept NoThrowDestructible         =
-	        #if RAWR_COMPILER_MSVC || \
-	            (RAWR_COMPILER_CLANG && RAWR_COMPILER_VERSION_MAJOR >= 16) || \
-	            (RAWR_COMPILER_GCC && RAWR_COMPILER_VERSION_MAJOR >= 16)
-	            __is_nothrow_destructible(T);
-	        #else
-	            Destructible<T> && noexcept(declval<T&>().~T());
-	        #endif
-	
-	    template <typename T> concept TriviallyCopyable = __is_trivially_copyable(T);
-	    template <typename T> concept StandardLayout    = __is_standard_layout(T);
-	
-	    #if RAWR_COMPILER_CLANG || (RAWR_COMPILER_GCC && RAWR_COMPILER_VERSION_MAJOR >= 13)
-	        template <typename From, typename To>
-	        concept ConvertibleTo = __is_convertible(From, To) && requires { static_cast<To>(declval<From>()); };
-	    #elif RAWR_COMPILER_MSVC
-	        template <typename From, typename To>
-	        concept ConvertibleTo = __is_convertible_to(From, To) && requires { static_cast<To>(declval<From>()); };
-	    #else
-	        template <typename From, typename To>
-	        concept ConvertibleTo = soft::ImplictlyConvertible<From, To> && requires { static_cast<To>(declval<From>()); };
-	    #endif
-	
-	    template <TriviallyCopyable To, TriviallyCopyable From>
-	    requires (sizeof(To) == sizeof(From))
-	    [[nodiscard]] RAWR_ALWAYS_INLINE constexpr auto bit_cast(From const& from) noexcept -> To
-	    { return __builtin_bit_cast(To, from); }
-	
-	    template <TriviallyCopyable To, TriviallyCopyable From>
-	    requires (sizeof(To) < sizeof(From))
-	    [[nodiscard]] RAWR_ALWAYS_INLINE constexpr auto bit_cast(From const& from, unsigned char ByteOffset = 0) noexcept -> To
-	    {
-	        using src_bytes = byte_array<sizeof(From)>;
-	        using dst_bytes = byte_array<sizeof(To)>;
-	
-	        auto const src = __builtin_bit_cast(src_bytes, from);
-	        dst_bytes dst{};
-	
-	        for (decltype(sizeof(0)) i = 0; i < sizeof(To); ++i) {
-	            dst.data[i] = src.data[ByteOffset + i];
-	        }
-	
-	        return __builtin_bit_cast(To, dst);
-	    }
-	}
+	#include "rawr.amalgam.hpp"
 
-#if !RAWR_AMALGAM_NO_SECTIONS
-	#pragma endsection "rawr/lib/intrin/base.cppm"
+#if !defined(RAWR_AMALGAM_NO_SECTIONS) || !RAWR_AMALGAM_NO_SECTIONS
+	#pragma endsection "rawr/bin.cppm"
 #endif
 #if !RAWR_AMALGAM_NO_SECTIONS
-	#pragma section "rawr/lib/integer/raw.cppm"
+	#pragma section "rawr/cxx.cppm"
 #endif
-	#if !RAWR_AMALGAM_NO_SOURCE_MAPPING
-		#line 1 "rawr/lib/integer/raw.hpp"
+	#if !defined(RAWR_AMALGAM_NO_SOURCE_MAPPING) || !RAWR_AMALGAM_NO_SOURCE_MAPPING
+		#line 1 "rawr/cxx.hpp"
 	#endif
 	#include "rawr.amalgam.hpp"
-	#include "rawr.amalgam.hpp"
-	
-	// Just in case you need the actual underlying type aliases. Prefer the strong
-	// wrapped versions instead.
-	namespace rawr::inline lib::inline integer::inline raw
-	{
-	    using ru8   = ruint_exact<biw8>;   using rs8   = rsint_exact<biw8>;
-	    using ru16  = ruint_exact<biw16>;  using rs16  = rsint_exact<biw16>;
-	    using ru32  = ruint_exact<biw32>;  using rs32  = rsint_exact<biw32>;
-	    using ru64  = ruint_exact<biw64>;  using rs64  = rsint_exact<biw64>;
-	    using rf32  = rfloat_exact<biw32>; using rf64  = rfloat_exact<biw64>;
-	
-	    // TODO: i dont like this.
-	    #if RAWR_HAS_INT128
-	        using ru128 = ruint_exact<biw128>; using rs128 = rsint_exact<biw128>;
-	    #endif
-	
-	    // Our very own free-range std::size_t.
-	    using rst  = decltype(sizeof(0));
-	    // Corresponds to std::intptr_t.
-	    using ript = decltype(static_cast<char*>(nullptr) - static_cast<char*>(nullptr));
-	    // Corresponds to std::uintptr_t.
-	    using rupt = ruint_exact<bitsof<ript>>;
-	
-	    inline namespace literals
-	    {
-	        constexpr auto operator""_ru8(unsigned long long val)  noexcept { return static_cast<ru8>(val);  }
-	        constexpr auto operator""_ru16(unsigned long long val) noexcept { return static_cast<ru16>(val); }
-	        constexpr auto operator""_ru32(unsigned long long val) noexcept { return static_cast<ru32>(val); }
-	        constexpr auto operator""_ru64(unsigned long long val) noexcept { return static_cast<ru64>(val); }
-	        constexpr auto operator""_rs8(unsigned long long val)  noexcept { return static_cast<rs8>(val);  }
-	        constexpr auto operator""_rs16(unsigned long long val) noexcept { return static_cast<rs16>(val); }
-	        constexpr auto operator""_rs32(unsigned long long val) noexcept { return static_cast<rs32>(val); }
-	        constexpr auto operator""_rs64(unsigned long long val) noexcept { return static_cast<rs64>(val); }
-	        constexpr auto operator""_rst(unsigned long long val)  noexcept { return static_cast<rst>(val);  }
-	        constexpr auto operator""_ript(unsigned long long val) noexcept { return static_cast<ript>(val); }
-	        constexpr auto operator""_rupt(unsigned long long val) noexcept { return static_cast<rupt>(val); }
-	    }
-	}
 
-#if !RAWR_AMALGAM_NO_SECTIONS
-	#pragma endsection "rawr/lib/integer/raw.cppm"
+#if !defined(RAWR_AMALGAM_NO_SECTIONS) || !RAWR_AMALGAM_NO_SECTIONS
+	#pragma endsection "rawr/cxx.cppm"
 #endif
 #if !RAWR_AMALGAM_NO_SECTIONS
-	#pragma section "rawr/lib/bitfield.cppm"
+	#pragma section "rawr/intrin/construct_at.cppm"
 #endif
-	#if !RAWR_AMALGAM_NO_SOURCE_MAPPING
-		#line 1 "rawr/lib/bitfield.hpp"
-	#endif
-	#include "rawr.amalgam.hpp"
-	#include "rawr.amalgam.hpp"
-	#include "rawr.amalgam.hpp"
-	
-	namespace rawr::inline lib::bitfield
-	{
-	    struct field
-	    {
-	        char const* name;
-	        decltype(sizeof(0)) offset;
-	        decltype(sizeof(0)) width;
-	    };
-	
-	    /// Pairwise interval-overlap check, N known at compile time.
-	    template <int N>
-	    constexpr auto fields_overlap(field const (&f_in)[N]) -> bool {
-	        field sorted_fields[N];
-	        for (int i = 0; i < N; ++i) { sorted_fields[i] = f_in[i]; }
-	
-	        // Insertion sort by offset:
-	        for (int i = 1; i < N; ++i) {
-	            field key = sorted_fields[i];
-	            int idx2 = i - 1;
-	            while (idx2 >= 0 && sorted_fields[idx2].offset > key.offset) { sorted_fields[idx2+1] = sorted_fields[idx2]; --idx2; }
-	            sorted_fields[idx2+1] = key;
-	        }
-	
-	        // At this point the fields are sorted by bit order (bit 1 first - bit N last),
-	        // now we just check for overlap by comparing neighbours.
-	        for (int i = 0; i + 1 < N; ++i)
-	        { if (sorted_fields[i].offset + sorted_fields[i].width > sorted_fields[i+1].offset) { return true; } }
-	
-	        return false;
-	    }
-	
-	    template <class T> inline constexpr bool is_const_v = false;
-	    template <class T> inline constexpr bool is_const_v<const T> = true;
-	
-	    template <typename WordType, typename ValueType>
-	    struct accessor
-	    {
-	        using word_type  = WordType;
-	        using value_type = ValueType;
-	        using mask_type  = ruint_exact<bitsof<WordType>>;
-	        using uv         = ruint_exact<bitsof<ValueType>>; // value_type-sized unsigned bridge
-	
-	        static constexpr auto word_bits = bitsof<WordType>;
-	
-	        word_type* const storage;
-	        decltype(sizeof(0)) const offset;
-	        decltype(sizeof(0)) const width;
-	
-	        constexpr auto get() noexcept -> value_type
-	        {
-	            const auto word_index  = offset / word_bits.val;
-	            const auto bit_in_word = offset % word_bits.val;
-	            const mask_type mask_value = (width == word_bits.val)
-	                ? static_cast<mask_type>(~mask_type{0})
-	                : static_cast<mask_type>((mask_type{1} << width) - 1);
-	            const mask_type raw = static_cast<mask_type>(storage[word_index] >> bit_in_word) & mask_value;
-	
-	            if constexpr (Aint<value_type>) {
-	                if constexpr (Sint<value_type> && width < bitsof<value_type>) {
-	                    uv uraw     = static_cast<uv>(raw);
-	                    uv sign_bit = uv{1} << (width - 1);
-	                    uv extended = static_cast<uv>((uraw ^ sign_bit) - sign_bit);
-	                    return static_cast<value_type>(extended); // well-defined since C++20 (two's complement mandated)
-	                } else {
-	                    return static_cast<value_type>(raw);
-	                }
-	            } else if constexpr (__is_trivially_copyable(value_type)) {
-	                return __builtin_bit_cast(value_type, static_cast<uv>(raw));
-	            } else {
-	                static_assert(sizeof(value_type) == 0,
-	                    "accessor: value_type is neither an arithmetic integer type nor bit_cast-compatible with this field");
-	            }
-	        }
-	
-	        constexpr operator value_type() noexcept { return get(); }
-	
-	        constexpr auto operator=(value_type val) noexcept -> value_type
-	            requires (!is_const_v<word_type>)
-	        {
-	            const auto word_index  = offset / word_bits.val;
-	            const auto bit_in_word = offset % word_bits.val;
-	            const mask_type mask_value = (width == word_bits.val)
-	                ? static_cast<mask_type>(~mask_type{0})
-	                : static_cast<mask_type>((mask_type{1} << width) - 1);
-	            const mask_type write_mask = mask_value << bit_in_word;
-	
-	            mask_type raw;
-	            if constexpr (Aint<value_type>) {
-	                raw = static_cast<mask_type>(val);
-	            } else if constexpr (intrin::TriviallyCopyable<value_type>) {
-	                raw = static_cast<mask_type>(intrin::bit_cast<uv>(val));
-	            } else {
-	                static_assert(sizeof(value_type) == 0,
-	                    "accessor: value_type is neither an arithmetic integer type nor bit_cast-compatible with this field");
-	            }
-	
-	            storage[word_index] = (storage[word_index] & ~write_mask) | ((raw & mask_value) << bit_in_word);
-	            return val;
-	        }
-	    };
-	}
-
-#if !RAWR_AMALGAM_NO_SECTIONS
-	#pragma endsection "rawr/lib/bitfield.cppm"
-#endif
-#if !RAWR_AMALGAM_NO_SECTIONS
-	#pragma section "rawr/lib/intrin/construct_at.cppm"
-#endif
-	#if !RAWR_AMALGAM_NO_SOURCE_MAPPING
-		#line 1 "rawr/lib/intrin/construct_at.hpp"
+	#if !defined(RAWR_AMALGAM_NO_SOURCE_MAPPING) || !RAWR_AMALGAM_NO_SOURCE_MAPPING
+		#line 1 "rawr/intrin/construct_at.hpp"
 	#endif
 	// In this file you will witness evil, you will also witness great hacky engineering,
 	// magic enchantations, forbidden runes and funny comments.
@@ -3587,7 +4416,7 @@
 	// Behold.
 	#include "rawr.amalgam.hpp"
 	
-	namespace rawr::inline lib::construct_at_detail
+	namespace rawr::intrin::construct_at_detail
 	{
 	    // What this is about to be used for defies all that is good in the world, therefore
 	    // you must explictly request it's invocation unto this plane.
@@ -3623,7 +4452,7 @@
 	#if RAWR_COMPILER_GCC
 	    constexpr void* operator new(
 	        decltype(sizeof(0)),
-	        [[maybe_unused]] rawr::lib::construct_at_detail::unholy_override_tag Tag,
+	        [[maybe_unused]] rawr::intrin::construct_at_detail::unholy_override_tag Tag,
 	        void* p
 	    ) noexcept
 	    { return p; }
@@ -3632,7 +4461,7 @@
 	    {
 	        template <class T, class... Args>
 	        constexpr T* construct_at(
-	            [[maybe_unused]] rawr::lib::construct_at_detail::unholy_override_tag Tag,
+	            [[maybe_unused]] rawr::intrin::construct_at_detail::unholy_override_tag Tag,
 	            T* ptr,
 	            Args&&... args
 	        )
@@ -3657,7 +4486,7 @@
 	    [[msvc::constexpr]]
 	    inline void* __cdecl operator new(
 	        decltype(sizeof(void*)),
-	        rawr::lib::construct_at_detail::unholy_override_tag,
+	        rawr::intrin::construct_at_detail::unholy_override_tag,
 	        void* p
 	    ) noexcept { return p; }
 	#endif
@@ -3672,7 +4501,7 @@
 	    namespace std
 	    {
 	        template <
-	            rawr::lib::construct_at_detail::unholy_override_tag Tag,
+	            rawr::intrin::construct_at_detail::unholy_override_tag Tag,
 	            typename T,
 	            typename... Args
 	        >
@@ -3681,7 +4510,7 @@
 	    }
 	#endif
 	
-	namespace rawr::inline lib::intrin
+	namespace rawr::intrin
 	{
 	    // TODO: This is naiively forwarding args.
 	    //       Should it be std::forward'ing?
@@ -3694,7 +4523,7 @@
 	    {
 	        #if RAWR_COMPILER_GCC
 	            return std::construct_at(
-	                rawr::lib::construct_at_detail::unholy_override_tag{},
+	                rawr::intrin::construct_at_detail::unholy_override_tag{},
 	                ptr,
 	                static_cast<Args&&>(args)...
 	            );
@@ -3702,12 +4531,12 @@
 	            return std::rawr::construct_at(ptr, static_cast<Args&&>(args)...);
 	        #elif RAWR_COMPILER_MSVC && _MSC_VER >= 1933
 	            [[msvc::constexpr]] return ::new (
-	                rawr::lib::construct_at_detail::unholy_override_tag{},
+	                rawr::intrin::construct_at_detail::unholy_override_tag{},
 	                static_cast<void*>(ptr)
 	            ) T(static_cast<Args&&>(args)...);
 	        #elif RAWR_COMPILER_MSVC && _MSC_VER < 1933
 	            return std::construct_at<
-	                rawr::lib::construct_at_detail::unholy_override_tag{}
+	                rawr::intrin::construct_at_detail::unholy_override_tag{}
 	            >(
 	                ptr,
 	                static_cast<Args&&>(args)...
@@ -3716,13 +4545,13 @@
 	    }
 	}
 
-#if !RAWR_AMALGAM_NO_SECTIONS
-	#pragma endsection "rawr/lib/intrin/construct_at.cppm"
+#if !defined(RAWR_AMALGAM_NO_SECTIONS) || !RAWR_AMALGAM_NO_SECTIONS
+	#pragma endsection "rawr/intrin/construct_at.cppm"
 #endif
 #if !RAWR_AMALGAM_NO_SECTIONS
 	#pragma section "rawr/lib/typing.cppm"
 #endif
-	#if !RAWR_AMALGAM_NO_SOURCE_MAPPING
+	#if !defined(RAWR_AMALGAM_NO_SOURCE_MAPPING) || !RAWR_AMALGAM_NO_SOURCE_MAPPING
 		#line 1 "rawr/lib/typing.hpp"
 	#endif
 	#include "rawr.amalgam.hpp"
@@ -3943,13 +4772,13 @@
 	    template <typename T> concept Forwarding = In<T> || InOut<T> || Relinquished<T>;
 	}
 
-#if !RAWR_AMALGAM_NO_SECTIONS
+#if !defined(RAWR_AMALGAM_NO_SECTIONS) || !RAWR_AMALGAM_NO_SECTIONS
 	#pragma endsection "rawr/lib/typing.cppm"
 #endif
 #if !RAWR_AMALGAM_NO_SECTIONS
 	#pragma section "rawr/san/lsan.cppm"
 #endif
-	#if !RAWR_AMALGAM_NO_SOURCE_MAPPING
+	#if !defined(RAWR_AMALGAM_NO_SOURCE_MAPPING) || !RAWR_AMALGAM_NO_SOURCE_MAPPING
 		#line 1 "rawr/san/lsan.hpp"
 	#endif
 	#include "rawr.amalgam.hpp"
@@ -3966,7 +4795,7 @@
 	
 	namespace rawr::san::lsan
 	{
-	    inline constexpr bool compiled = RAWR_SAN_LSAN != 0;
+	    inline constexpr bool compiled = RAWR_SANFEATURE_LSAN != 0;
 	
 	    constexpr auto ignore_object([[maybe_unused]] void const* address) noexcept -> void
 	    {
@@ -3993,13 +4822,13 @@
 	    }
 	}
 
-#if !RAWR_AMALGAM_NO_SECTIONS
+#if !defined(RAWR_AMALGAM_NO_SECTIONS) || !RAWR_AMALGAM_NO_SECTIONS
 	#pragma endsection "rawr/san/lsan.cppm"
 #endif
 #if !RAWR_AMALGAM_NO_SECTIONS
 	#pragma section "rawr/san/tsan.cppm"
 #endif
-	#if !RAWR_AMALGAM_NO_SOURCE_MAPPING
+	#if !defined(RAWR_AMALGAM_NO_SOURCE_MAPPING) || !RAWR_AMALGAM_NO_SOURCE_MAPPING
 		#line 1 "rawr/san/tsan.hpp"
 	#endif
 	#include "rawr.amalgam.hpp"
@@ -4018,7 +4847,7 @@
 	
 	namespace rawr::san::tsan
 	{
-	    inline constexpr bool compiled = RAWR_SAN_TSAN != 0;
+	    inline constexpr bool compiled = RAWR_SANFEATURE_TSAN != 0;
 	
 	    constexpr auto acquire([[maybe_unused]] void* address) noexcept -> void
 	    {
@@ -4057,689 +4886,183 @@
 	    }
 	}
 
-#if !RAWR_AMALGAM_NO_SECTIONS
+#if !defined(RAWR_AMALGAM_NO_SECTIONS) || !RAWR_AMALGAM_NO_SECTIONS
 	#pragma endsection "rawr/san/tsan.cppm"
 #endif
 #if !RAWR_AMALGAM_NO_SECTIONS
-	#pragma section "rawr/abi/win64/ctx.cppm"
+	#pragma section "rawr/bitfield.cppm"
 #endif
-	#if !RAWR_AMALGAM_NO_SOURCE_MAPPING
-		#line 1 "rawr/abi/win64/ctx.hpp"
+	#if !defined(RAWR_AMALGAM_NO_SOURCE_MAPPING) || !RAWR_AMALGAM_NO_SOURCE_MAPPING
+		#line 1 "rawr/bitfield.hpp"
 	#endif
 	#include "rawr.amalgam.hpp"
-	
-	RAWR_TODO("Needs a onceover. Requires lib::ptr<type, size> before can be considered done.")
-	
-	namespace rawr::abi::win64
-	{
-	    // 0x10, 0x60, etc are magic numbers, are they mandated by microsoft?
-	
-	    struct unicode_string {
-	        ru16      length;
-	        ru16      max_length;
-	        ru16*     buffer;
-	    };
-	
-	    struct rtl_user_process_params {
-	        ru8       _pad0[0x60];
-	        unicode_string command_line;
-	        unicode_string image_path;
-	        ru8       _pad1[0x10];
-	        void*    environment;
-	    };
-	
-	    // List entry was not defined, what is it?
-	    struct list_entry {};
-	    struct ldr_data_table_entry {
-	        // InMemoryOrderLinks is at +0x10, not +0x00 — critical offset
-	        ru8                  _pad0[0x10];
-	        list_entry          in_memory_order_links;
-	        void*               dll_base;
-	        void*               entry_point;
-	        ru32                 size_of_image;
-	        unicode_string      full_dll_name;
-	        unicode_string      base_dll_name;
-	    };
-	
-	    struct ldr_data {
-	        ru8          _pad0[0x10];
-	        list_entry  in_load_order_module_list;
-	        list_entry  in_memory_order_module_list;
-	    };
-	
-	    struct peb_t {
-	        ru8                           _pad0[0x02];
-	        ru8                           being_debugged;
-	        ru8                           _pad1[0x05];
-	        void*                        mutant;
-	        void*                        image_base;
-	        ldr_data*                    ldr;
-	        rtl_user_process_params*     process_params;
-	    };
-	    constexpr ru8 peb_address = 0x60;
-	    // While you can use this on any platform, it only really
-	    // makes *sense* to do it on windows. On linux for instance you'll
-	    // write/read into the zero page and recieve a nice SIGEGV.
-	    //
-	    // Should we guard this in a #if RAWR_PLATFORM_WINDOWS? Should we
-	    // be patronizing and tell what the user can and can't do?
-	    // I say nay! Open pandora's box and let the consequences (and perhaps
-	    // bounties that await) find us!
-	    //
-	    // NOTE: What could possibly be the use of this outside windows?!
-	    inline peb_t& peb = *reinterpret_cast<peb_t*>(peb_address);
-	}
-
-#if !RAWR_AMALGAM_NO_SECTIONS
-	#pragma endsection "rawr/abi/win64/ctx.cppm"
-#endif
-#if !RAWR_AMALGAM_NO_SECTIONS
-	#pragma section "rawr/detection.cppm"
-#endif
-	#if !RAWR_AMALGAM_NO_SOURCE_MAPPING
-		#line 1 "rawr/detection.hpp"
-	#endif
-	// Flat constexpr values in rawr:: for if constexpr dispatch.
-	// Enum type names are plural nouns to avoid clashing with module namespaces
-	// (rawr::abi is a namespace; rawr::abis is this enum type).
+	#include "rawr.amalgam.hpp"
 	#include "rawr.amalgam.hpp"
 	
-	namespace rawr::inline lib::inline detection
+	namespace rawr::bitfield
 	{
-	    RAWR_RICH_ENUM(compilers, ru8, (unknown, gcc, clang, msvc), (
-	        [[nodiscard]] constexpr auto is_family_gnu() const noexcept
-	        { return to_enum_type() == enum_type::gcc || to_enum_type() == enum_type::clang; }
-	    ));
-	    constexpr compilers this_compiler =
-	        RAWR_COMPILER_CLANG ? compilers::clang :
-	        RAWR_COMPILER_GCC   ? compilers::gcc :
-	        RAWR_COMPILER_MSVC  ? compilers::msvc :
-	                              compilers::unknown;
-	    struct compiler_version { ru16 major, minor, patch, build; };
-	    constexpr compiler_version this_compiler_version = {
-	        .major = RAWR_COMPILER_VERSION_MAJOR,
-	        .minor = RAWR_COMPILER_VERSION_MINOR,
-	        .patch = RAWR_COMPILER_VERSION_PATCH,
-	        .build = RAWR_COMPILER_VERSION_BUILD
-	    };
-	
-	
-	    RAWR_RICH_ENUM(abis, ru8, (
-	        unknown,
-	        sysv, win64,
-	        aapcs64, aapcs64_apple, aapcs32,
-	        riscv_lp64, riscv_ilp32,
-	        xtensa, avr, wasm
-	    ), ());
-	    constexpr abis this_abi =
-	        RAWR_ABI_SYSV ?          abis::sysv :
-	        RAWR_ABI_WIN64 ?         abis::win64 :
-	        RAWR_ABI_AAPCS64_APPLE ? abis::aapcs64_apple :
-	        RAWR_ABI_AAPCS64 ?       abis::aapcs64 :
-	        RAWR_ABI_AAPCS32 ?       abis::aapcs32 :
-	        RAWR_ABI_RISCV_LP64 ?    abis::riscv_lp64 :
-	        RAWR_ABI_RISCV_ILP32 ?   abis::riscv_ilp32 :
-	        RAWR_ABI_XTENSA ?        abis::xtensa :
-	        RAWR_ABI_AVR ?           abis::avr :
-	        RAWR_ABI_WASM ?          abis::wasm :
-	                                 abis::unknown;
-	
-	
-	    RAWR_RICH_ENUM(cxx_abis, ru8, (unknown, itanium, msvc), ());
-	    constexpr cxx_abis this_cxx_abi =
-	        RAWR_CXX_ABI_ITANIUM ? cxx_abis::itanium :
-	        RAWR_CXX_ABI_MSVC    ? cxx_abis::msvc :
-	                               cxx_abis::unknown;
-	
-	
-	    // NOLINTBEGIN(readability-identifier-length)
-	    RAWR_RICH_ENUM(bins, ru8, (unknown, elf, macho, pe, wasm), ());
-	    constexpr bins this_bin =
-	        RAWR_BIN_ELF   ? bins::elf :
-	        RAWR_BIN_MACHO ? bins::macho :
-	        RAWR_BIN_PE    ? bins::pe :
-	        RAWR_BIN_WASM  ? bins::wasm :
-	                         bins::unknown;
-	    // NOLINTEND(readability-identifier-length)
-	
-	
-	    RAWR_RICH_ENUM(platforms, ru8, (
-	        unknown,
-	        linux, windows, macos, ios, android, wasm,
-	        esp32, esp8266, stm32, nordic, pico, teensy, avr
-	    ), ());
-	    constexpr platforms this_platform =
-	        RAWR_PLATFORM_WASM    ?  platforms::wasm :
-	        RAWR_PLATFORM_ESP32   ?  platforms::esp32 :
-	        RAWR_PLATFORM_ESP8266 ?  platforms::esp8266 :
-	        RAWR_PLATFORM_STM32   ?  platforms::stm32 :
-	        RAWR_PLATFORM_NORDIC  ?  platforms::nordic :
-	        RAWR_PLATFORM_PICO    ?  platforms::pico :
-	        RAWR_PLATFORM_TEENSY  ?  platforms::teensy :
-	        RAWR_PLATFORM_AVR     ?  platforms::avr :
-	        RAWR_PLATFORM_MACOS   ?  platforms::macos :
-	        RAWR_PLATFORM_IOS     ?  platforms::ios :
-	        RAWR_PLATFORM_ANDROID ?  platforms::android :
-	        RAWR_PLATFORM_LINUX   ?  platforms::linux :
-	        RAWR_PLATFORM_WINDOWS ?  platforms::windows :
-	                                 platforms::unknown;
-	
-	
-	    RAWR_RICH_ENUM(archs, ru8, (
-	        unknown,
-	        x86, x64,
-	        arm32, arm64,
-	        riscv32, riscv64,
-	        xtensa,
-	        avr,
-	        wasm32, wasm64,
-	        ppc32, ppc64,
-	        loong64,
-	        mips32, mips64,
-	        s390, s390x,
-	        msp430,
-	        sparc32, sparc64,
-	        superh
-	    ), ());
-	    constexpr archs this_arch =
-	        RAWR_ARCH_X86     ? archs::x86 :
-	        RAWR_ARCH_X64     ? archs::x64 :
-	        RAWR_ARCH_ARM32   ? archs::arm32 :
-	        RAWR_ARCH_ARM64   ? archs::arm64 :
-	        RAWR_ARCH_RISCV32 ? archs::riscv32 :
-	        RAWR_ARCH_RISCV64 ? archs::riscv64 :
-	        RAWR_ARCH_XTENSA  ? archs::xtensa :
-	        RAWR_ARCH_AVR     ? archs::avr :
-	        RAWR_ARCH_WASM32  ? archs::wasm32 :
-	        RAWR_ARCH_WASM64  ? archs::wasm64 :
-	        RAWR_ARCH_PPC32   ? archs::ppc32 :
-	        RAWR_ARCH_PPC64   ? archs::ppc64 :
-	        RAWR_ARCH_LOONG64 ? archs::loong64 :
-	        RAWR_ARCH_MIPS32  ? archs::mips32 :
-	        RAWR_ARCH_MIPS64  ? archs::mips64 :
-	        RAWR_ARCH_S390    ? archs::s390 :
-	        RAWR_ARCH_S390X   ? archs::s390x :
-	        RAWR_ARCH_MSP430  ? archs::msp430 :
-	        RAWR_ARCH_SPARC32 ? archs::sparc32 :
-	        RAWR_ARCH_SPARC64 ? archs::sparc64 :
-	        RAWR_ARCH_SUPERH  ? archs::superh :
-	                            archs::unknown;
-	    RAWR_RICH_FLAGS(x86_family_features, ru16, (
-	        (sse,       1 << 0),
-	        (sse2,      1 << 1),
-	        (sse41,     1 << 2),
-	        (sse42,     1 << 3),
-	        (avx,       1 << 4),
-	        (avx2,      1 << 5),
-	        (avx512f,   1 << 6),
-	        (fma,       1 << 7),
-	        (bmi1,      1 << 8),
-	        (bmi2,      1 << 9),
-	        (popcnt,    1 << 10),
-	        (lzcnt,     1 << 11),
-	        (clwb,      1 << 12)
-	    ), ());
-	    constexpr x86_family_features this_x86_features = x86_family_features{}
-	        .set_if(RAWR_ARCH_X86_SSE,     x86_family_features::sse)
-	        .set_if(RAWR_ARCH_X86_SSE2,    x86_family_features::sse2)
-	        .set_if(RAWR_ARCH_X86_SSE41,   x86_family_features::sse41)
-	        .set_if(RAWR_ARCH_X86_SSE42,   x86_family_features::sse42)
-	        .set_if(RAWR_ARCH_X86_AVX,     x86_family_features::avx)
-	        .set_if(RAWR_ARCH_X86_AVX2,    x86_family_features::avx2)
-	        .set_if(RAWR_ARCH_X86_AVX512F, x86_family_features::avx512f)
-	        .set_if(RAWR_ARCH_X86_FMA,     x86_family_features::fma)
-	        .set_if(RAWR_ARCH_X86_BMI1,    x86_family_features::bmi1)
-	        .set_if(RAWR_ARCH_X86_BMI2,    x86_family_features::bmi2)
-	        .set_if(RAWR_ARCH_X86_POPCNT,  x86_family_features::popcnt)
-	        .set_if(RAWR_ARCH_X86_LZCNT,   x86_family_features::lzcnt)
-	        .set_if(RAWR_ARCH_X86_CLWB,    x86_family_features::clwb);
-	    RAWR_RICH_FLAGS(arm_family_features, ru8, (
-	        (neon,       1 << 0),
-	        (sve,        1 << 1),
-	        (sve2,       1 << 2),
-	        (dotprod,    1 << 3),
-	        (fp16,       1 << 4),
-	        (bf16,       1 << 5),
-	        (atomic_cas, 1 << 6)
-	    ), ());
-	    constexpr arm_family_features this_arm_features = arm_family_features{}
-	        .set_if(RAWR_ARCH_ARM_NEON,       arm_family_features::neon)
-	        .set_if(RAWR_ARCH_ARM_SVE,        arm_family_features::sve)
-	        .set_if(RAWR_ARCH_ARM_SVE2,       arm_family_features::sve2)
-	        .set_if(RAWR_ARCH_ARM_DOTPROD,    arm_family_features::dotprod)
-	        .set_if(RAWR_ARCH_ARM_FP16,       arm_family_features::fp16)
-	        .set_if(RAWR_ARCH_ARM_BF16,       arm_family_features::bf16)
-	        .set_if(RAWR_ARCH_ARM_ATOMIC_CAS, arm_family_features::atomic_cas);
-	    RAWR_RICH_FLAGS(riscv_family_features, ru8, (
-	        (atomic, 1 << 0)
-	    ), ());
-	    constexpr riscv_family_features this_riscv_features = riscv_family_features{}
-	        .set_if(RAWR_ARCH_RISCV_ATOMIC, riscv_family_features::atomic);
-	    RAWR_RICH_FLAGS(wasm_family_features, ru8, (
-	        (atomics, 1 << 0)
-	    ), ());
-	    constexpr wasm_family_features this_wasm_features = wasm_family_features{}
-	        .set_if(RAWR_ARCH_WASM_ATOMICS, wasm_family_features::atomics);
-	
-	
-	    RAWR_RICH_FLAGS(sanitizers,  ru16, (
-	        (asan,      1 << 0),
-	        (hwasan,    1 << 1),
-	        (tsan,      1 << 2),
-	        (msan,      1 << 3),
-	        (lsan,      1 << 4),
-	        (ubsan,     1 << 5),
-	        (cfi,       1 << 6),
-	        (safestack, 1 << 7),
-	        (rtc,       1 << 8)
-	    ), ());
-	    constexpr sanitizers this_sanitizers = sanitizers{}
-	        .set_if(RAWR_SAN_ASAN,      sanitizers::asan)
-	        .set_if(RAWR_SAN_HWASAN,    sanitizers::hwasan)
-	        .set_if(RAWR_SAN_TSAN,      sanitizers::tsan)
-	        .set_if(RAWR_SAN_MSAN,      sanitizers::msan)
-	        .set_if(RAWR_SAN_LSAN,      sanitizers::lsan)
-	        .set_if(RAWR_SAN_UBSAN,     sanitizers::ubsan)
-	        .set_if(RAWR_SAN_CFI,       sanitizers::cfi)
-	        .set_if(RAWR_SAN_SAFESTACK, sanitizers::safestack)
-	        .set_if(RAWR_SAN_RTC,       sanitizers::rtc);
-	
-	
-	    RAWR_RICH_ENUM(endians, ru8, (unknown, little, big), ());
-	    constexpr endians this_endian =
-	        RAWR_ENDIAN_LITTLE ? endians::little :
-	        RAWR_ENDIAN_BIG    ? endians::big :
-	                             endians::unknown;
-	
-	
-	    RAWR_RICH_ENUM(cxx_versions, ru8, (unknown, cpp98, cpp11, cpp14, cpp17, cpp20, cpp23, cpp26), ());
-	    constexpr cxx_versions this_cxx_version =
-	        RAWR_CXX_VERSION >= RAWR_CXX_VERSION_26 ? cxx_versions::cpp26 :
-	        RAWR_CXX_VERSION >= RAWR_CXX_VERSION_23 ? cxx_versions::cpp23 :
-	        RAWR_CXX_VERSION >= RAWR_CXX_VERSION_20 ? cxx_versions::cpp20 :
-	        RAWR_CXX_VERSION >= RAWR_CXX_VERSION_17 ? cxx_versions::cpp17 :
-	        RAWR_CXX_VERSION >= RAWR_CXX_VERSION_14 ? cxx_versions::cpp14 :
-	        RAWR_CXX_VERSION >= RAWR_CXX_VERSION_11 ? cxx_versions::cpp11 :
-	                                                  cxx_versions::cpp98;
-	
-	    constexpr bool this_is_posix       = RAWR_IS_POSIX;
-	    constexpr bool this_is_64bit       = RAWR_IS_64BIT;
-	    constexpr bool this_is_32bit       = RAWR_IS_32BIT;
-	    constexpr bool this_has_exceptions = RAWR_HAS_EXCEPTIONS;
-	    constexpr bool this_has_rtti       = RAWR_HAS_RTTI;
-	    constexpr bool this_has_int128     = RAWR_HAS_INT128;
-	}
-
-#if !RAWR_AMALGAM_NO_SECTIONS
-	#pragma endsection "rawr/detection.cppm"
-#endif
-#if !RAWR_AMALGAM_NO_SECTIONS
-	#pragma section "rawr/lib/hash/fnv1a.cppm"
-#endif
-	#if !RAWR_AMALGAM_NO_SOURCE_MAPPING
-		#line 1 "rawr/lib/hash/fnv1a.hpp"
-	#endif
-	#include "rawr.amalgam.hpp"
-	
-	namespace rawr::inline lib::inline hash::fnv1a
-	{
-	    inline constexpr ru32 offset_basis_32 = 0x811c9dc5u;
-	    inline constexpr ru32 prime_32        = 0x01000193u;
-	
-	    inline constexpr ru64 offset_basis_64 = 0xcbf29ce484222325ull;
-	    inline constexpr ru64 prime_64        = 0x100000001b3ull;
-	
-	    template <typename T>
-	    constexpr auto hash32(T const* data, rst size) noexcept -> ru32
-	    requires(sizeof(T) == 1)
+	    struct field
 	    {
-	        auto hash = offset_basis_32;
-	        for (rst i = 0; i < size; ++i) {
-	            hash ^= ru32{ static_cast<ru8>(data[i]) };
-	            hash *= prime_32;
+	        char const* name;
+	        decltype(sizeof(0)) offset;
+	        decltype(sizeof(0)) width;
+	    };
+	
+	    /// Pairwise interval-overlap check, N known at compile time.
+	    template <int N>
+	    constexpr auto fields_overlap(field const (&f_in)[N]) -> bool {
+	        field sorted_fields[N];
+	        for (int i = 0; i < N; ++i) { sorted_fields[i] = f_in[i]; }
+	
+	        // Insertion sort by offset:
+	        for (int i = 1; i < N; ++i) {
+	            field key = sorted_fields[i];
+	            int idx2 = i - 1;
+	            while (idx2 >= 0 && sorted_fields[idx2].offset > key.offset) { sorted_fields[idx2+1] = sorted_fields[idx2]; --idx2; }
+	            sorted_fields[idx2+1] = key;
 	        }
-	        return hash;
+	
+	        // At this point the fields are sorted by bit order (bit 1 first - bit N last),
+	        // now we just check for overlap by comparing neighbours.
+	        for (int i = 0; i + 1 < N; ++i)
+	        { if (sorted_fields[i].offset + sorted_fields[i].width > sorted_fields[i+1].offset) { return true; } }
+	
+	        return false;
 	    }
 	
-	    template <typename T>
-	    constexpr auto hash64(T const* data, rst size) noexcept -> ru64
-	    requires(sizeof(T) == 1)
+	    template <class T> inline constexpr bool is_const_v = false;
+	    template <class T> inline constexpr bool is_const_v<const T> = true;
+	
+	    template <typename WordType, typename ValueType>
+	    struct accessor
 	    {
-	        auto hash = offset_basis_64;
-	        for (rst i = 0; i < size; ++i) {
-	            hash ^= ru64{ static_cast<ru8>(data[i]) };
-	            hash *= prime_64;
+	        using word_type  = WordType;
+	        using value_type = ValueType;
+	        using mask_type  = ruint_exact<bitsof<WordType>>;
+	        using uv         = ruint_exact<bitsof<ValueType>>; // value_type-sized unsigned bridge
+	
+	        static constexpr auto word_bits = bitsof<WordType>;
+	
+	        word_type* const storage;
+	        decltype(sizeof(0)) const offset;
+	        decltype(sizeof(0)) const width;
+	
+	        constexpr auto get() noexcept -> value_type
+	        {
+	            const auto word_index  = offset / word_bits.val;
+	            const auto bit_in_word = offset % word_bits.val;
+	            const mask_type mask_value = (width == word_bits.val)
+	                ? static_cast<mask_type>(~mask_type{0})
+	                : static_cast<mask_type>((mask_type{1} << width) - 1);
+	            const mask_type raw = static_cast<mask_type>(storage[word_index] >> bit_in_word) & mask_value;
+	
+	            if constexpr (Aint<value_type>) {
+	                if constexpr (Sint<value_type> && width < bitsof<value_type>) {
+	                    uv uraw     = static_cast<uv>(raw);
+	                    uv sign_bit = uv{1} << (width - 1);
+	                    uv extended = static_cast<uv>((uraw ^ sign_bit) - sign_bit);
+	                    return static_cast<value_type>(extended); // well-defined since C++20 (two's complement mandated)
+	                } else {
+	                    return static_cast<value_type>(raw);
+	                }
+	            } else if constexpr (__is_trivially_copyable(value_type)) {
+	                return __builtin_bit_cast(value_type, static_cast<uv>(raw));
+	            } else {
+	                static_assert(sizeof(value_type) == 0,
+	                    "accessor: value_type is neither an arithmetic integer type nor bit_cast-compatible with this field");
+	            }
 	        }
-	        return hash;
-	    }
+	
+	        constexpr operator value_type() noexcept { return get(); }
+	
+	        constexpr auto operator=(value_type val) noexcept -> value_type
+	            requires (!is_const_v<word_type>)
+	        {
+	            const auto word_index  = offset / word_bits.val;
+	            const auto bit_in_word = offset % word_bits.val;
+	            const mask_type mask_value = (width == word_bits.val)
+	                ? static_cast<mask_type>(~mask_type{0})
+	                : static_cast<mask_type>((mask_type{1} << width) - 1);
+	            const mask_type write_mask = mask_value << bit_in_word;
+	
+	            mask_type raw;
+	            if constexpr (Aint<value_type>) {
+	                raw = static_cast<mask_type>(val);
+	            } else if constexpr (intrin::TriviallyCopyable<value_type>) {
+	                raw = static_cast<mask_type>(intrin::bit_cast<uv>(val));
+	            } else {
+	                static_assert(sizeof(value_type) == 0,
+	                    "accessor: value_type is neither an arithmetic integer type nor bit_cast-compatible with this field");
+	            }
+	
+	            storage[word_index] = (storage[word_index] & ~write_mask) | ((raw & mask_value) << bit_in_word);
+	            return val;
+	        }
+	    };
+	}
+
+#if !defined(RAWR_AMALGAM_NO_SECTIONS) || !RAWR_AMALGAM_NO_SECTIONS
+	#pragma endsection "rawr/bitfield.cppm"
+#endif
+#if !RAWR_AMALGAM_NO_SECTIONS
+	#pragma section "rawr/lib/integer/raw.cppm"
+#endif
+	#if !defined(RAWR_AMALGAM_NO_SOURCE_MAPPING) || !RAWR_AMALGAM_NO_SOURCE_MAPPING
+		#line 1 "rawr/lib/integer/raw.hpp"
+	#endif
+	#include "rawr.amalgam.hpp"
+	#include "rawr.amalgam.hpp"
+	
+	// Just in case you need the actual underlying type aliases. Prefer the strong
+	// wrapped versions instead.
+	namespace rawr::inline lib::inline integer::inline raw
+	{
+	    using ru8   = ruint_exact<biw8>;   using rs8   = rsint_exact<biw8>;
+	    using ru16  = ruint_exact<biw16>;  using rs16  = rsint_exact<biw16>;
+	    using ru32  = ruint_exact<biw32>;  using rs32  = rsint_exact<biw32>;
+	    using ru64  = ruint_exact<biw64>;  using rs64  = rsint_exact<biw64>;
+	    using rf32  = rfloat_exact<biw32>; using rf64  = rfloat_exact<biw64>;
+	
+	    // TODO: i dont like this.
+	    #if RAWR_INTEGER_HAS_INT128
+	        using ru128 = ruint_exact<biw128>; using rs128 = rsint_exact<biw128>;
+	    #endif
+	
+	    // Our very own free-range std::size_t.
+	    using rst  = decltype(sizeof(0));
+	    // Corresponds to std::intptr_t.
+	    using ript = decltype(static_cast<char*>(nullptr) - static_cast<char*>(nullptr));
+	    // Corresponds to std::uintptr_t.
+	    using rupt = ruint_exact<bitsof<ript>>;
 	
 	    inline namespace literals
 	    {
-	        // NOTE: These do NOT include the null-terminator in the hash. Be wary of comparing against hashes of null-terminated strings.
-	        consteval auto operator ""_fnv1a32(char const* str, rst len) -> ru32 { return hash32(str, len); }
-	        consteval auto operator ""_fnv1a64(char const* str, rst len) -> ru64 { return hash64(str, len); }
-	
-	        // NOTE: These DO include the null-terminator in the hash.
-	        consteval auto operator ""_fnv1a32_nt(char const* str, rst len) -> ru32 { return hash32(str, len + 1); }
-	        consteval auto operator ""_fnv1a64_nt(char const* str, rst len) -> ru64 { return hash64(str, len + 1); }
+	        constexpr auto operator""_ru8(unsigned long long val)  noexcept { return static_cast<ru8>(val);  }
+	        constexpr auto operator""_ru16(unsigned long long val) noexcept { return static_cast<ru16>(val); }
+	        constexpr auto operator""_ru32(unsigned long long val) noexcept { return static_cast<ru32>(val); }
+	        constexpr auto operator""_ru64(unsigned long long val) noexcept { return static_cast<ru64>(val); }
+	        constexpr auto operator""_rs8(unsigned long long val)  noexcept { return static_cast<rs8>(val);  }
+	        constexpr auto operator""_rs16(unsigned long long val) noexcept { return static_cast<rs16>(val); }
+	        constexpr auto operator""_rs32(unsigned long long val) noexcept { return static_cast<rs32>(val); }
+	        constexpr auto operator""_rs64(unsigned long long val) noexcept { return static_cast<rs64>(val); }
+	        constexpr auto operator""_rst(unsigned long long val)  noexcept { return static_cast<rst>(val);  }
+	        constexpr auto operator""_ript(unsigned long long val) noexcept { return static_cast<ript>(val); }
+	        constexpr auto operator""_rupt(unsigned long long val) noexcept { return static_cast<rupt>(val); }
 	    }
 	}
 
-#if !RAWR_AMALGAM_NO_SECTIONS
-	#pragma endsection "rawr/lib/hash/fnv1a.cppm"
-#endif
-#if !RAWR_AMALGAM_NO_SECTIONS
-	#pragma section "rawr/lib/simd/storage.cppm"
-#endif
-	#if !RAWR_AMALGAM_NO_SOURCE_MAPPING
-		#line 1 "rawr/lib/simd/storage.hpp"
-	#endif
-	#include "rawr.amalgam.hpp"
-	
-	namespace rawr::inline lib::simd::storage
-	{
-	    inline namespace _128b
-	    {
-	        RAWR_LIB_SIMD_STORAGE(ru8,  16);
-	        RAWR_LIB_SIMD_STORAGE(rs8,  16);
-	        RAWR_LIB_SIMD_STORAGE(ru16, 8);
-	        RAWR_LIB_SIMD_STORAGE(rs16, 8);
-	        RAWR_LIB_SIMD_STORAGE(ru32, 4);
-	        RAWR_LIB_SIMD_STORAGE(rs32, 4);
-	        RAWR_LIB_SIMD_STORAGE(rf32, 4);
-	        RAWR_LIB_SIMD_STORAGE(ru64, 2);
-	        RAWR_LIB_SIMD_STORAGE(rs64, 2);
-	        RAWR_LIB_SIMD_STORAGE(rf64, 2);
-	    }
-	
-	    inline namespace _256b
-	    {
-	        RAWR_LIB_SIMD_STORAGE(ru8,  32);
-	        RAWR_LIB_SIMD_STORAGE(rs8,  32);
-	        RAWR_LIB_SIMD_STORAGE(ru16, 16);
-	        RAWR_LIB_SIMD_STORAGE(rs16, 16);
-	        RAWR_LIB_SIMD_STORAGE(ru32, 8);
-	        RAWR_LIB_SIMD_STORAGE(rs32, 8);
-	        RAWR_LIB_SIMD_STORAGE(rf32, 8);
-	        RAWR_LIB_SIMD_STORAGE(ru64, 4);
-	        RAWR_LIB_SIMD_STORAGE(rs64, 4);
-	        RAWR_LIB_SIMD_STORAGE(rf64, 4);
-	    }
-	
-	    inline namespace _512b
-	    {
-	        RAWR_LIB_SIMD_STORAGE(ru8,  64);
-	        RAWR_LIB_SIMD_STORAGE(rs8,  64);
-	        RAWR_LIB_SIMD_STORAGE(ru16, 32);
-	        RAWR_LIB_SIMD_STORAGE(rs16, 32);
-	        RAWR_LIB_SIMD_STORAGE(ru32, 16);
-	        RAWR_LIB_SIMD_STORAGE(rs32, 16);
-	        RAWR_LIB_SIMD_STORAGE(rf32, 16);
-	        RAWR_LIB_SIMD_STORAGE(ru64, 8);
-	        RAWR_LIB_SIMD_STORAGE(rs64, 8);
-	        RAWR_LIB_SIMD_STORAGE(rf64, 8);
-	    }
-	}
-
-#if !RAWR_AMALGAM_NO_SECTIONS
-	#pragma endsection "rawr/lib/simd/storage.cppm"
-#endif
-#if !RAWR_AMALGAM_NO_SECTIONS
-	#pragma section "rawr/lib/sync/base.cppm"
-#endif
-	#if !RAWR_AMALGAM_NO_SOURCE_MAPPING
-		#line 1 "rawr/lib/sync/base.hpp"
-	#endif
-	#include "rawr.amalgam.hpp"
-	
-	namespace rawr::inline lib::inline sync
-	{
-	    enum class memory_order : ru8
-	    {
-	        relaxed,
-	        acquire,
-	        release,
-	        acq_rel,
-	        seq_cst,
-	    };
-	}
-
-#if !RAWR_AMALGAM_NO_SECTIONS
-	#pragma endsection "rawr/lib/sync/base.cppm"
-#endif
-#if !RAWR_AMALGAM_NO_SECTIONS
-	#pragma section "rawr/san/asan.cppm"
-#endif
-	#if !RAWR_AMALGAM_NO_SOURCE_MAPPING
-		#line 1 "rawr/san/asan.hpp"
-	#endif
-	#include "rawr.amalgam.hpp"
-	#include "rawr.amalgam.hpp"
-	
-	namespace rawr::san::asan::detail
-	{
-	    // NOLINTBEGIN(bugprone-reserved-identifier)
-	    extern "C" auto __asan_poison_memory_region     (void const volatile*, rst) -> void;
-	    extern "C" auto __asan_unpoison_memory_region   (void const volatile*, rst) -> void;
-	    extern "C" auto __asan_address_is_poisoned      (void const volatile*)      -> int;
-	    extern "C" auto __asan_region_is_poisoned       (void*,                rst) -> void*;
-	    extern "C" auto __asan_handle_no_return         ()                          -> void;
-	    extern "C" auto __asan_set_error_report_callback(void (*)(const char*))     -> void;
-	    // NOLINTEND(bugprone-reserved-identifier)
-	}
-	
-	namespace rawr::san::asan
-	{
-	    inline constexpr bool compiled = RAWR_SAN_ASAN != 0;
-	
-	    constexpr auto poison(
-	        [[maybe_unused]] void const* address,
-	        [[maybe_unused]] rst size
-	    ) noexcept -> void
-	    {
-	        if (intrin::is_consteval()) { return; }
-	        if constexpr(compiled)      { detail::__asan_poison_memory_region(address, size); }
-	    }
-	
-	    constexpr auto unpoison(
-	        [[maybe_unused]] void const* address,
-	        [[maybe_unused]] rst size
-	    ) noexcept -> void
-	    {
-	        if (intrin::is_consteval()) { return; }
-	        if constexpr(compiled)      { detail::__asan_unpoison_memory_region(address, size); }
-	    }
-	
-	    constexpr auto poisoned(
-	        [[maybe_unused]] void const* address
-	    ) noexcept -> bool
-	    {
-	        if (intrin::is_consteval()) { return false; }
-	        if constexpr(compiled)      { return detail::__asan_address_is_poisoned(address) != 0; }
-	        else                        { return false; }
-	    }
-	
-	    constexpr auto first_poisoned(
-	        [[maybe_unused]] void* address,
-	        [[maybe_unused]] rst size
-	    ) noexcept -> void*
-	    {
-	        if (intrin::is_consteval()) { return nullptr; }
-	        if constexpr(compiled)      { return detail::__asan_region_is_poisoned(address, size); }
-	        else                        { return nullptr; }
-	    }
-	
-	    constexpr auto handle_no_return() noexcept -> void
-	    {
-	        if (intrin::is_consteval()) { return; }
-	        if constexpr(compiled)      { detail::__asan_handle_no_return(); }
-	    }
-	
-	    using report_callback = void(*)(const char*);
-	    constexpr auto set_error_report_callback(
-	        [[maybe_unused]] report_callback callback
-	    ) noexcept -> void
-	    {
-	        if (intrin::is_consteval()) { return; }
-	        if constexpr(compiled)      { detail::__asan_set_error_report_callback(callback); }
-	    }
-	}
-
-#if !RAWR_AMALGAM_NO_SECTIONS
-	#pragma endsection "rawr/san/asan.cppm"
-#endif
-#if !RAWR_AMALGAM_NO_SECTIONS
-	#pragma section "rawr/san/msan.cppm"
-#endif
-	#if !RAWR_AMALGAM_NO_SOURCE_MAPPING
-		#line 1 "rawr/san/msan.hpp"
-	#endif
-	#include "rawr.amalgam.hpp"
-	#include "rawr.amalgam.hpp"
-	
-	namespace rawr::san::msan::detail
-	{
-	    // NOLINTBEGIN(bugprone-reserved-identifier)
-	    extern "C" auto __msan_poison                  (void const volatile*, rst) -> void;
-	    extern "C" auto __msan_unpoison                (void const volatile*, rst) -> void;
-	    extern "C" auto __msan_check_mem_is_initialized(void const volatile*, rst) -> void;
-	    // NOLINTEND(bugprone-reserved-identifier)
-	}
-	
-	namespace rawr::san::msan
-	{
-	    inline constexpr bool compiled = RAWR_SAN_MSAN != 0;
-	
-	    constexpr auto poison(
-	        [[maybe_unused]] void const* address,
-	        [[maybe_unused]] rst size
-	    ) noexcept -> void
-	    {
-	        if (intrin::is_consteval()) { return; }
-	        if constexpr(compiled) { detail::__msan_poison(address, size); }
-	    }
-	
-	    constexpr auto unpoison(
-	        [[maybe_unused]] void const* address,
-	        [[maybe_unused]] rst size
-	    ) noexcept -> void
-	    {
-	        if (intrin::is_consteval()) { return; }
-	        if constexpr(compiled) { detail::__msan_unpoison(address, size); }
-	    }
-	
-	    constexpr auto check_initialized(
-	        [[maybe_unused]] void const* address,
-	        [[maybe_unused]] rst size
-	    ) noexcept -> void
-	    {
-	        if (intrin::is_consteval()) { return; }
-	        if constexpr(compiled) { detail::__msan_check_mem_is_initialized(address, size); }
-	    }
-	}
-
-#if !RAWR_AMALGAM_NO_SECTIONS
-	#pragma endsection "rawr/san/msan.cppm"
-#endif
-#if !RAWR_AMALGAM_NO_SECTIONS
-	#pragma section "rawr/lib/bitfield.pp"
-#endif
-	#if !RAWR_AMALGAM_NO_SOURCE_MAPPING
-		#line 3 "rawr/lib/bitfield.pp"
-	#endif
-	#pragma once
-
-	#if RAWRSCAN_METADATA
-	    #define RAWR_PP_MODULE rawr.lib.bitfield.pp
-	#endif
-
-	#include "rawr.amalgam.hpp"
-	#include "rawr.amalgam.hpp"
-	#include "rawr.amalgam.hpp"
-	#include "rawr.amalgam.hpp"
-
-	/// --- entry points: word type inferred (3 args) or explicit (4 args) ---
-	#define RAWR_BITFIELD(Name, Bytes, Fields, ...)                     RAWR_BITFIELD_IMPL(Name, Bytes, ::rawr::lib::integer::base::ruint_exact<Bytes>, Fields, RAWR_BF_OVERLAP_CHECK_ON,  RAWR_PP_STRIP(__VA_ARGS__))
-	#define RAWR_BITFIELD_W(Name, Bytes, WordType, Fields, ...)         RAWR_BITFIELD_IMPL(Name, Bytes, WordType,                  Fields, RAWR_BF_OVERLAP_CHECK_ON,  RAWR_PP_STRIP(__VA_ARGS__))
-	#define RAWR_BITFIELD_RELAXED(Name, Bytes, Fields, ...)             RAWR_BITFIELD_IMPL(Name, Bytes, ::rawr::lib::integer::base::ruint_exact<Bytes>, Fields, RAWR_BF_OVERLAP_CHECK_OFF, RAWR_PP_STRIP(__VA_ARGS__))
-	#define RAWR_BITFIELD_RELAXED_W(Name, Bytes, WordType, Fields, ...) RAWR_BITFIELD_IMPL(Name, Bytes, WordType,                  Fields, RAWR_BF_OVERLAP_CHECK_OFF, RAWR_PP_STRIP(__VA_ARGS__))
-
-	#define RAWR_BF_OVERLAP_CHECK_ON(Fields) static_assert(!::rawr::lib::bitfield::fields_overlap(Fields), \
-	    "RAWR_BITFIELD: accessor fields overlap — use RAWR_BITFIELD_RELAXED if intentional");
-	#define RAWR_BF_OVERLAP_CHECK_OFF(Fields)
-
-	/// --- struct body, shared by all four entry points ---
-	#define RAWR_BITFIELD_IMPL(Name, Bytes, WordType, Fields, OverlapCheck, ...)      \
-	    struct Name {                                                                 \
-	        using storage_word_type = WordType;                                       \
-	        static constexpr auto word_bits = bitsof<storage_word_type>;              \
-	        static_assert(Bytes.val % sizeof(storage_word_type) == 0,                 \
-	            #Name ": Bytes must be an exact multiple of the storage word size");  \
-	        static constexpr auto word_count = Bytes.val / sizeof(storage_word_type); \
-	        storage_word_type storage[word_count]{};                                  \
-	                                                                                  \
-	        static constexpr ::rawr::lib::bitfield::field fields[] = {                \
-	            RAWR_PP_EACH_CTX(                                                     \
-	                RAWR_BF_FIELDS,                                                   \
-	                Name,                                                             \
-	                RAWR_PP_EACH_SEP(                                                 \
-	                    RAWR_PP_ENSURE_PAREN,                                         \
-	                    RAWR_PP_COMMA_SEP,                                            \
-	                    RAWR_PP_STRIP(Fields)                                         \
-	                    )                                                             \
-	                )                                                                 \
-	        };                                                                        \
-	        OverlapCheck(fields)                                                      \
-	                                                                                  \
-	        RAWR_PP_EACH_CTX(                                                         \
-	            RAWR_BF_ACCESSOR,                                                     \
-	            Name,                                                                 \
-	            RAWR_PP_EACH_SEP(                                                     \
-	                RAWR_PP_ENSURE_PAREN,                                             \
-	                RAWR_PP_COMMA_SEP,                                                \
-	                RAWR_PP_STRIP(Fields)                                             \
-	            )                                                                     \
-	        )                                                                         \
-	                                                                                  \
-	        __VA_ARGS__                                                               \
-	    }
-
-	#define RAWR_BF_FIELDS(Name, quad) RAWR_PP_DISPATCH_PLIST_BY_ARITY(RAWR_BF_FIELDS_, RAWR_PP_PREPEND_PLIST(quad, Name))
-	#define RAWR_BF_FIELDS_4(Name, AccessorName, Offset, Width)       { #AccessorName, Offset, Width},
-	#define RAWR_BF_FIELDS_5(Name, AccessorName, Offset, Width, Type) { #AccessorName, Offset, Width},
-
-	/// --- accessor leaf ---
-	#define RAWR_BF_ACCESSOR(Name, quad) \
-	    RAWR_PP_DISPATCH_PLIST_BY_ARITY(RAWR_BF_ACCESSOR_, RAWR_PP_PREPEND_PLIST(quad, Name))
-	#define RAWR_BF_ACCESSOR_4(Name, AccessorName, Offset, Width) \
-	    RAWR_BF_ACCESSOR_5(Name, AccessorName, Offset, Width, ::rawr::lib::integer::base::ruint_exact<::rawr::lib::bits::bytewidth{(Width+7)/8}>)
-	#define RAWR_BF_ACCESSOR_5(Name, AccessorName, Offset, Width, Type) \
-	    static_assert(\
-	        ((Offset % (sizeof(storage_word_type) * 8)) + Width <= sizeof(storage_word_type) * 8) && \
-	        (Width <= sizeof(Type) * 8),                                                                   \
-	        #Name "[" #AccessorName "]: Make sure that:"\
-	            "\n- Field does not cross a storage word boundary — split the field or widen the word type."\
-	            "\n- Declared value_type is wide enough to hold a " #Type " field."\
-	    );                                          \
-	    constexpr auto AccessorName()                noexcept -> ::rawr::lib::bitfield::accessor<storage_word_type,                Type> { return {storage, Offset, Width}; } \
-	    constexpr auto AccessorName() const          noexcept -> ::rawr::lib::bitfield::accessor<storage_word_type const,          Type> { return {storage, Offset, Width}; } \
-	              auto AccessorName() volatile       noexcept -> ::rawr::lib::bitfield::accessor<storage_word_type volatile,       Type> { return {storage, Offset, Width}; } \
-	              auto AccessorName() const volatile noexcept -> ::rawr::lib::bitfield::accessor<storage_word_type const volatile, Type> { return {storage, Offset, Width}; } \
-	    constexpr auto AccessorName(Type val) noexcept          ->          Name& { AccessorName() = val; return *this; }                                                     \
-	              auto AccessorName(Type val) volatile noexcept -> volatile Name& { AccessorName() = val; return *this; }
-
-#if !RAWR_AMALGAM_NO_SECTIONS
-	#pragma endsection "rawr/lib/bitfield.pp"
+#if !defined(RAWR_AMALGAM_NO_SECTIONS) || !RAWR_AMALGAM_NO_SECTIONS
+	#pragma endsection "rawr/lib/integer/raw.cppm"
 #endif
 #if !RAWR_AMALGAM_NO_SECTIONS
 	#pragma section "rawr/lib/tagged_union.pp"
 #endif
-	#if !RAWR_AMALGAM_NO_SOURCE_MAPPING
+	#if !defined(RAWR_AMALGAM_NO_SOURCE_MAPPING) || !RAWR_AMALGAM_NO_SOURCE_MAPPING
 		#line 3 "rawr/lib/tagged_union.pp"
 	#endif
 	#pragma once
 
-	#if RAWRSCAN_METADATA
+	#ifdef RAWR_METADATA
 	    #define RAWR_PP_MODULE rawr.lib.tagged_union.pp
 	#endif
 
@@ -4913,31 +5236,752 @@
 	    [[nodiscard]] constexpr auto Tag()                                  const noexcept -> decltype(storage_t::Tag) const* { if(tag == tag_t::Tag) { return &storage.Tag; } return nullptr; } \
 	    [[nodiscard]] constexpr auto Tag(decltype(storage_t::Tag) const& v) const noexcept -> bool                            { return tag == tag_t::Tag && storage.Tag == v; }
 
-#if !RAWR_AMALGAM_NO_SECTIONS
+#if !defined(RAWR_AMALGAM_NO_SECTIONS) || !RAWR_AMALGAM_NO_SECTIONS
 	#pragma endsection "rawr/lib/tagged_union.pp"
 #endif
 #if !RAWR_AMALGAM_NO_SECTIONS
-	#pragma section "rawr/abi/win64.cppm"
+	#pragma section "rawr/bitfield.pp"
 #endif
-	#if !RAWR_AMALGAM_NO_SOURCE_MAPPING
-		#line 1 "rawr/abi/win64.hpp"
+	#if !defined(RAWR_AMALGAM_NO_SOURCE_MAPPING) || !RAWR_AMALGAM_NO_SOURCE_MAPPING
+		#line 3 "rawr/bitfield.pp"
+	#endif
+	#pragma once
+
+	#ifdef RAWR_METADATA
+	    #define RAWR_PP_MODULE rawr.bitfield.pp
+	#endif
+
+	#include "rawr.amalgam.hpp"
+	#include "rawr.amalgam.hpp"
+	#include "rawr.amalgam.hpp"
+	#include "rawr.amalgam.hpp"
+
+	/// --- entry points: word type inferred (3 args) or explicit (4 args) ---
+	#define RAWR_BITFIELD(Name, Bytes, Fields, ...)                     RAWR_BITFIELD_IMPL(Name, Bytes, ::rawr::lib::integer::base::ruint_exact<Bytes>, Fields, RAWR_BF_OVERLAP_CHECK_ON,  RAWR_PP_STRIP(__VA_ARGS__))
+	#define RAWR_BITFIELD_W(Name, Bytes, WordType, Fields, ...)         RAWR_BITFIELD_IMPL(Name, Bytes, WordType,                  Fields, RAWR_BF_OVERLAP_CHECK_ON,  RAWR_PP_STRIP(__VA_ARGS__))
+	#define RAWR_BITFIELD_RELAXED(Name, Bytes, Fields, ...)             RAWR_BITFIELD_IMPL(Name, Bytes, ::rawr::lib::integer::base::ruint_exact<Bytes>, Fields, RAWR_BF_OVERLAP_CHECK_OFF, RAWR_PP_STRIP(__VA_ARGS__))
+	#define RAWR_BITFIELD_RELAXED_W(Name, Bytes, WordType, Fields, ...) RAWR_BITFIELD_IMPL(Name, Bytes, WordType,                  Fields, RAWR_BF_OVERLAP_CHECK_OFF, RAWR_PP_STRIP(__VA_ARGS__))
+
+	#define RAWR_BF_OVERLAP_CHECK_ON(Fields) static_assert(!::rawr::bitfield::fields_overlap(Fields), \
+	    "RAWR_BITFIELD: accessor fields overlap — use RAWR_BITFIELD_RELAXED if intentional");
+	#define RAWR_BF_OVERLAP_CHECK_OFF(Fields)
+
+	/// --- struct body, shared by all four entry points ---
+	#define RAWR_BITFIELD_IMPL(Name, Bytes, WordType, Fields, OverlapCheck, ...)      \
+	    struct Name {                                                                 \
+	        using storage_word_type = WordType;                                       \
+	        static constexpr auto word_bits = bitsof<storage_word_type>;              \
+	        static_assert(Bytes.val % sizeof(storage_word_type) == 0,                 \
+	            #Name ": Bytes must be an exact multiple of the storage word size");  \
+	        static constexpr auto word_count = Bytes.val / sizeof(storage_word_type); \
+	        storage_word_type storage[word_count]{};                                  \
+	                                                                                  \
+	        static constexpr ::rawr::bitfield::field fields[] = {                     \
+	            RAWR_PP_EACH_CTX(                                                     \
+	                RAWR_BF_FIELDS,                                                   \
+	                Name,                                                             \
+	                RAWR_PP_EACH_SEP(                                                 \
+	                    RAWR_PP_ENSURE_PAREN,                                         \
+	                    RAWR_PP_COMMA_SEP,                                            \
+	                    RAWR_PP_STRIP(Fields)                                         \
+	                    )                                                             \
+	                )                                                                 \
+	        };                                                                        \
+	        OverlapCheck(fields)                                                      \
+	                                                                                  \
+	        RAWR_PP_EACH_CTX(                                                         \
+	            RAWR_BF_ACCESSOR,                                                     \
+	            Name,                                                                 \
+	            RAWR_PP_EACH_SEP(                                                     \
+	                RAWR_PP_ENSURE_PAREN,                                             \
+	                RAWR_PP_COMMA_SEP,                                                \
+	                RAWR_PP_STRIP(Fields)                                             \
+	            )                                                                     \
+	        )                                                                         \
+	                                                                                  \
+	        __VA_ARGS__                                                               \
+	    }
+
+	#define RAWR_BF_FIELDS(Name, quad) RAWR_PP_DISPATCH_PLIST_BY_ARITY(RAWR_BF_FIELDS_, RAWR_PP_PREPEND_PLIST(quad, Name))
+	#define RAWR_BF_FIELDS_4(Name, AccessorName, Offset, Width)       { #AccessorName, Offset, Width},
+	#define RAWR_BF_FIELDS_5(Name, AccessorName, Offset, Width, Type) { #AccessorName, Offset, Width},
+
+	/// --- accessor leaf ---
+	#define RAWR_BF_ACCESSOR(Name, quad) \
+	    RAWR_PP_DISPATCH_PLIST_BY_ARITY(RAWR_BF_ACCESSOR_, RAWR_PP_PREPEND_PLIST(quad, Name))
+	#define RAWR_BF_ACCESSOR_4(Name, AccessorName, Offset, Width) \
+	    RAWR_BF_ACCESSOR_5(Name, AccessorName, Offset, Width, ::rawr::lib::integer::base::ruint_exact<::rawr::lib::bits::bytewidth{(Width+7)/8}>)
+	#define RAWR_BF_ACCESSOR_5(Name, AccessorName, Offset, Width, Type)                                                                                                  \
+	    static_assert(                                                                                                                                                   \
+	        ((Offset % (sizeof(storage_word_type) * 8)) + Width <= sizeof(storage_word_type) * 8) &&                                                                     \
+	        (Width <= sizeof(Type) * 8),                                                                                                                                 \
+	        #Name "[" #AccessorName "]: Make sure that:"                                                                                                                 \
+	            "\n- Field does not cross a storage word boundary — split the field or widen the word type."                                                             \
+	            "\n- Declared value_type is wide enough to hold a " #Type " field."                                                                                      \
+	    );                                                                                                                                                               \
+	    constexpr auto AccessorName()                noexcept -> ::rawr::bitfield::accessor<storage_word_type,                Type> { return {storage, Offset, Width}; } \
+	    constexpr auto AccessorName() const          noexcept -> ::rawr::bitfield::accessor<storage_word_type const,          Type> { return {storage, Offset, Width}; } \
+	              auto AccessorName() volatile       noexcept -> ::rawr::bitfield::accessor<storage_word_type volatile,       Type> { return {storage, Offset, Width}; } \
+	              auto AccessorName() const volatile noexcept -> ::rawr::bitfield::accessor<storage_word_type const volatile, Type> { return {storage, Offset, Width}; } \
+	    constexpr auto AccessorName(Type val) noexcept          ->          Name& { AccessorName() = val; return *this; }                                                \
+	              auto AccessorName(Type val) volatile noexcept -> volatile Name& { AccessorName() = val; return *this; }
+
+#if !defined(RAWR_AMALGAM_NO_SECTIONS) || !RAWR_AMALGAM_NO_SECTIONS
+	#pragma endsection "rawr/bitfield.pp"
+#endif
+#if !RAWR_AMALGAM_NO_SECTIONS
+	#pragma section "rawr/abi/cc/win64/ctx.cppm"
+#endif
+	#if !defined(RAWR_AMALGAM_NO_SOURCE_MAPPING) || !RAWR_AMALGAM_NO_SOURCE_MAPPING
+		#line 1 "rawr/abi/cc/win64/ctx.hpp"
+	#endif
+	#include "rawr.amalgam.hpp"
+	
+	RAWR_TODO("Needs a onceover. Requires lib::ptr<type, size> before can be considered done.")
+	
+	namespace rawr::abi::cc::win64
+	{
+	    // 0x10, 0x60, etc are magic numbers, are they mandated by microsoft?
+	
+	    struct unicode_string {
+	        ru16      length;
+	        ru16      max_length;
+	        ru16*     buffer;
+	    };
+	
+	    struct rtl_user_process_params {
+	        ru8       _pad0[0x60];
+	        unicode_string command_line;
+	        unicode_string image_path;
+	        ru8       _pad1[0x10];
+	        void*    environment;
+	    };
+	
+	    // List entry was not defined, what is it?
+	    struct list_entry {};
+	    struct ldr_data_table_entry {
+	        // InMemoryOrderLinks is at +0x10, not +0x00 — critical offset
+	        ru8                  _pad0[0x10];
+	        list_entry          in_memory_order_links;
+	        void*               dll_base;
+	        void*               entry_point;
+	        ru32                 size_of_image;
+	        unicode_string      full_dll_name;
+	        unicode_string      base_dll_name;
+	    };
+	
+	    struct ldr_data {
+	        ru8          _pad0[0x10];
+	        list_entry  in_load_order_module_list;
+	        list_entry  in_memory_order_module_list;
+	    };
+	
+	    struct peb_t {
+	        ru8                           _pad0[0x02];
+	        ru8                           being_debugged;
+	        ru8                           _pad1[0x05];
+	        void*                        mutant;
+	        void*                        image_base;
+	        ldr_data*                    ldr;
+	        rtl_user_process_params*     process_params;
+	    };
+	    constexpr ru8 peb_address = 0x60;
+	    // While you can use this on any platform, it only really
+	    // makes *sense* to do it on windows. On linux for instance you'll
+	    // write/read into the zero page and recieve a nice SIGEGV.
+	    //
+	    // Should we guard this in a #if RAWR_PLATFORM_WINDOWS? Should we
+	    // be patronizing and tell what the user can and can't do?
+	    // I say nay! Open pandora's box and let the consequences (and perhaps
+	    // bounties that await) find us!
+	    //
+	    // NOTE: What could possibly be the use of this outside windows?!
+	    inline peb_t& peb = *reinterpret_cast<peb_t*>(peb_address);
+	}
+
+#if !defined(RAWR_AMALGAM_NO_SECTIONS) || !RAWR_AMALGAM_NO_SECTIONS
+	#pragma endsection "rawr/abi/cc/win64/ctx.cppm"
+#endif
+#if !RAWR_AMALGAM_NO_SECTIONS
+	#pragma section "rawr/hash/fnv1a.cppm"
+#endif
+	#if !defined(RAWR_AMALGAM_NO_SOURCE_MAPPING) || !RAWR_AMALGAM_NO_SOURCE_MAPPING
+		#line 1 "rawr/hash/fnv1a.hpp"
+	#endif
+	#include "rawr.amalgam.hpp"
+	
+	namespace rawr::hash
+	{
+	    namespace fnv1a
+	    {
+	        inline constexpr ru32 offset_basis_32 = 0x811c9dc5u;
+	        inline constexpr ru32 prime_32        = 0x01000193u;
+	
+	        inline constexpr ru64 offset_basis_64 = 0xcbf29ce484222325ull;
+	        inline constexpr ru64 prime_64        = 0x100000001b3ull;
+	    }
+	
+	    template <typename T>
+	    constexpr auto fnv1a32(T const* data, rst size) noexcept -> ru32
+	    requires(sizeof(T) == 1)
+	    {
+	        auto hash = fnv1a::offset_basis_32;
+	        for (rst i = 0; i < size; ++i) {
+	            hash ^= ru32{ static_cast<ru8>(data[i]) };
+	            hash *= fnv1a::prime_32;
+	        }
+	        return hash;
+	    }
+	
+	    template <typename T>
+	    constexpr auto fnv1a64(T const* data, rst size) noexcept -> ru64
+	    requires(sizeof(T) == 1)
+	    {
+	        auto hash = fnv1a::offset_basis_64;
+	        for (rst i = 0; i < size; ++i) {
+	            hash ^= ru64{ static_cast<ru8>(data[i]) };
+	            hash *= fnv1a::prime_64;
+	        }
+	        return hash;
+	    }
+	
+	    namespace fnv1a::inline literals
+	    {
+	        // NOTE: These do NOT include the null-terminator in the hash. Be wary of comparing against hashes of null-terminated strings.
+	        consteval auto operator ""_fnv1a32(char const* str, rst len) -> ru32 { return fnv1a32(str, len); }
+	        consteval auto operator ""_fnv1a64(char const* str, rst len) -> ru64 { return fnv1a64(str, len); }
+	
+	        // NOTE: These DO include the null-terminator in the hash.
+	        consteval auto operator ""_fnv1a32_nt(char const* str, rst len) -> ru32 { return fnv1a32(str, len + 1); }
+	        consteval auto operator ""_fnv1a64_nt(char const* str, rst len) -> ru64 { return fnv1a64(str, len + 1); }
+	    }
+	}
+
+#if !defined(RAWR_AMALGAM_NO_SECTIONS) || !RAWR_AMALGAM_NO_SECTIONS
+	#pragma endsection "rawr/hash/fnv1a.cppm"
+#endif
+#if !RAWR_AMALGAM_NO_SECTIONS
+	#pragma section "rawr/san/asan.cppm"
+#endif
+	#if !defined(RAWR_AMALGAM_NO_SOURCE_MAPPING) || !RAWR_AMALGAM_NO_SOURCE_MAPPING
+		#line 1 "rawr/san/asan.hpp"
+	#endif
+	#include "rawr.amalgam.hpp"
+	#include "rawr.amalgam.hpp"
+	
+	namespace rawr::san::asan::detail
+	{
+	    // NOLINTBEGIN(bugprone-reserved-identifier)
+	    extern "C" auto __asan_poison_memory_region     (void const volatile*, rst) -> void;
+	    extern "C" auto __asan_unpoison_memory_region   (void const volatile*, rst) -> void;
+	    extern "C" auto __asan_address_is_poisoned      (void const volatile*)      -> int;
+	    extern "C" auto __asan_region_is_poisoned       (void*,                rst) -> void*;
+	    extern "C" auto __asan_handle_no_return         ()                          -> void;
+	    extern "C" auto __asan_set_error_report_callback(void (*)(const char*))     -> void;
+	    // NOLINTEND(bugprone-reserved-identifier)
+	}
+	
+	namespace rawr::san::asan
+	{
+	    inline constexpr bool compiled = RAWR_SANFEATURE_ASAN != 0;
+	
+	    constexpr auto poison(
+	        [[maybe_unused]] void const* address,
+	        [[maybe_unused]] rst size
+	    ) noexcept -> void
+	    {
+	        if (intrin::is_consteval()) { return; }
+	        if constexpr(compiled)      { detail::__asan_poison_memory_region(address, size); }
+	    }
+	
+	    constexpr auto unpoison(
+	        [[maybe_unused]] void const* address,
+	        [[maybe_unused]] rst size
+	    ) noexcept -> void
+	    {
+	        if (intrin::is_consteval()) { return; }
+	        if constexpr(compiled)      { detail::__asan_unpoison_memory_region(address, size); }
+	    }
+	
+	    constexpr auto poisoned(
+	        [[maybe_unused]] void const* address
+	    ) noexcept -> bool
+	    {
+	        if (intrin::is_consteval()) { return false; }
+	        if constexpr(compiled)      { return detail::__asan_address_is_poisoned(address) != 0; }
+	        else                        { return false; }
+	    }
+	
+	    constexpr auto first_poisoned(
+	        [[maybe_unused]] void* address,
+	        [[maybe_unused]] rst size
+	    ) noexcept -> void*
+	    {
+	        if (intrin::is_consteval()) { return nullptr; }
+	        if constexpr(compiled)      { return detail::__asan_region_is_poisoned(address, size); }
+	        else                        { return nullptr; }
+	    }
+	
+	    constexpr auto handle_no_return() noexcept -> void
+	    {
+	        if (intrin::is_consteval()) { return; }
+	        if constexpr(compiled)      { detail::__asan_handle_no_return(); }
+	    }
+	
+	    using report_callback = void(*)(const char*);
+	    constexpr auto set_error_report_callback(
+	        [[maybe_unused]] report_callback callback
+	    ) noexcept -> void
+	    {
+	        if (intrin::is_consteval()) { return; }
+	        if constexpr(compiled)      { detail::__asan_set_error_report_callback(callback); }
+	    }
+	}
+
+#if !defined(RAWR_AMALGAM_NO_SECTIONS) || !RAWR_AMALGAM_NO_SECTIONS
+	#pragma endsection "rawr/san/asan.cppm"
+#endif
+#if !RAWR_AMALGAM_NO_SECTIONS
+	#pragma section "rawr/san/msan.cppm"
+#endif
+	#if !defined(RAWR_AMALGAM_NO_SOURCE_MAPPING) || !RAWR_AMALGAM_NO_SOURCE_MAPPING
+		#line 1 "rawr/san/msan.hpp"
+	#endif
+	#include "rawr.amalgam.hpp"
+	#include "rawr.amalgam.hpp"
+	
+	namespace rawr::san::msan::detail
+	{
+	    // NOLINTBEGIN(bugprone-reserved-identifier)
+	    extern "C" auto __msan_poison                  (void const volatile*, rst) -> void;
+	    extern "C" auto __msan_unpoison                (void const volatile*, rst) -> void;
+	    extern "C" auto __msan_check_mem_is_initialized(void const volatile*, rst) -> void;
+	    // NOLINTEND(bugprone-reserved-identifier)
+	}
+	
+	namespace rawr::san::msan
+	{
+	    inline constexpr bool compiled = RAWR_SANFEATURE_MSAN != 0;
+	
+	    constexpr auto poison(
+	        [[maybe_unused]] void const* address,
+	        [[maybe_unused]] rst size
+	    ) noexcept -> void
+	    {
+	        if (intrin::is_consteval()) { return; }
+	        if constexpr(compiled) { detail::__msan_poison(address, size); }
+	    }
+	
+	    constexpr auto unpoison(
+	        [[maybe_unused]] void const* address,
+	        [[maybe_unused]] rst size
+	    ) noexcept -> void
+	    {
+	        if (intrin::is_consteval()) { return; }
+	        if constexpr(compiled) { detail::__msan_unpoison(address, size); }
+	    }
+	
+	    constexpr auto check_initialized(
+	        [[maybe_unused]] void const* address,
+	        [[maybe_unused]] rst size
+	    ) noexcept -> void
+	    {
+	        if (intrin::is_consteval()) { return; }
+	        if constexpr(compiled) { detail::__msan_check_mem_is_initialized(address, size); }
+	    }
+	}
+
+#if !defined(RAWR_AMALGAM_NO_SECTIONS) || !RAWR_AMALGAM_NO_SECTIONS
+	#pragma endsection "rawr/san/msan.cppm"
+#endif
+#if !RAWR_AMALGAM_NO_SECTIONS
+	#pragma section "rawr/simd/storage.cppm"
+#endif
+	#if !defined(RAWR_AMALGAM_NO_SOURCE_MAPPING) || !RAWR_AMALGAM_NO_SOURCE_MAPPING
+		#line 1 "rawr/simd/storage.hpp"
+	#endif
+	#include "rawr.amalgam.hpp"
+	
+	
+	// By wrapping the vector attribute in a struct, we completely disable
+	// the implicit GNU math operators (+, -, *, /) making the types inert.
+	// The x64 System V and ARM64 ABIs guarantee this is still passed in
+	// SIMD registers with zero overhead.
+	#define RAWR_LIB_SIMD_STORAGE(Type, Lanes)                    \
+	    struct                                                    \
+	        RAWR_DECLSPEC(intrin_type)                            \
+	        alignas(sizeof(Type) * Lanes)                         \
+	    Type##x##Lanes {                                          \
+	        using value_type = Type;                              \
+	        static constexpr auto lane_count = Lanes;             \
+	        value_type                                            \
+	            RAWR_ATTRIBUTE(vector_size(sizeof(Type) * Lanes)) \
+	        lanes RAWR_MSVC([Lanes]);                             \
+	    }
+	
+	namespace rawr::simd::storage
+	{
+	    inline namespace _128b
+	    {
+	        RAWR_LIB_SIMD_STORAGE(ru8,  16);
+	        RAWR_LIB_SIMD_STORAGE(rs8,  16);
+	        RAWR_LIB_SIMD_STORAGE(ru16, 8);
+	        RAWR_LIB_SIMD_STORAGE(rs16, 8);
+	        RAWR_LIB_SIMD_STORAGE(ru32, 4);
+	        RAWR_LIB_SIMD_STORAGE(rs32, 4);
+	        RAWR_LIB_SIMD_STORAGE(rf32, 4);
+	        RAWR_LIB_SIMD_STORAGE(ru64, 2);
+	        RAWR_LIB_SIMD_STORAGE(rs64, 2);
+	        RAWR_LIB_SIMD_STORAGE(rf64, 2);
+	    }
+	
+	    inline namespace _256b
+	    {
+	        RAWR_LIB_SIMD_STORAGE(ru8,  32);
+	        RAWR_LIB_SIMD_STORAGE(rs8,  32);
+	        RAWR_LIB_SIMD_STORAGE(ru16, 16);
+	        RAWR_LIB_SIMD_STORAGE(rs16, 16);
+	        RAWR_LIB_SIMD_STORAGE(ru32, 8);
+	        RAWR_LIB_SIMD_STORAGE(rs32, 8);
+	        RAWR_LIB_SIMD_STORAGE(rf32, 8);
+	        RAWR_LIB_SIMD_STORAGE(ru64, 4);
+	        RAWR_LIB_SIMD_STORAGE(rs64, 4);
+	        RAWR_LIB_SIMD_STORAGE(rf64, 4);
+	    }
+	
+	    inline namespace _512b
+	    {
+	        RAWR_LIB_SIMD_STORAGE(ru8,  64);
+	        RAWR_LIB_SIMD_STORAGE(rs8,  64);
+	        RAWR_LIB_SIMD_STORAGE(ru16, 32);
+	        RAWR_LIB_SIMD_STORAGE(rs16, 32);
+	        RAWR_LIB_SIMD_STORAGE(ru32, 16);
+	        RAWR_LIB_SIMD_STORAGE(rs32, 16);
+	        RAWR_LIB_SIMD_STORAGE(rf32, 16);
+	        RAWR_LIB_SIMD_STORAGE(ru64, 8);
+	        RAWR_LIB_SIMD_STORAGE(rs64, 8);
+	        RAWR_LIB_SIMD_STORAGE(rf64, 8);
+	    }
+	}
+
+#if !defined(RAWR_AMALGAM_NO_SECTIONS) || !RAWR_AMALGAM_NO_SECTIONS
+	#pragma endsection "rawr/simd/storage.cppm"
+#endif
+#if !RAWR_AMALGAM_NO_SECTIONS
+	#pragma section "rawr/sync/base.cppm"
+#endif
+	#if !defined(RAWR_AMALGAM_NO_SOURCE_MAPPING) || !RAWR_AMALGAM_NO_SOURCE_MAPPING
+		#line 1 "rawr/sync/base.hpp"
+	#endif
+	#include "rawr.amalgam.hpp"
+	
+	namespace rawr::sync::inline base
+	{
+	    enum class memory_order : ru8
+	    {
+	        relaxed,
+	        acquire,
+	        release,
+	        acq_rel,
+	        seq_cst,
+	    };
+	}
+
+#if !defined(RAWR_AMALGAM_NO_SECTIONS) || !RAWR_AMALGAM_NO_SECTIONS
+	#pragma endsection "rawr/sync/base.cppm"
+#endif
+#if !RAWR_AMALGAM_NO_SECTIONS
+	#pragma section "rawr/this_target.cppm"
+#endif
+	#if !defined(RAWR_AMALGAM_NO_SOURCE_MAPPING) || !RAWR_AMALGAM_NO_SOURCE_MAPPING
+		#line 1 "rawr/this_target.hpp"
+	#endif
+	// Flat constexpr values in rawr:: for if constexpr dispatch.
+	// Enum type names are plural nouns to avoid clashing with module namespaces
+	// (rawr::abi is a namespace; rawr::abis is this enum type).
+	#include "rawr.amalgam.hpp"
+	
+	namespace rawr::inline this_target
+	{
+	    RAWR_RICH_ENUM(abi_ccs, ru8, (
+	        (unknown,       RAWR_ABI_CCID_UNKNOWN),
+	        (sysv,          RAWR_ABI_CCID_SYSV),
+	        (win64,         RAWR_ABI_CCID_WIN64),
+	        (aapcs64,       RAWR_ABI_CCID_AAPCS64),
+	        (aapcs64_apple, RAWR_ABI_CCID_AAPCS64_APPLE),
+	        (aapcs64_win,   RAWR_ABI_CCID_AAPCS64_WIN),
+	        (arm64ec,       RAWR_ABI_CCID_ARM64EC),
+	        (aapcs32,       RAWR_ABI_CCID_AAPCS32),
+	        (riscv,         RAWR_ABI_CCID_RISCV),
+	        (xtensa,        RAWR_ABI_CCID_XTENSA),
+	        (avr,           RAWR_ABI_CCID_AVR),
+	        (wasm,          RAWR_ABI_CCID_WASM)
+	    ), ());
+	    constexpr abi_ccs this_abi_cc   = abi_ccs::from_underlying_unchecked(RAWR_ABI_CCID);
+	    RAWR_RICH_ENUM(abi_dms, ru8, (
+	        (unknown, RAWR_ABI_DMID_UNKNOWN),
+	        (ilp32,   RAWR_ABI_DMID_ILP32),
+	        (lp64,    RAWR_ABI_DMID_LP64),
+	        (llp64,   RAWR_ABI_DMID_LLP64),
+	        (ilp64,   RAWR_ABI_DMID_ILP64),
+	        (lp32,    RAWR_ABI_DMID_LP32),
+	        (ip16,    RAWR_ABI_DMID_IP16)
+	    ), (
+	        [[nodiscard]] constexpr auto is_ptr64() const noexcept { return to_enum_type() == enum_type::lp64  || to_enum_type() == enum_type::llp64 || to_enum_type() == enum_type::ilp64; }
+	        [[nodiscard]] constexpr auto is_ptr32() const noexcept { return to_enum_type() == enum_type::ilp32 || to_enum_type() == enum_type::lp32; }
+	    ));
+	    constexpr abi_dms this_abi_dm  = abi_dms::from_underlying_unchecked(RAWR_ABI_DMID);
+	
+	
+	    RAWR_RICH_ENUM(archs, ru8, (
+	        (unknown, RAWR_ARCHID_UNKNOWN),
+	        (ia32,    RAWR_ARCHID_IA32),
+	        (x64,     RAWR_ARCHID_X64),
+	        (arm32,   RAWR_ARCHID_ARM32),
+	        (arm64,   RAWR_ARCHID_ARM64),
+	        (riscv32, RAWR_ARCHID_RISCV32),
+	        (riscv64, RAWR_ARCHID_RISCV64),
+	        (xtensa,  RAWR_ARCHID_XTENSA),
+	        (avr,     RAWR_ARCHID_AVR),
+	        (wasm32,  RAWR_ARCHID_WASM32),
+	        (wasm64,  RAWR_ARCHID_WASM64),
+	        (ppc32,   RAWR_ARCHID_PPC32),
+	        (ppc64,   RAWR_ARCHID_PPC64),
+	        (loong64, RAWR_ARCHID_LOONG64),
+	        (mips32,  RAWR_ARCHID_MIPS32),
+	        (mips64,  RAWR_ARCHID_MIPS64),
+	        (s390,    RAWR_ARCHID_S390),
+	        (s390x,   RAWR_ARCHID_S390X),
+	        (msp430,  RAWR_ARCHID_MSP430),
+	        (sparc32, RAWR_ARCHID_SPARC32),
+	        (sparc64, RAWR_ARCHID_SPARC64),
+	        (superh,  RAWR_ARCHID_SUPERH)
+	    ), (
+	        [[nodiscard]] constexpr auto is_x86()   const noexcept { return to_enum_type() == enum_type::ia32    || to_enum_type() == enum_type::x64; }
+	        [[nodiscard]] constexpr auto is_riscv() const noexcept { return to_enum_type() == enum_type::riscv32 || to_enum_type() == enum_type::riscv64; }
+	        [[nodiscard]] constexpr auto is_wasm()  const noexcept { return to_enum_type() == enum_type::wasm32  || to_enum_type() == enum_type::wasm64; }
+	        [[nodiscard]] constexpr auto is_arm()   const noexcept { return to_enum_type() == enum_type::arm32   || to_enum_type() == enum_type::arm64; }
+	        [[nodiscard]] constexpr auto is_ppc()   const noexcept { return to_enum_type() == enum_type::ppc32   || to_enum_type() == enum_type::ppc64; }
+	        [[nodiscard]] constexpr auto is_mips()  const noexcept { return to_enum_type() == enum_type::mips32  || to_enum_type() == enum_type::mips64; }
+	        [[nodiscard]] constexpr auto is_ibmz()  const noexcept { return to_enum_type() == enum_type::s390    || to_enum_type() == enum_type::s390x; }
+	        [[nodiscard]] constexpr auto is_sparc() const noexcept { return to_enum_type() == enum_type::sparc32 || to_enum_type() == enum_type::sparc64; }
+	    ));
+	    constexpr archs this_arch = archs::from_underlying_unchecked(RAWR_ARCHID);
+	    RAWR_RICH_ENUM(endians, ru8, (
+	        (unknown, RAWR_ARCH_ENDIANID_UNKNOWN),
+	        (le,      RAWR_ARCH_ENDIANID_LE),
+	        (be,      RAWR_ARCH_ENDIANID_BE)
+	    ), ());
+	    constexpr endians this_endian = endians::from_underlying_unchecked(RAWR_ARCH_ENDIANID);
+	    RAWR_RICH_FLAGS(arm_family_features, ru8, (
+	        (neon,       RAWR_ARCH_ARMFEATUREID_NEON),
+	        (sve,        RAWR_ARCH_ARMFEATUREID_SVE),
+	        (sve2,       RAWR_ARCH_ARMFEATUREID_SVE2),
+	        (dotprod,    RAWR_ARCH_ARMFEATUREID_DOTPROD),
+	        (fp16,       RAWR_ARCH_ARMFEATUREID_FP16),
+	        (bf16,       RAWR_ARCH_ARMFEATUREID_BF16),
+	        (atomic_cas, RAWR_ARCH_ARMFEATUREID_ATOMIC_CAS)
+	    ), ());
+	    constexpr arm_family_features this_arm_features = arm_family_features::from_underlying_unchecked(RAWR_ARCH_ARMFEATURES);
+	    RAWR_RICH_FLAGS(riscv_family_features, ru8, (
+	        (atomic, RAWR_ARCH_RISCVFEATUREID_ATOMIC)
+	    ), ());
+	    constexpr riscv_family_features this_riscv_features = riscv_family_features::from_underlying_unchecked(RAWR_ARCH_RISCVFEATURES);
+	    RAWR_RICH_FLAGS(wasm_family_features, ru8, (
+	        (atomics, RAWR_ARCH_WASMFEATUREID_ATOMICS)
+	    ), ());
+	    constexpr wasm_family_features this_wasm_features = wasm_family_features::from_underlying_unchecked(RAWR_ARCH_WASMFEATURES);
+	    RAWR_RICH_FLAGS(x86_family_features, ru16, (
+	        (sse,     RAWR_ARCH_X86FEATUREID_SSE),
+	        (sse2,    RAWR_ARCH_X86FEATUREID_SSE2),
+	        (sse41,   RAWR_ARCH_X86FEATUREID_SSE41),
+	        (sse42,   RAWR_ARCH_X86FEATUREID_SSE42),
+	        (avx,     RAWR_ARCH_X86FEATUREID_AVX),
+	        (avx2,    RAWR_ARCH_X86FEATUREID_AVX2),
+	        (avx512f, RAWR_ARCH_X86FEATUREID_AVX512F),
+	        (fma,     RAWR_ARCH_X86FEATUREID_FMA),
+	        (bmi1,    RAWR_ARCH_X86FEATUREID_BMI1),
+	        (bmi2,    RAWR_ARCH_X86FEATUREID_BMI2),
+	        (popcnt,  RAWR_ARCH_X86FEATUREID_POPCNT),
+	        (lzcnt,   RAWR_ARCH_X86FEATUREID_LZCNT),
+	        (clwb,    RAWR_ARCH_X86FEATUREID_CLWB)
+	    ), ());
+	    constexpr x86_family_features this_x86_features = x86_family_features::from_underlying_unchecked(RAWR_ARCH_X86FEATURES);
+	
+	
+	    // NOLINTBEGIN(readability-identifier-length)
+	    RAWR_RICH_ENUM(bins, ru8, (
+	        (unknown, RAWR_BINID_UNKNOWN),
+	        (elf,     RAWR_BINID_ELF),
+	        (macho,   RAWR_BINID_MACHO),
+	        (pe,      RAWR_BINID_PE),
+	        (wasm,    RAWR_BINID_WASM)
+	    ), ());
+	    constexpr bins this_bin = bins::from_underlying_unchecked(RAWR_BINID);
+	    // NOLINTEND(readability-identifier-length)
+	
+	
+	    RAWR_RICH_ENUM(compilers, ru8, (
+	        (unknown, RAWR_COMPILERID_UNKNOWN),
+	        (gcc,     RAWR_COMPILERID_GCC),
+	        (clang,   RAWR_COMPILERID_CLANG),
+	        (msvc,    RAWR_COMPILERID_MSVC)
+	    ), (
+	        [[nodiscard]] constexpr auto is_gnu() const noexcept { return to_enum_type() == enum_type::gcc || to_enum_type() == enum_type::clang; }
+	    ));
+	    constexpr compilers this_compiler = compilers::from_underlying_unchecked(RAWR_COMPILERID);
+	    struct compiler_version { ru16 major, minor, patch, build; };
+	    constexpr compiler_version this_compiler_version = {
+	        .major = RAWR_COMPILER_VERSION_MAJOR,
+	        .minor = RAWR_COMPILER_VERSION_MINOR,
+	        .patch = RAWR_COMPILER_VERSION_PATCH,
+	        .build = RAWR_COMPILER_VERSION_BUILD
+	    };
+	
+	
+	    RAWR_RICH_ENUM(cxx, ru8, (
+	        (unknown, RAWR_CXXID_UNKNOWN),
+	        (itanium, RAWR_CXXID_ITANIUM),
+	        (msvc,    RAWR_CXXID_MSVC)
+	    ), ());
+	    constexpr cxx this_cxx = cxx::from_underlying_unchecked(RAWR_CXXID);
+	    RAWR_RICH_ENUM(cxx_features, ru8, (
+	        (has_exceptions, RAWR_CXXFEATUREID_HAS_EXCEPTIONS),
+	        (has_cfi_asm,    RAWR_CXXFEATUREID_HAS_CFI_ASM),
+	        (has_rtti,       RAWR_CXXFEATUREID_HAS_RTTI),
+	        (is_hosted,      RAWR_CXXFEATUREID_IS_HOSTED)
+	    ), ());
+	    constexpr cxx_features this_cxx_features = cxx_features::from_underlying_unchecked(RAWR_CXXFEATURES);
+	    RAWR_RICH_ENUM(cxx_versions, ru8, (unknown, cpp98, cpp11, cpp14, cpp17, cpp20, cpp23, cpp26), ());
+	    constexpr cxx_versions this_cxx_version =
+	        RAWR_CXX_VERSION >= RAWR_CXX_VERSION_26 ? cxx_versions::cpp26 :
+	        RAWR_CXX_VERSION >= RAWR_CXX_VERSION_23 ? cxx_versions::cpp23 :
+	        RAWR_CXX_VERSION >= RAWR_CXX_VERSION_20 ? cxx_versions::cpp20 :
+	        RAWR_CXX_VERSION >= RAWR_CXX_VERSION_17 ? cxx_versions::cpp17 :
+	        RAWR_CXX_VERSION >= RAWR_CXX_VERSION_14 ? cxx_versions::cpp14 :
+	        RAWR_CXX_VERSION >= RAWR_CXX_VERSION_11 ? cxx_versions::cpp11 :
+	                                                  cxx_versions::cpp98;
+	
+	
+	    RAWR_RICH_ENUM(envs, ru8, (
+	        (unknown,      RAWR_ENVID_UNKNOWN),
+	        (cygwin,       RAWR_ENVID_CYGWIN),
+	        (mingw,        RAWR_ENVID_MINGW),
+	        (emscripten,   RAWR_ENVID_EMSCRIPTEN),
+	        (native,       RAWR_ENVID_NATIVE)
+	    ), ());
+	    constexpr envs this_env = envs::from_underlying_unchecked(RAWR_ENVID);
+	
+	
+	    RAWR_RICH_ENUM(platforms, ru8, (
+	        (unknown,     RAWR_PLATFORMID_UNKNOWN),
+	        (linux,       RAWR_PLATFORMID_LINUX),
+	        (windows,     RAWR_PLATFORMID_WINDOWS),
+	        (freebsd,     RAWR_PLATFORMID_FREEBSD),
+	        (openbsd,     RAWR_PLATFORMID_OPENBSD),
+	        (netbsd,      RAWR_PLATFORMID_NETBSD),
+	        (macos,       RAWR_PLATFORMID_MACOS),
+	        (ios,         RAWR_PLATFORMID_IOS),
+	        (android,     RAWR_PLATFORMID_ANDROID),
+	        (wasm,        RAWR_PLATFORMID_WASM),
+	        (esp32,       RAWR_PLATFORMID_ESP32),
+	        (esp8266,     RAWR_PLATFORMID_ESP8266),
+	        (stm32,       RAWR_PLATFORMID_STM32),
+	        (nordic,      RAWR_PLATFORMID_NORDIC),
+	        (pico,        RAWR_PLATFORMID_PICO),
+	        (teensy,      RAWR_PLATFORMID_TEENSY),
+	        (avr,         RAWR_PLATFORMID_AVR)
+	    ), ());
+	    constexpr platforms this_platform = platforms::from_underlying_unchecked(RAWR_PLATFORMID);
+	
+	    RAWR_RICH_FLAGS(sanitizers,  ru16, (
+	        (asan,      RAWR_SANFEATUREID_ASAN),
+	        (hwasan,    RAWR_SANFEATUREID_HWASAN),
+	        (tsan,      RAWR_SANFEATUREID_TSAN),
+	        (msan,      RAWR_SANFEATUREID_MSAN),
+	        (lsan,      RAWR_SANFEATUREID_LSAN),
+	        (ubsan,     RAWR_SANFEATUREID_UBSAN),
+	        (cfi,       RAWR_SANFEATUREID_CFI),
+	        (safestack, RAWR_SANFEATUREID_SAFESTACK),
+	        (rtc,       RAWR_SANFEATUREID_RTC)
+	    ), ());
+	    constexpr sanitizers this_sanitizers = sanitizers::from_underlying_unchecked(RAWR_SANFEATURES);
+	
+	    constexpr bool this_has_int128     = RAWR_INTEGER_HAS_INT128;
+	}
+
+#if !defined(RAWR_AMALGAM_NO_SECTIONS) || !RAWR_AMALGAM_NO_SECTIONS
+	#pragma endsection "rawr/this_target.cppm"
+#endif
+#if !RAWR_AMALGAM_NO_SECTIONS
+	#pragma section "rawr/abi/cc/win64.cppm"
+#endif
+	#if !defined(RAWR_AMALGAM_NO_SOURCE_MAPPING) || !RAWR_AMALGAM_NO_SOURCE_MAPPING
+		#line 1 "rawr/abi/cc/win64.hpp"
 	#endif
 	#include "rawr.amalgam.hpp"
 
-#if !RAWR_AMALGAM_NO_SECTIONS
-	#pragma endsection "rawr/abi/win64.cppm"
+#if !defined(RAWR_AMALGAM_NO_SECTIONS) || !RAWR_AMALGAM_NO_SECTIONS
+	#pragma endsection "rawr/abi/cc/win64.cppm"
 #endif
 #if !RAWR_AMALGAM_NO_SECTIONS
-	#pragma section "rawr/abi/sysv/ctx.cppm"
+	#pragma section "rawr/hash.cppm"
 #endif
-	#if !RAWR_AMALGAM_NO_SOURCE_MAPPING
-		#line 1 "rawr/abi/sysv/ctx.hpp"
+	#if !defined(RAWR_AMALGAM_NO_SOURCE_MAPPING) || !RAWR_AMALGAM_NO_SOURCE_MAPPING
+		#line 1 "rawr/hash.hpp"
+	#endif
+	#include "rawr.amalgam.hpp"
+
+#if !defined(RAWR_AMALGAM_NO_SECTIONS) || !RAWR_AMALGAM_NO_SECTIONS
+	#pragma endsection "rawr/hash.cppm"
+#endif
+#if !RAWR_AMALGAM_NO_SECTIONS
+	#pragma section "rawr/san.cppm"
+#endif
+	#if !defined(RAWR_AMALGAM_NO_SOURCE_MAPPING) || !RAWR_AMALGAM_NO_SOURCE_MAPPING
+		#line 1 "rawr/san.hpp"
+	#endif
+	#include "rawr.amalgam.hpp"
+	#include "rawr.amalgam.hpp"
+	#include "rawr.amalgam.hpp"
+	#include "rawr.amalgam.hpp"
+
+#if !defined(RAWR_AMALGAM_NO_SECTIONS) || !RAWR_AMALGAM_NO_SECTIONS
+	#pragma endsection "rawr/san.cppm"
+#endif
+#if !RAWR_AMALGAM_NO_SECTIONS
+	#pragma section "rawr/simd.cppm"
+#endif
+	#if !defined(RAWR_AMALGAM_NO_SOURCE_MAPPING) || !RAWR_AMALGAM_NO_SOURCE_MAPPING
+		#line 1 "rawr/simd.hpp"
+	#endif
+	#include "rawr.amalgam.hpp"
+
+#if !defined(RAWR_AMALGAM_NO_SECTIONS) || !RAWR_AMALGAM_NO_SECTIONS
+	#pragma endsection "rawr/simd.cppm"
+#endif
+#if !RAWR_AMALGAM_NO_SECTIONS
+	#pragma section "rawr/sync.cppm"
+#endif
+	#if !defined(RAWR_AMALGAM_NO_SOURCE_MAPPING) || !RAWR_AMALGAM_NO_SOURCE_MAPPING
+		#line 1 "rawr/sync.hpp"
+	#endif
+	#include "rawr.amalgam.hpp"
+
+#if !defined(RAWR_AMALGAM_NO_SECTIONS) || !RAWR_AMALGAM_NO_SECTIONS
+	#pragma endsection "rawr/sync.cppm"
+#endif
+#if !RAWR_AMALGAM_NO_SECTIONS
+	#pragma section "rawr/abi/cc/sysv/ctx.cppm"
+#endif
+	#if !defined(RAWR_AMALGAM_NO_SOURCE_MAPPING) || !RAWR_AMALGAM_NO_SOURCE_MAPPING
+		#line 1 "rawr/abi/cc/sysv/ctx.hpp"
 	#endif
 	
 	#include "rawr.amalgam.hpp"
 	#include "rawr.amalgam.hpp"
 	
-	namespace rawr::abi::sysv::inline ctx
+	namespace rawr::abi::cc::sysv::inline ctx
 	{
 	    // SysV psABI auxiliary vector tag constants.
 	    // Values are ABI-fixed — explicit enumerator values are not optional here.
@@ -4979,7 +6023,7 @@
 	        (minsigstksz,       51)  // minimum alternate signal stack size in bytes
 	    ), ());
 	
-	    #define RAWR_ABI_SYSV_AUXVE_(Name, word_t)                                                                                    \
+	    #define RAWR_ABI_CC_SYSV_AUXVE_(Name, word_t)                                                                                 \
 	        struct Name {                                                                                                             \
 	            word_t a_type;                                                                                                        \
 	            word_t a_val;                                                                                                         \
@@ -5055,9 +6099,9 @@
 	            [[nodiscard]] constexpr auto sysinfo()              const noexcept -> word_t { return a_val; }                        \
 	            [[nodiscard]] constexpr auto sysinfo_ehdr()         const noexcept -> word_t { return a_val; }                        \
 	        }
-	    RAWR_ABI_SYSV_AUXVE_(auxve32, ru32);
-	    RAWR_ABI_SYSV_AUXVE_(auxve64, ru64);
-	    #undef RAWR_ABI_SYSV_AUXVE_
+	    RAWR_ABI_CC_SYSV_AUXVE_(auxve32, ru32);
+	    RAWR_ABI_CC_SYSV_AUXVE_(auxve64, ru64);
+	    #undef RAWR_ABI_CC_SYSV_AUXVE_
 	
 	    // ── auxv ─────────────────────────────────────────────────────────────────
 	    // Thin wrapper enabling range-for over an auxv vector.
@@ -5066,7 +6110,7 @@
 	    // Usage:
 	    //   for (auto& at : ctx.auxv) { switch (at.tag()) { ... } }
 	    //   for (auto* at = ctx.auxv.first; !at->is_null(); ++at) { ... } // manual
-	    #define RAWR_ABI_SYSV_AUXV_(Name, Entry)                                                                              \
+	    #define RAWR_ABI_CC_SYSV_AUXV_(Name, Entry)                                                                           \
 	        struct Name {                                                                                                     \
 	            Entry* first = nullptr;                                                                                       \
 	                                                                                                                          \
@@ -5082,11 +6126,11 @@
 	            [[nodiscard]] constexpr auto begin() const noexcept -> iterator { return { first }; }                         \
 	            [[nodiscard]] constexpr auto end()   const noexcept -> sentinel { return {};        }                         \
 	        }
-	    RAWR_ABI_SYSV_AUXV_(auxv32, auxve32);
-	    RAWR_ABI_SYSV_AUXV_(auxv64, auxve64);
-	    #undef RAWR_ABI_SYSV_AUXV_
+	    RAWR_ABI_CC_SYSV_AUXV_(auxv32, auxve32);
+	    RAWR_ABI_CC_SYSV_AUXV_(auxv64, auxve64);
+	    #undef RAWR_ABI_CC_SYSV_AUXV_
 	
-	    RAWR_TODO("Implement context32 and select the correct one in the RAWR_ABI_SYSV_MAIN macro. Requires lib::ptr<>")
+	    RAWR_TODO("Implement context32 and select the correct one in the RAWR_ABI_CC_SYSV_MAIN macro. Requires lib::ptr<>")
 	    struct context64 {
 	        void* sp    = nullptr;
 	        rs32  argc  = 0;
@@ -5117,19 +6161,582 @@
 	    };
 	}
 
-#if !RAWR_AMALGAM_NO_SECTIONS
-	#pragma endsection "rawr/abi/sysv/ctx.cppm"
+#if !defined(RAWR_AMALGAM_NO_SECTIONS) || !RAWR_AMALGAM_NO_SECTIONS
+	#pragma endsection "rawr/abi/cc/sysv/ctx.cppm"
 #endif
 #if !RAWR_AMALGAM_NO_SECTIONS
-	#pragma section "rawr/lib/diag/dwarf.cppm"
+	#pragma section "rawr/arch/x64/atomic.cppm"
 #endif
-	#if !RAWR_AMALGAM_NO_SOURCE_MAPPING
-		#line 1 "rawr/lib/diag/dwarf.hpp"
+	#if !defined(RAWR_AMALGAM_NO_SOURCE_MAPPING) || !RAWR_AMALGAM_NO_SOURCE_MAPPING
+		#line 1 "rawr/arch/x64/atomic.hpp"
+	#endif
+	#include "rawr.amalgam.hpp"
+	#include "rawr.amalgam.hpp"
+	#include "rawr.amalgam.hpp"
+	#include "rawr.amalgam.hpp"
+	#include "rawr.amalgam.hpp"
+	
+	namespace rawr::arch::x64::atomic::msvc
+	{
+	    // RAWR_ABI_IS_64BIT is used instead of RAWR_ARCH_X64 because those intrinsics are also supported on arm64.
+	
+	    // MSVC intrinsics often need an exact type match, which can be a problem if you do signed char instead of
+	    // char or things like using int instead of long, even if they are the same size in that architecture.
+	    using rchar = RAWR_MSVC_ELSE(char, rs8);
+	    using rlong = RAWR_MSVC_ELSE(long, rs32);
+	
+	    RAWR_MSVC_INTRIN(1,                 _InterlockedCompareExchange8,  (rchar volatile*, rchar, rchar) -> rchar);
+	    RAWR_MSVC_INTRIN(1,                 _InterlockedCompareExchange16, (rs16  volatile*, rs16,  rs16)  -> rs16);
+	    RAWR_MSVC_INTRIN(1,                 _InterlockedCompareExchange,   (rlong volatile*, rlong, rlong) -> rlong);
+	    RAWR_MSVC_INTRIN(1,                 _InterlockedCompareExchange64, (rs64  volatile*, rs64,  rs64)  -> rs64);
+	
+	    RAWR_MSVC_INTRIN(1,                 _InterlockedExchange8,         (rchar volatile*, rchar) -> rchar);
+	    RAWR_MSVC_INTRIN(1,                 _InterlockedExchange16,        (rs16  volatile*, rs16)  -> rs16);
+	    RAWR_MSVC_INTRIN(1,                 _InterlockedExchange,          (rlong volatile*, rlong) -> rlong);
+	    RAWR_MSVC_INTRIN(RAWR_ABI_DM_PTR64, _InterlockedExchange64,        (rs64  volatile*, rs64)  -> rs64);
+	
+	    RAWR_MSVC_INTRIN(1,                 _InterlockedExchangeAdd8,      (rchar volatile*, rchar) -> rchar);
+	    RAWR_MSVC_INTRIN(1,                 _InterlockedExchangeAdd16,     (rs16  volatile*, rs16)  -> rs16);
+	    RAWR_MSVC_INTRIN(1,                 _InterlockedExchangeAdd,       (rlong volatile*, rlong) -> rlong);
+	    RAWR_MSVC_INTRIN(RAWR_ABI_DM_PTR64, _InterlockedExchangeAdd64,     (rs64  volatile*, rs64)  -> rs64);
+	
+	    RAWR_MSVC_INTRIN(RAWR_ARCH_IA32,    _ReadWriteBarrier,             () -> void);
+	}
+	
+	namespace rawr::arch::x64::atomic::gnu
+	{
+	    // Explicit mapping, not a numeric cast: rawr::memory_order's
+	    // ordinal values do not line up with GCC's __ATOMIC_* constants
+	    // (which reserve a slot for the unused/deprecated `consume`), so
+	    // casting one to the other silently picks the wrong fence.
+	    RAWR_ALWAYS_INLINE constexpr auto to_gnu_order(sync::memory_order order) noexcept -> int
+	    RAWR_GNU({
+	        switch (order) {
+	            case sync::memory_order::relaxed: return __ATOMIC_RELAXED;
+	            case sync::memory_order::acquire: return __ATOMIC_ACQUIRE;
+	            case sync::memory_order::release: return __ATOMIC_RELEASE;
+	            case sync::memory_order::acq_rel: return __ATOMIC_ACQ_REL;
+	            default:                          return __ATOMIC_SEQ_CST;
+	        }
+	    });
+	
+	    template <RAint Type>
+	    RAWR_ALWAYS_INLINE constexpr auto atomic_compare_exchange_n(
+	        Type* ptr,
+	        Type* expected,
+	        Type  desired,
+	        bool  weak,
+	        int   success,
+	        int   failure
+	    ) -> bool RAWR_GNU({
+	        return ::__atomic_compare_exchange_n(ptr, expected, desired, weak, success, failure);
+	    });
+	
+	    template <RAint Type> RAWR_ALWAYS_INLINE constexpr auto atomic_load_n    (Type* addr,             int memorder) -> Type RAWR_GNU({ return ::__atomic_load_n(addr, memorder); });
+	    template <RAint Type> RAWR_ALWAYS_INLINE constexpr auto atomic_store_n   (Type* addr, Type val,   int memorder) -> void RAWR_GNU({ ::__atomic_store_n(addr, val, memorder); });
+	    template <RAint Type> RAWR_ALWAYS_INLINE constexpr auto atomic_fetch_add (Type* addr, Type delta, int memorder) -> Type RAWR_GNU({ return ::__atomic_fetch_add(addr, delta, memorder); });
+	    template <RAint Type> RAWR_ALWAYS_INLINE constexpr auto atomic_exchange_n(Type* addr, Type val,   int memorder) -> Type RAWR_GNU({ return ::__atomic_exchange_n(addr, val, memorder); });
+	}
+	
+	namespace rawr::arch::x64::atomic
+	{
+	    template <
+	        RAint T,
+	        sync::memory_order Success = sync::memory_order::seq_cst,
+	        sync::memory_order Failure = sync::memory_order::seq_cst
+	    >
+	    RAWR_ALWAYS_INLINE auto cas(T* addr, T& expected, T desired) noexcept -> bool
+	    {
+	        if constexpr(!this_arch.is_x64()) {
+	            static_assert(sass::fail<T>);
+	            return false;
+	        } else if constexpr(this_compiler.is_gnu()) {
+	            return gnu::atomic_compare_exchange_n(
+	                addr, &expected, desired, /*weak=*/true,
+	                gnu::to_gnu_order(Success), gnu::to_gnu_order(Failure));
+	        } else if constexpr(this_compiler.is_msvc()){
+	            // x64 MSVC intrinsics take no ordering argument: the LOCK-prefixed
+	            // instruction underneath is a full fence on this ISA regardless of
+	            // what was asked for (x86/x64 is TSO). Correct for every order,
+	            // including relaxed — just not as cheap as it could be for relaxed,
+	            // since these intrinsics are also full compiler barriers.
+	            using U = ruint_of<T>;
+	            U prior;
+	                 if constexpr (sizeof(T) == 1) prior = static_cast<U>(msvc::_InterlockedCompareExchange8 (reinterpret_cast<      rs8   volatile*>(addr), static_cast<      rs8>(desired),   static_cast<      rs8>(expected)));
+	            else if constexpr (sizeof(T) == 2) prior = static_cast<U>(msvc::_InterlockedCompareExchange16(reinterpret_cast<      rs16  volatile*>(addr), static_cast<      rs16>(desired),  static_cast<      rs16>(expected)));
+	            else if constexpr (sizeof(T) == 4) prior = static_cast<U>(msvc::_InterlockedCompareExchange  (reinterpret_cast<msvc::rlong volatile*>(addr), static_cast<msvc::rlong>(desired), static_cast<msvc::rlong>(expected)));
+	            else if constexpr (sizeof(T) == 8) prior = static_cast<U>(msvc::_InterlockedCompareExchange64(reinterpret_cast<      rs64  volatile*>(addr), static_cast<      rs64>(desired),  static_cast<      rs64>(expected)));
+	            else static_assert(sizeof(T) == 0, "rawr::arch::x64::cas: unsupported width");
+	
+	            bool const ok = (prior == static_cast<U>(expected));
+	            if (!ok) expected = static_cast<T>(prior);
+	            return ok;
+	        }
+	    }
+	
+	    template <RAint T, sync::memory_order Order = sync::memory_order::seq_cst>
+	    RAWR_ALWAYS_INLINE auto load(T const* addr) noexcept -> T
+	    {
+	        if constexpr(!this_arch.is_x64()) {
+	            static_assert(sass::fail<T>);
+	            return T{};
+	        } else if constexpr(this_compiler.is_gnu()) {
+	            return gnu::atomic_load_n(addr, gnu::to_gnu_order(Order));
+	        } else if constexpr(this_compiler.is_msvc()){
+	            // A naturally-aligned load/store of a machine word is already
+	            // atomic on x64 without any interlocked op — the cache-coherency
+	            // protocol guarantees a cache line can't tear mid-transfer. Only
+	            // a compiler barrier is needed to stop reordering across it, and
+	            // for seq_cst specifically, TSO still allows StoreLoad reordering
+	            // between an earlier store and this load, so seq_cst needs a real
+	            // fence.
+	            // No extra fence needed here for any order, including seq_cst:
+	            // store() below unconditionally routes through a LOCK-prefixed
+	            // exchange, which is what actually closes the StoreLoad-reordering
+	            // gap TSO allows. As long as every store on this word goes through
+	            // that path, a plain load + compiler barrier is sufficient here.
+	            T v = *static_cast<T const volatile*>(addr);
+	            msvc::_ReadWriteBarrier();
+	            return v;
+	        }
+	    }
+	
+	    template <RAint T, sync::memory_order Order = sync::memory_order::release>
+	    RAWR_ALWAYS_INLINE auto store(T* addr, T value) noexcept -> void
+	    {
+	        if constexpr(!this_arch.is_x64()) {
+	            static_assert(sass::fail<T>);
+	        } else if constexpr(this_compiler.is_gnu()) {
+	            gnu::atomic_store_n(addr, value, gnu::to_gnu_order(Order));
+	        } else if constexpr(this_compiler.is_msvc()){
+	            // Conservative on purpose: route every order through the full-fence
+	            // exchange rather than trying to hand-tune relaxed/release on TSO.
+	            // Correct for all orders, costs a touch more than a bare relaxed
+	            // store would need — see the note on cas() above for the same tradeoff.
+	                 if constexpr (sizeof(T) == 1) msvc::_InterlockedExchange8 (reinterpret_cast<      rs8   volatile*>(addr), static_cast<      rs8>(value));
+	            else if constexpr (sizeof(T) == 2) msvc::_InterlockedExchange16(reinterpret_cast<      rs16  volatile*>(addr), static_cast<      rs16>(value));
+	            else if constexpr (sizeof(T) == 4) msvc::_InterlockedExchange  (reinterpret_cast<msvc::rlong volatile*>(addr), static_cast<msvc::rlong>(value));
+	            else if constexpr (sizeof(T) == 8) msvc::_InterlockedExchange64(reinterpret_cast<      rs64  volatile*>(addr), static_cast<      rs64>(value));
+	            else static_assert(sizeof(T) == 0, "rawr::arch::x64::store: unsupported width");
+	        }
+	    }
+	
+	    template <RAint T, sync::memory_order Order = sync::memory_order::seq_cst>
+	    RAWR_ALWAYS_INLINE auto fetch_add(T* addr, T delta) noexcept -> T
+	    {
+	        if constexpr(!this_arch.is_x64()) {
+	            static_assert(sass::fail<T>);
+	            return T{};
+	        } else if constexpr(this_compiler.is_gnu()) {
+	            return gnu::atomic_fetch_add(addr, delta, gnu::to_gnu_order(Order));
+	        } else if constexpr(this_compiler.is_msvc()){
+	                 if constexpr (sizeof(T) == 1) return static_cast<T>(msvc::_InterlockedExchangeAdd8 (reinterpret_cast<      rs8   volatile*>(addr), static_cast<      rs8>(delta)));
+	            else if constexpr (sizeof(T) == 2) return static_cast<T>(msvc::_InterlockedExchangeAdd16(reinterpret_cast<      rs16  volatile*>(addr), static_cast<      rs16>(delta)));
+	            else if constexpr (sizeof(T) == 4) return static_cast<T>(msvc::_InterlockedExchangeAdd  (reinterpret_cast<msvc::rlong volatile*>(addr), static_cast<msvc::rlong>(delta)));
+	            else if constexpr (sizeof(T) == 8) return static_cast<T>(msvc::_InterlockedExchangeAdd64(reinterpret_cast<      rs64  volatile*>(addr), static_cast<      rs64>(delta)));
+	            else { static_assert(sizeof(T) == 0, "rawr::arch::x64::fetch_add: unsupported width"); return T{}; }
+	        }
+	    }
+	
+	    template <RAint T, sync::memory_order Order = sync::memory_order::seq_cst>
+	    RAWR_ALWAYS_INLINE auto exchange(T* addr, T value) noexcept -> T
+	    {
+	        if constexpr(!this_arch.is_x64()) {
+	            static_assert(sass::fail<T>);
+	            return T{};
+	        } else if constexpr(this_compiler.is_gnu()) {
+	            return gnu::atomic_exchange_n(addr, value, gnu::to_gnu_order(Order));
+	        } else if constexpr(this_compiler.is_msvc()){
+	                 if constexpr (sizeof(T) == 1) return static_cast<T>(msvc::_InterlockedExchange8 (reinterpret_cast<      rs8   volatile*>(addr), static_cast<      rs8>(value)));
+	            else if constexpr (sizeof(T) == 2) return static_cast<T>(msvc::_InterlockedExchange16(reinterpret_cast<      rs16  volatile*>(addr), static_cast<      rs16>(value)));
+	            else if constexpr (sizeof(T) == 4) return static_cast<T>(msvc::_InterlockedExchange  (reinterpret_cast<msvc::rlong volatile*>(addr), static_cast<msvc::rlong>(value)));
+	            else if constexpr (sizeof(T) == 8) return static_cast<T>(msvc::_InterlockedExchange64(reinterpret_cast<      rs64  volatile*>(addr), static_cast<      rs64>(value)));
+	            else { static_assert(sizeof(T) == 0, "rawr::arch::x64::exchange: unsupported width"); return T{}; }
+	        }
+	    }
+	}
+
+#if !defined(RAWR_AMALGAM_NO_SECTIONS) || !RAWR_AMALGAM_NO_SECTIONS
+	#pragma endsection "rawr/arch/x64/atomic.cppm"
+#endif
+#if !RAWR_AMALGAM_NO_SECTIONS
+	#pragma section "rawr/arch/x64/cpuid.cppm"
+#endif
+	#if !defined(RAWR_AMALGAM_NO_SOURCE_MAPPING) || !RAWR_AMALGAM_NO_SOURCE_MAPPING
+		#line 1 "rawr/arch/x64/cpuid.hpp"
+	#endif
+	#include "rawr.amalgam.hpp"
+	#include "rawr.amalgam.hpp"
+	#include "rawr.amalgam.hpp"
+	#include "rawr.amalgam.hpp"
+	
+	namespace rawr::arch::x64::msvc
+	{
+	    RAWR_MSVC_INTRIN(RAWR_ARCH_X64, __cpuidex, (int[4], int, int) -> void);
+	}
+	
+	namespace rawr::arch::x64::gnu
+	{
+	    RAWR_TODO("__asm__ here feels like a copout, ideally there's a builtin we can call")
+	    RAWR_ALWAYS_INLINE auto ia32_cpuidext(int regs[4], int leaf, int subleaf) -> void
+	    RAWR_GNU_AND(RAWR_ARCH_X64, {
+	        __asm__ __volatile__(
+	            "cpuid"
+	            : "=a"(regs[0]), "=b"(regs[1]), "=c"(regs[2]), "=d"(regs[3])
+	            : "a"(leaf), "c"(subleaf)
+	        );
+	    });
+	}
+	
+	namespace rawr::arch::x64
+	{
+	    RAWR_TODO("This needs review for potential accidental overhead.")
+	    struct cpuid_args { ru32 leaf, subleaf; };
+	    struct cpuid_ret { ru32 regs[4]; };
+	
+	    template <typename = void>
+	    RAWR_ALWAYS_INLINE auto cpuid(cpuid_args args) -> cpuid_ret
+	    {
+	        cpuid_ret ret;
+	
+	        if constexpr(!this_arch.is_x64()) {
+	            static_assert(this_arch.is_x64());
+	        } else if constexpr(this_compiler.is_msvc()) {
+	            msvc::__cpuidex(reinterpret_cast<int*>(ret.regs), static_cast<int>(args.leaf), static_cast<int>(args.subleaf));
+	        } else if constexpr(this_compiler.is_gnu()) {
+	            gnu::ia32_cpuidext(reinterpret_cast<int*>(ret.regs), static_cast<int>(args.leaf), static_cast<int>(args.subleaf));
+	        }
+	
+	        return ret;
+	    }
+	
+	    // CPUID Leaf 1 (EAX = 1)
+	    // Storage layout maps exactly to registers: EAX [0-31], EBX [32-63], ECX [64-95], EDX [96-127]
+	    RAWR_BITFIELD_W(cpuid_leaf_1, byw16, ru32, (
+	        // --- EAX (Word 0: bits 0-31) ---
+	        (stepping,             0, 4),
+	        (model,                4, 4),
+	        (family,               8, 4),
+	        (processor_type,      12, 2),
+	        // Bits 14-15 reserved
+	        (extended_model,      16, 4),
+	        (extended_family,     20, 8),
+	        // Bits 28-31 reserved
+	
+	        // --- EBX (Word 1: bits 32-63) ---
+	        (brand_index,         32, 8),
+	        (clflush_line_size,   40, 8),
+	        (max_apic_ids,        48, 8),
+	        (initial_apic_id,     56, 8),
+	
+	        // --- ECX (Word 2: bits 64-95) ---
+	        (sse3,                64, 1, bool),
+	        (pclmulqdq,           65, 1, bool),
+	        (dtes64,              66, 1, bool),
+	        (monitor,             67, 1, bool),
+	        (ds_cpl,              68, 1, bool),
+	        (vmx,                 69, 1, bool),
+	        (smx,                 70, 1, bool),
+	        (eist,                71, 1, bool),
+	        (tm2,                 72, 1, bool),
+	        (ssse3,               73, 1, bool),
+	        (cnxt_id,             74, 1, bool),
+	        (sdbg,                75, 1, bool),
+	        (fma,                 76, 1, bool),
+	        (cmpxchg16b,          77, 1, bool),
+	        (xtpr_update_control, 78, 1, bool),
+	        (pdcm,                79, 1, bool),
+	        // Bit 16 (80) reserved
+	        (pcid,                81, 1, bool),
+	        (dca,                 82, 1, bool),
+	        (sse4_1,              83, 1, bool),
+	        (sse4_2,              84, 1, bool),
+	        (x2apic,              85, 1, bool),
+	        (movbe,               86, 1, bool),
+	        (popcnt,              87, 1, bool),
+	        (tsc_deadline,        88, 1, bool),
+	        (aesni,               89, 1, bool),
+	        (xsave,               90, 1, bool),
+	        (osxsave,             91, 1, bool),
+	        (avx,                 92, 1, bool),
+	        (f16c,                93, 1, bool),
+	        (rdrand,              94, 1, bool),
+	        (hypervisor,          95, 1, bool),
+	
+	        // --- EDX (Word 3: bits 96-127) ---
+	        (fpu,                 96, 1, bool),
+	        (vme,                 97, 1, bool),
+	        (de,                  98, 1, bool),
+	        (pse,                 99, 1, bool),
+	        (tsc,                100, 1, bool),
+	        (msr,                101, 1, bool),
+	        (pae,                102, 1, bool),
+	        (mce,                103, 1, bool),
+	        (cx8,                104, 1, bool),
+	        (apic,               105, 1, bool),
+	        // Bit 10 (106) reserved
+	        (sep,                107, 1, bool),
+	        (mtrr,               108, 1, bool),
+	        (pge,                109, 1, bool),
+	        (mca,                110, 1, bool),
+	        (cmov,               111, 1, bool),
+	        (pat,                112, 1, bool),
+	        (pse_36,             113, 1, bool),
+	        (psn,                114, 1, bool),
+	        (clfsh,              115, 1, bool),
+	        // Bit 20 (116) reserved
+	        (ds,                 117, 1, bool),
+	        (acpi,               118, 1, bool),
+	        (mmx,                119, 1, bool),
+	        (fxsr,               120, 1, bool),
+	        (sse,                121, 1, bool),
+	        (sse2,               122, 1, bool),
+	        (ss,                 123, 1, bool),
+	        (htt,                124, 1, bool),
+	        (tm,                 125, 1, bool),
+	        // Bit 30 (126) reserved
+	        (pbe,                127, 1, bool)
+	    ), (
+	        [[nodiscard]] constexpr auto eax() { return storage[0]; }
+	        [[nodiscard]] constexpr auto ebx() { return storage[1]; }
+	        [[nodiscard]] constexpr auto ecx() { return storage[2]; }
+	        [[nodiscard]] constexpr auto edx() { return storage[3]; }
+	    ));
+	
+	    // CPUID Leaf 7, Sub-leaf 0 (EAX = 7, ECX = 0)
+	    // Storage layout maps exactly to registers: EAX [0-31], EBX [32-63], ECX [64-95], EDX [96-127]
+	    RAWR_BITFIELD_W(cpuid_leaf_7_0, byw16, ru32,
+	    (
+	        // --- EAX (Word 0: bits 0-31) ---
+	        (max_sub_leaf,         0, 32), // Reports the maximum supported sub-leaf of leaf 7
+	
+	        // --- EBX (Word 1: bits 32-63) ---
+	        (fsgsbase,            32, 1, bool),
+	        (ia32_tsc_adjust,     33, 1, bool),
+	        (sgx,                 34, 1, bool),
+	        (bmi1,                35, 1, bool),
+	        (hle,                 36, 1, bool),
+	        (avx2,                37, 1, bool),
+	        (fdp_excptn_only,     38, 1, bool),
+	        (smep,                39, 1, bool),
+	        (bmi2,                40, 1, bool),
+	        (erms,                41, 1, bool),
+	        (invpcid,             42, 1, bool),
+	        (rtm,                 43, 1, bool),
+	        (rdt_m,               44, 1, bool),
+	        (deprecated_fpu,      45, 1, bool), // FPU CS/DS deprecated
+	        (mpx,                 46, 1, bool),
+	        (pqe,                 47, 1, bool),
+	        (avx512f,             48, 1, bool),
+	        (avx512dq,            49, 1, bool),
+	        (rdseed,              50, 1, bool),
+	        (adx,                 51, 1, bool),
+	        (smap,                52, 1, bool),
+	        (avx512_ifma,         53, 1, bool),
+	        (pcommit,             54, 1, bool),
+	        (clflushopt,          55, 1, bool),
+	        (clwb,                56, 1, bool),
+	        (intel_pt,            57, 1, bool),
+	        (avx512pf,            58, 1, bool),
+	        (avx512er,            59, 1, bool),
+	        (avx512cd,            60, 1, bool),
+	        (sha,                 61, 1, bool),
+	        (avx512bw,            62, 1, bool),
+	        (avx512vl,            63, 1, bool),
+	
+	        // --- ECX (Word 2: bits 64-95) ---
+	        (prefetchwt1,         64, 1, bool),
+	        (avx512_vbmi,         65, 1, bool),
+	        (umip,                66, 1, bool),
+	        (pku,                 67, 1, bool),
+	        (ospke,               68, 1, bool),
+	        (waitpkg,             69, 1, bool),
+	        (avx512_vbmi2,        70, 1, bool),
+	        (cet_ss,              71, 1, bool),
+	        (gfni,                72, 1, bool),
+	        (vaes,                73, 1, bool),
+	        (vpclmulqdq,          74, 1, bool),
+	        (avx512_vnni,         75, 1, bool),
+	        (avx512_bitalg,       76, 1, bool),
+	        (tme_en,              77, 1, bool),
+	        (avx512_vpopcntdq,    78, 1, bool),
+	        // Bit 15 (79) reserved
+	        (la57,                80, 1, bool),
+	        (mawau,               81, 5), // Bits 17-21
+	        (rdpid,               86, 1, bool), // Bit 22
+	        (kl,                  87, 1, bool),
+	        (bus_lock_detect,     88, 1, bool),
+	        (cldemote,            89, 1, bool),
+	        // Bit 26 (90) reserved
+	        (movdiri,             91, 1, bool),
+	        (movdir64b,           92, 1, bool),
+	        (enqcmd,              93, 1, bool),
+	        (sgx_lc,              94, 1, bool),
+	        (pks,                 95, 1, bool),
+	
+	        // --- EDX (Word 3: bits 96-127) ---
+	        // Bits 0-1 (96-97) reserved
+	        (avx512_4vnniw,       98, 1, bool),
+	        (avx512_4fmaps,       99, 1, bool),
+	        (fsrm,               100, 1, bool),
+	        (uintr,              101, 1, bool),
+	        // Bits 6-7 (102-103) reserved
+	        (avx512_vp2intersect,104, 1, bool),
+	        (srbds_ctrl,         105, 1, bool),
+	        (md_clear,           106, 1, bool),
+	        (rtm_always_abort,   107, 1, bool),
+	        // Bit 12 (108) reserved
+	        (tsx_force_abort,    109, 1, bool),
+	        (serialize,          110, 1, bool),
+	        (hybrid,             111, 1, bool),
+	        (tsxldtrk,           112, 1, bool),
+	        // Bit 17 (113) reserved
+	        (pconfig,            114, 1, bool),
+	        (lbr,                115, 1, bool),
+	        (cet_ibt,            116, 1, bool),
+	        // Bit 21 (117) reserved
+	        (amx_bf16,           118, 1, bool),
+	        (avx512_fp16,        119, 1, bool),
+	        (amx_tile,           120, 1, bool),
+	        (amx_int8,           121, 1, bool),
+	        (ibrs_ibpb,          122, 1, bool),
+	        (stibp,              123, 1, bool),
+	        (l1d_flush,          124, 1, bool),
+	        (ia32_arch_cap,      125, 1, bool),
+	        (ia32_core_cap,      126, 1, bool),
+	        (ssbd,               127, 1, bool)
+	    ), (
+	        [[nodiscard]] constexpr auto eax() { return storage[0]; }
+	        [[nodiscard]] constexpr auto ebx() { return storage[1]; }
+	        [[nodiscard]] constexpr auto ecx() { return storage[2]; }
+	        [[nodiscard]] constexpr auto edx() { return storage[3]; }
+	    ));
+	}
+
+#if !defined(RAWR_AMALGAM_NO_SECTIONS) || !RAWR_AMALGAM_NO_SECTIONS
+	#pragma endsection "rawr/arch/x64/cpuid.cppm"
+#endif
+#if !RAWR_AMALGAM_NO_SECTIONS
+	#pragma section "rawr/arch/x64/simd.cppm"
+#endif
+	#if !defined(RAWR_AMALGAM_NO_SOURCE_MAPPING) || !RAWR_AMALGAM_NO_SOURCE_MAPPING
+		#line 1 "rawr/arch/x64/simd.hpp"
+	#endif
+	#include "rawr.amalgam.hpp"
+	#include "rawr.amalgam.hpp"
+	#include "rawr.amalgam.hpp"
+	#include "rawr.amalgam.hpp"
+	#include "rawr.amalgam.hpp"
+	
+	// MSVC is quite picky about intrinsics, you have to *declare* them.
+	// Its also very picky about the names of the types involved.
+	// Somehow its not picky about whether or not they are namespaced.
+	namespace rawr::arch::x64::msvc
+	{
+	    union RAWR_DECLSPEC(intrin_type) alignas(16) __m128 {
+	        rawr::ru8  ru8 [16];
+	        rawr::rs8  rs8 [16];
+	        rawr::ru16 ru16[8];
+	        rawr::rs16 rs16[8];
+	        rawr::ru32 ru32[4];
+	        rawr::rs32 rs32[4];
+	        rawr::rf32 rf32[4];
+	        rawr::ru64 ru64[2];
+	        rawr::rs64 rs64[2];
+	        rawr::rf64 rf64[2];
+	    };
+	    using __m128i = __m128;
+	    using __m128d = __m128;
+	
+	    union RAWR_DECLSPEC(intrin_type) alignas(32) __m256 {
+	        rawr::ru8  ru8 [32];
+	        rawr::rs8  rs8 [32];
+	        rawr::ru16 ru16[16];
+	        rawr::rs16 rs16[16];
+	        rawr::ru32 ru32[8];
+	        rawr::rs32 rs32[8];
+	        rawr::rf32 rf32[8];
+	        rawr::ru64 ru64[4];
+	        rawr::rs64 rs64[4];
+	        rawr::rf64 rf64[4];
+	    };
+	    using __m256i = __m256;
+	    using __m256d = __m256;
+	
+	    union RAWR_DECLSPEC(intrin_type) alignas(64) __m512 {
+	        rawr::ru8  ru8 [64];
+	        rawr::rs8  rs8 [64];
+	        rawr::ru16 ru16[32];
+	        rawr::rs16 rs16[32];
+	        rawr::ru32 ru32[16];
+	        rawr::rs32 rs32[16];
+	        rawr::rf32 rf32[16];
+	        rawr::ru64 ru64[8];
+	        rawr::rs64 rs64[8];
+	        rawr::rf64 rf64[8];
+	    };
+	    using __m512i = __m512;
+	    using __m512d = __m512;
+	
+	    // These HAVE to be declared exactly like this, otherwise MSVC
+	    // complains. The text needs to be EXACTLY this, you can't alias
+	    // type names or have the type be a struct instead of an union or
+	    // anything like that either.
+	    RAWR_MSVC_INTRIN(RAWR_ARCH_X64, _mm_add_epi32, (__m128i, __m128i) -> __m128i);
+	}
+	
+	namespace rawr::arch::x64::gnu
+	{
+	    RAWR_ALWAYS_INLINE constexpr auto add_u32x4(simd::storage::ru32x4 lhs, simd::storage::ru32x4 rhs) -> simd::storage::ru32x4
+	    RAWR_GNU({ return { lhs.lanes + rhs.lanes }; });
+	}
+	
+	namespace rawr::arch::x64::sse
+	{
+	    namespace soft
+	    {
+	        template <compilers C = this_compiler, archs A = this_arch>
+	        RAWR_ALWAYS_INLINE constexpr auto add_u32x4(simd::storage::ru32x4 lhs, simd::storage::ru32x4 rhs) -> simd::storage::ru32x4
+	        {
+	            simd::storage::ru32x4 ret{};
+	            for(auto i = 0; i < 4; ++i)
+	            { ret.lanes[i] = lhs.lanes[i] + rhs.lanes[i]; }
+	            return ret;
+	        }
+	    }
+	
+	    template <compilers C = this_compiler, archs A = this_arch>
+	    RAWR_ALWAYS_INLINE constexpr auto add_u32x4(simd::storage::ru32x4 lhs, simd::storage::ru32x4 rhs) -> simd::storage::ru32x4
+	    {
+	        if constexpr(!this_arch.is_x64()) {
+	            static_assert("Unimplemented");
+	            return dummy_return{};
+	        } else if constexpr(this_compiler.is_gnu()) {
+	            return gnu::add_u32x4(lhs, rhs);
+	        } else if constexpr(this_compiler.is_msvc()) {
+	            if(intrin::is_consteval()) { return soft::add_u32x4(lhs, rhs); }
+	            auto val = msvc::_mm_add_epi32(
+	                reinterpret_cast<msvc::__m128&>(lhs),
+	                reinterpret_cast<msvc::__m128&>(rhs)
+	            );
+	            return reinterpret_cast<simd::storage::ru32x4&>(val);
+	        }
+	    }
+	}
+
+#if !defined(RAWR_AMALGAM_NO_SECTIONS) || !RAWR_AMALGAM_NO_SECTIONS
+	#pragma endsection "rawr/arch/x64/simd.cppm"
+#endif
+#if !RAWR_AMALGAM_NO_SECTIONS
+	#pragma section "rawr/diag/dwarf.cppm"
+#endif
+	#if !defined(RAWR_AMALGAM_NO_SOURCE_MAPPING) || !RAWR_AMALGAM_NO_SOURCE_MAPPING
+		#line 1 "rawr/diag/dwarf.hpp"
 	#endif
 	#include "rawr.amalgam.hpp"
 	#include "rawr.amalgam.hpp"
 	
-	namespace rawr::inline lib::diag::dwarf
+	namespace rawr::diag::dwarf
 	{
 	    enum class x64_reg : unsigned char {
 	        rax = 0,  rdx = 1,  rcx = 2,  rbx = 3,  rsi = 4,  rdi = 5,
@@ -5169,7 +6776,7 @@
 	    template <rawr::archs A = this_arch>
 	    RAWR_ALWAYS_INLINE void mark_unwind_root()
 	    {
-	        #if RAWR_HAS_CFI_ASM && RAWR_HAS_EXCEPTIONS
+	        #if RAWR_CXXFEATURE_HAS_CFI_ASM && RAWR_CXXFEATURE_HAS_EXCEPTIONS
 	                 if constexpr(A.is_x64())     { asm volatile(".cfi_undefined 16"); }
 	            else if constexpr(A.is_arm64())   { asm volatile(".cfi_undefined 30"); }
 	            else if constexpr(A.is_riscv64()) { asm volatile(".cfi_undefined 1"); }
@@ -5178,14 +6785,14 @@
 	    }
 	}
 
-#if !RAWR_AMALGAM_NO_SECTIONS
-	#pragma endsection "rawr/lib/diag/dwarf.cppm"
+#if !defined(RAWR_AMALGAM_NO_SECTIONS) || !RAWR_AMALGAM_NO_SECTIONS
+	#pragma endsection "rawr/diag/dwarf.cppm"
 #endif
 #if !RAWR_AMALGAM_NO_SECTIONS
-	#pragma section "rawr/lib/intrin/math.cppm"
+	#pragma section "rawr/intrin/math.cppm"
 #endif
-	#if !RAWR_AMALGAM_NO_SOURCE_MAPPING
-		#line 1 "rawr/lib/intrin/math.hpp"
+	#if !defined(RAWR_AMALGAM_NO_SOURCE_MAPPING) || !RAWR_AMALGAM_NO_SOURCE_MAPPING
+		#line 1 "rawr/intrin/math.hpp"
 	#endif
 	#include "rawr.amalgam.hpp"
 	#include "rawr.amalgam.hpp"
@@ -5193,21 +6800,20 @@
 	#include "rawr.amalgam.hpp"
 	#include "rawr.amalgam.hpp"
 	
-	
 	#define RAWR_ASSERTION(...) // Dummy for now.
 	
-	namespace rawr::inline lib::intrin::inline math::msvc
+	namespace rawr::intrin::inline math::msvc
 	{
 	    using rulong = RAWR_MSVC_ELSE(unsigned long, ru32);
 	
-	    RAWR_MSVC_INTRIN(1,             __popcnt16, (ru16) -> ru16);
-	    RAWR_MSVC_INTRIN(1,             __popcnt,   (ru32) -> ru32);
-	    RAWR_MSVC_INTRIN(RAWR_IS_64BIT, __popcnt64, (ru64) -> ru64);
+	    RAWR_MSVC_INTRIN(1,                 __popcnt16, (ru16) -> ru16);
+	    RAWR_MSVC_INTRIN(1,                 __popcnt,   (ru32) -> ru32);
+	    RAWR_MSVC_INTRIN(RAWR_ABI_DM_PTR64, __popcnt64, (ru64) -> ru64);
 	
-	    RAWR_MSVC_INTRIN(1,             _BitScanReverse,   (rulong*, rulong) -> ru8);
-	    RAWR_MSVC_INTRIN(RAWR_IS_64BIT, _BitScanReverse64, (rulong*, ru64)   -> ru8);
-	    RAWR_MSVC_INTRIN(1,             _BitScanForward,   (rulong*, rulong) -> ru8);
-	    RAWR_MSVC_INTRIN(RAWR_IS_64BIT, _BitScanForward64, (rulong*, ru64)   -> ru8);
+	    RAWR_MSVC_INTRIN(1,                 _BitScanReverse,   (rulong*, rulong) -> ru8);
+	    RAWR_MSVC_INTRIN(RAWR_ABI_DM_PTR64, _BitScanReverse64, (rulong*, ru64)   -> ru8);
+	    RAWR_MSVC_INTRIN(1,                 _BitScanForward,   (rulong*, rulong) -> ru8);
+	    RAWR_MSVC_INTRIN(RAWR_ABI_DM_PTR64, _BitScanForward64, (rulong*, ru64)   -> ru8);
 	
 	    RAWR_MSVC_INTRIN(1, _byteswap_ushort, (ru16)   -> ru16);
 	    RAWR_MSVC_INTRIN(1, _byteswap_ulong,  (rulong) -> rulong);
@@ -5222,14 +6828,14 @@
 	    RAWR_MSVC_INTRIN(RAWR_ARCH_X64, _mul128,  (rs64, rs64, rs64*)       -> rs64);
 	    RAWR_MSVC_INTRIN(RAWR_ARCH_X64, _udiv128, (ru64, ru64, ru64, ru64*) -> ru64);
 	
-	    RAWR_MSVC_INTRIN(RAWR_ARCH_X86, _addcarry_u32,  (ru8, ru32, ru32, ru32*) -> ru8);
+	    RAWR_MSVC_INTRIN(RAWR_ARCH_IA32, _addcarry_u32,  (ru8, ru32, ru32, ru32*) -> ru8);
 	    RAWR_MSVC_INTRIN(RAWR_ARCH_X64, _addcarry_u64,  (ru8, ru64, ru64, ru64*) -> ru8);
-	    RAWR_MSVC_INTRIN(RAWR_ARCH_X86, _subborrow_u32, (ru8, ru32, ru32, ru32*) -> ru8);
+	    RAWR_MSVC_INTRIN(RAWR_ARCH_IA32, _subborrow_u32, (ru8, ru32, ru32, ru32*) -> ru8);
 	    RAWR_MSVC_INTRIN(RAWR_ARCH_X64, _subborrow_u64, (ru8, ru64, ru64, ru64*) -> ru8);
 	}
 	
 	// GNU builtin wrappers for popcount, clz, ctz, bswap.
-	namespace rawr::inline lib::intrin::inline math::gnu
+	namespace rawr::intrin::inline math::gnu
 	{
 	    template <RAint Raw>
 	    RAWR_ALWAYS_INLINE constexpr auto popcount(Raw val) noexcept -> Raw
@@ -5275,7 +6881,7 @@
 	}
 	
 	// popcount and family.
-	namespace rawr::inline lib::intrin::inline math
+	namespace rawr::intrin::inline math
 	{
 	    namespace soft
 	    {
@@ -5310,7 +6916,7 @@
 	    template <RAint Raw>
 	    [[nodiscard]] constexpr auto popcount(Raw val) noexcept -> Raw
 	    {
-	        if constexpr(this_compiler.is_family_gnu()) {
+	        if constexpr(this_compiler.is_gnu()) {
 	            return gnu::popcount(val);
 	        } else if constexpr(this_compiler.is_msvc()) {
 	            if (intrin::is_consteval()) return soft::popcount(val);
@@ -5319,7 +6925,7 @@
 	            else if constexpr (sizeof(Raw) == 4) { return static_cast<Raw>(msvc::__popcnt  (static_cast<ru32>(uval))); }
 	            else {
 	                // __popcnt64 is not available on 32-bit x86; split into two 32-bit calls.
-	                if constexpr(this_is_64bit) { return static_cast<Raw>(msvc::__popcnt64(static_cast<ru64>(uval))); }
+	                if constexpr(this_abi_dm.is_ptr64()) { return static_cast<Raw>(msvc::__popcnt64(static_cast<ru64>(uval))); }
 	                else {
 	                    return static_cast<Raw>(
 	                        msvc::__popcnt(static_cast<ru32>(uval)) +
@@ -5335,7 +6941,7 @@
 	    template <RAint Raw>
 	    [[nodiscard]] constexpr auto leading_zeros(Raw val) noexcept -> Raw
 	    {
-	        if constexpr(this_compiler.is_family_gnu()) {
+	        if constexpr(this_compiler.is_gnu()) {
 	            return gnu::leading_zeros(val);
 	        } else if constexpr(this_compiler.is_msvc()) {
 	            using URaw = ruint_of<Raw>;
@@ -5349,7 +6955,7 @@
 	                return static_cast<Raw>(31u - index - (32u - static_cast<unsigned int>(bits)));
 	            } else {
 	                // _BitScanReverse64 not available on 32-bit x86; split into two halves.
-	                if constexpr(this_is_64bit) {
+	                if constexpr(this_abi_dm.is_ptr64()) {
 	                    msvc::_BitScanReverse64(&index, static_cast<ru64>(uval));
 	                    return static_cast<Raw>(63u - index);
 	                } else {
@@ -5367,7 +6973,7 @@
 	    template <RAint Raw>
 	    [[nodiscard]] constexpr auto trailing_zeros(Raw val) noexcept -> Raw
 	    {
-	        if constexpr(this_compiler.is_family_gnu()) {
+	        if constexpr(this_compiler.is_gnu()) {
 	            return gnu::trailing_zeros(val);
 	        } else if constexpr(this_compiler.is_msvc()) {
 	            using URaw = ruint_of<Raw>;
@@ -5380,7 +6986,7 @@
 	                msvc::_BitScanForward(&index, static_cast<msvc::rulong>(uval));
 	            } else {
 	                // _BitScanForward64 not available on 32-bit x86; split into two halves.
-	                if constexpr(this_is_64bit) {
+	                if constexpr(this_abi_dm.is_ptr64()) {
 	                    msvc::_BitScanForward64(&index, static_cast<ru64>(uval));
 	                } else {
 	                    auto const lo = static_cast<msvc::rulong>(uval);
@@ -5403,7 +7009,7 @@
 	}
 	
 	// Byte-swap and rotation.
-	namespace rawr::inline lib::intrin::inline math
+	namespace rawr::intrin::inline math
 	{
 	    namespace soft
 	    {
@@ -5458,7 +7064,7 @@
 	    template <RUint Raw>
 	    [[nodiscard]] RAWR_ALWAYS_INLINE constexpr auto bswap(Raw val) noexcept -> Raw
 	    {
-	        if constexpr(this_compiler.is_family_gnu()) {
+	        if constexpr(this_compiler.is_gnu()) {
 	            return gnu::bswap(val);
 	        } else if constexpr(this_compiler.is_msvc()) {
 	            if (intrin::is_consteval()) { return soft::bswap(val); }
@@ -5479,7 +7085,7 @@
 	    template <RUint Raw>
 	    [[nodiscard]] RAWR_ALWAYS_INLINE constexpr auto rotl(Raw val, int n) noexcept -> Raw
 	    {
-	        if constexpr(this_compiler.is_family_gnu()) {
+	        if constexpr(this_compiler.is_gnu()) {
 	            return soft::rotl(val, n);
 	        } else if constexpr(this_compiler.is_msvc()) {
 	            if (intrin::is_consteval()) { return soft::rotl(val, n); }
@@ -5497,7 +7103,7 @@
 	    template <RUint Raw>
 	    [[nodiscard]] RAWR_ALWAYS_INLINE constexpr auto rotr(Raw val, int n) noexcept -> Raw
 	    {
-	        if constexpr(this_compiler.is_family_gnu()) {
+	        if constexpr(this_compiler.is_gnu()) {
 	            return soft::rotr(val, n);
 	        } else if constexpr(this_compiler.is_msvc()) {
 	            if (intrin::is_consteval()) { return soft::rotr(val, n); }
@@ -5516,7 +7122,7 @@
 	// umul64 and udiv128_64 — types and soft:: only.
 	// gnu:: wrappers follow, then public functions, to respect the ordering constraint
 	// (gnu:: return types must be defined before the wrapper declarations).
-	namespace rawr::inline lib::intrin::inline math
+	namespace rawr::intrin::inline math
 	{
 	    struct ru64_pair {
 	        ru64 hi = 0;
@@ -5583,10 +7189,10 @@
 	    }
 	}
 	
-	namespace rawr::inline lib::intrin::inline math::gnu
+	namespace rawr::intrin::inline math::gnu
 	{
 	    RAWR_ALWAYS_INLINE constexpr auto umul64(ru64 lhs, ru64 rhs) noexcept -> ru64_pair
-	    RAWR_GNU_AND(RAWR_HAS_INT128, {
+	    RAWR_GNU_AND(RAWR_INTEGER_HAS_INT128, {
 	        ru128 ret = static_cast<ru128>(lhs) * rhs;
 	        return {
 	            .hi = static_cast<ru64>(ret >> bitsof<ru64>.val),
@@ -5595,7 +7201,7 @@
 	    });
 	
 	    RAWR_ALWAYS_INLINE constexpr auto udiv128_64(ru64_pair ru64s, ru64 divisor) noexcept -> u128_div_result
-	    RAWR_GNU_AND(RAWR_HAS_INT128, {
+	    RAWR_GNU_AND(RAWR_INTEGER_HAS_INT128, {
 	        ru128 num = (static_cast<ru128>(ru64s.hi) << bitsof<ru64>.val) | ru64s.lo;
 	        return {
 	            .quot = static_cast<ru64>(num / divisor),
@@ -5604,12 +7210,12 @@
 	    });
 	}
 	
-	namespace rawr::inline lib::intrin::inline math
+	namespace rawr::intrin::inline math
 	{
 	    // Full unsigned 64 x 64 -> 128 product.
 	    constexpr auto umul64(ru64 lhs, ru64 rhs) noexcept -> ru64_pair
 	    {
-	        if constexpr(this_compiler.is_family_gnu() && this_has_int128) {
+	        if constexpr(this_compiler.is_gnu() && this_has_int128) {
 	            return gnu::umul64(lhs, rhs);
 	        } else if constexpr(this_compiler.is_msvc() && this_arch.is_x64()) {
 	            if (intrin::is_consteval()) { return soft::umul64(lhs, rhs); }
@@ -5626,7 +7232,7 @@
 	        RAWR_ASSERTION(divisor_is_zero, divisor != 0);
 	        RAWR_ASSERTION(div128_overflow, ru64s.hi < divisor);
 	
-	        if constexpr(this_compiler.is_family_gnu() && this_has_int128) {
+	        if constexpr(this_compiler.is_gnu() && this_has_int128) {
 	            return gnu::udiv128_64(ru64s, divisor);
 	        } else if constexpr(this_compiler.is_msvc() && this_arch.is_x64()) {
 	            if (intrin::is_consteval()) { return soft::udiv128_64(ru64s, divisor); }
@@ -5641,7 +7247,7 @@
 	
 	// Overflow arithmetic — ov_result and soft:: only.
 	// gnu:: wrappers follow, then public functions.
-	namespace rawr::inline lib::intrin::inline math
+	namespace rawr::intrin::inline math
 	{
 	    // Unconstrained deliberately — see note above. It's a passive holder;
 	    // constraining T against `Aint` here is what caused the CRTP hazard.
@@ -5721,7 +7327,7 @@
 	    }
 	}
 	
-	namespace rawr::inline lib::intrin::inline math::gnu
+	namespace rawr::intrin::inline math::gnu
 	{
 	    template <RAint Raw>
 	    RAWR_ALWAYS_INLINE constexpr auto ov_add(Raw lhs, Raw rhs) noexcept -> ov_result<Raw>
@@ -5748,18 +7354,18 @@
 	    });
 	}
 	
-	namespace rawr::inline lib::intrin::inline math
+	namespace rawr::intrin::inline math
 	{
 	    template <RAint Raw>
 	    [[nodiscard]] constexpr auto ov_add(Raw lhs, Raw rhs) noexcept -> ov_result<Raw>
 	    {
-	        if constexpr(this_compiler.is_family_gnu()) {
+	        if constexpr(this_compiler.is_gnu()) {
 	            return gnu::ov_add(lhs, rhs);
 	        } else if constexpr(this_compiler.is_msvc()) {
 	            if (intrin::is_consteval()) return soft::ov_add(lhs, rhs);
 	            if constexpr (sizeof(Raw) == 4) {
 	                // _addcarry_u32 is x86-only (32-bit); on x64 the soft path is taken.
-	                if constexpr(this_arch.is_x86()) {
+	                if constexpr(this_arch.is_ia32()) {
 	                    ru32 result_;
 	                    ru8 const carry = msvc::_addcarry_u32(0, static_cast<ru32>(lhs), static_cast<ru32>(rhs), &result_);
 	                    Raw const result = static_cast<Raw>(result_);
@@ -5784,13 +7390,13 @@
 	    template <RAint Raw>
 	    [[nodiscard]] constexpr auto ov_sub(Raw lhs, Raw rhs) noexcept -> ov_result<Raw>
 	    {
-	        if constexpr(this_compiler.is_family_gnu()) {
+	        if constexpr(this_compiler.is_gnu()) {
 	            return gnu::ov_sub(lhs, rhs);
 	        } else if constexpr(this_compiler.is_msvc()) {
 	            if (intrin::is_consteval()) return soft::ov_sub(lhs, rhs);
 	            if constexpr (sizeof(Raw) == 4) {
 	                // _subborrow_u32 is x86-only (32-bit); on x64 the soft path is taken.
-	                if constexpr(this_arch.is_x86()) {
+	                if constexpr(this_arch.is_ia32()) {
 	                    ru32 result_;
 	                    ru8 const carry = msvc::_subborrow_u32(0, static_cast<ru32>(lhs), static_cast<ru32>(rhs), &result_);
 	                    Raw const result = static_cast<Raw>(result_);
@@ -5815,7 +7421,7 @@
 	    template <RAint Raw>
 	    [[nodiscard]] constexpr auto ov_mul(Raw lhs, Raw rhs) noexcept -> ov_result<Raw>
 	    {
-	        if constexpr(this_compiler.is_family_gnu()) {
+	        if constexpr(this_compiler.is_gnu()) {
 	            return gnu::ov_mul(lhs, rhs);
 	        } else if constexpr(this_compiler.is_msvc()) {
 	            if constexpr (sizeof(Raw) <= 4) { return soft::ov_mul(lhs, rhs); }
@@ -5840,14 +7446,14 @@
 	    }
 	}
 
-#if !RAWR_AMALGAM_NO_SECTIONS
-	#pragma endsection "rawr/lib/intrin/math.cppm"
+#if !defined(RAWR_AMALGAM_NO_SECTIONS) || !RAWR_AMALGAM_NO_SECTIONS
+	#pragma endsection "rawr/intrin/math.cppm"
 #endif
 #if !RAWR_AMALGAM_NO_SECTIONS
-	#pragma section "rawr/lib/intrin/mem.cppm"
+	#pragma section "rawr/intrin/mem.cppm"
 #endif
-	#if !RAWR_AMALGAM_NO_SOURCE_MAPPING
-		#line 1 "rawr/lib/intrin/mem.hpp"
+	#if !defined(RAWR_AMALGAM_NO_SOURCE_MAPPING) || !RAWR_AMALGAM_NO_SOURCE_MAPPING
+		#line 1 "rawr/intrin/mem.hpp"
 	#endif
 	#include "rawr.amalgam.hpp"
 	#include "rawr.amalgam.hpp"
@@ -5855,7 +7461,7 @@
 	#include "rawr.amalgam.hpp"
 	#include "rawr.amalgam.hpp"
 	
-	namespace rawr::inline lib::intrin::inline mem::msvc
+	namespace rawr::intrin::inline mem::msvc
 	{
 	    RAWR_MSVC_INTRIN(1, memcpy,  (void*,       void const*, rst) -> void*);
 	    RAWR_MSVC_INTRIN(1, memset,  (void*,       int, rst)         -> void*);
@@ -5863,7 +7469,7 @@
 	    RAWR_MSVC_INTRIN(1, memcmp,  (void const*, void const*, rst) -> int);
 	}
 	
-	namespace rawr::inline lib::intrin::inline mem::gnu
+	namespace rawr::intrin::inline mem::gnu
 	{
 	                  RAWR_ALWAYS_INLINE constexpr auto memcpy (void* d,       void const* s, rst n) noexcept -> void* RAWR_GNU({ return ::__builtin_memcpy (d, s, n); });
 	                  RAWR_ALWAYS_INLINE           auto memset (void* d,       int v,         rst n) noexcept -> void* RAWR_GNU({ return ::__builtin_memset (d, v, n); });
@@ -5872,7 +7478,7 @@
 	}
 	
 	// Memory intrinsics.
-	namespace rawr::inline lib::intrin::inline mem
+	namespace rawr::intrin::inline mem
 	{
 	    namespace soft
 	    {
@@ -5930,44 +7536,44 @@
 	    template <typename Dst, typename Src>
 	    RAWR_ALWAYS_INLINE constexpr auto memcpy(Dst* dst, Src const* src, rst n) noexcept -> void*
 	    {
-	        if (intrin::is_consteval())                      { return soft::memcpy(dst, src, n); }
-	             if constexpr(this_compiler.is_family_gnu()) { return  gnu::memcpy(dst, src, n); }
-	        else if constexpr(this_compiler.is_msvc())       { return msvc::memcpy(dst, src, n); }
-	        else                                             { return soft::memcpy(dst, src, n); }
+	        if (intrin::is_consteval())                { return soft::memcpy(dst, src, n); }
+	             if constexpr(this_compiler.is_gnu())  { return  gnu::memcpy(dst, src, n); }
+	        else if constexpr(this_compiler.is_msvc()) { return msvc::memcpy(dst, src, n); }
+	        else                                       { return soft::memcpy(dst, src, n); }
 	    }
 	
 	    RAWR_ALWAYS_INLINE constexpr auto memset(void* dst, int val, rst n) noexcept -> void*
 	    {
-	        if (intrin::is_consteval())                      { return soft::memset(dst, val, n); }
-	             if constexpr(this_compiler.is_family_gnu()) { return  gnu::memset(dst, val, n); }
-	        else if constexpr(this_compiler.is_msvc())       { return msvc::memset(dst, val, n); }
-	        else                                             { return soft::memset(dst, val, n); }
+	        if (intrin::is_consteval())                { return soft::memset(dst, val, n); }
+	             if constexpr(this_compiler.is_gnu())  { return  gnu::memset(dst, val, n); }
+	        else if constexpr(this_compiler.is_msvc()) { return msvc::memset(dst, val, n); }
+	        else                                       { return soft::memset(dst, val, n); }
 	    }
 	
 	    RAWR_ALWAYS_INLINE constexpr auto memmove(void* dst, void const* src, rst n) noexcept -> void*
 	    {
-	        if (intrin::is_consteval())                      { return soft::memmove(dst, src, n); }
-	             if constexpr(this_compiler.is_family_gnu()) { return  gnu::memmove(dst, src, n); }
-	        else if constexpr(this_compiler.is_msvc())       { return msvc::memmove(dst, src, n); }
-	        else                                             { return soft::memmove(dst, src, n); }
+	        if (intrin::is_consteval())                { return soft::memmove(dst, src, n); }
+	             if constexpr(this_compiler.is_gnu())  { return  gnu::memmove(dst, src, n); }
+	        else if constexpr(this_compiler.is_msvc()) { return msvc::memmove(dst, src, n); }
+	        else                                       { return soft::memmove(dst, src, n); }
 	    }
 	
 	    [[nodiscard]] RAWR_ALWAYS_INLINE constexpr auto memcmp(void const* lhs, void const* rhs, rst n) noexcept -> int
 	    {
-	        if (intrin::is_consteval())                      { return soft::memcmp(lhs, rhs, n); }
-	             if constexpr(this_compiler.is_family_gnu()) { return  gnu::memcmp(lhs, rhs, n); }
-	        else if constexpr(this_compiler.is_msvc())       { return msvc::memcmp(lhs, rhs, n); }
-	        else                                             { return soft::memcmp(lhs, rhs, n); }
+	        if (intrin::is_consteval())                { return soft::memcmp(lhs, rhs, n); }
+	             if constexpr(this_compiler.is_gnu())  { return  gnu::memcmp(lhs, rhs, n); }
+	        else if constexpr(this_compiler.is_msvc()) { return msvc::memcmp(lhs, rhs, n); }
+	        else                                       { return soft::memcmp(lhs, rhs, n); }
 	    }
 	}
 
-#if !RAWR_AMALGAM_NO_SECTIONS
-	#pragma endsection "rawr/lib/intrin/mem.cppm"
+#if !defined(RAWR_AMALGAM_NO_SECTIONS) || !RAWR_AMALGAM_NO_SECTIONS
+	#pragma endsection "rawr/intrin/mem.cppm"
 #endif
 #if !RAWR_AMALGAM_NO_SECTIONS
 	#pragma section "rawr/platform/linux.cppm"
 #endif
-	#if !RAWR_AMALGAM_NO_SOURCE_MAPPING
+	#if !defined(RAWR_AMALGAM_NO_SOURCE_MAPPING) || !RAWR_AMALGAM_NO_SOURCE_MAPPING
 		#line 1 "rawr/platform/linux.hpp"
 	#endif
 	#include "rawr.amalgam.hpp"
@@ -6206,7 +7812,7 @@
 	
 	namespace rawr::platform::linux::x64::syscall
 	{
-	    #if RAWR_PLATFORM_LINUX && RAWR_ARCH_X64 && RAWR_COMPILER_FAMILY_GNU
+	    #if RAWR_PLATFORM_LINUX && RAWR_ARCH_X64 && RAWR_COMPILER_GNU
 	        #define RAWR_PLATFORM_LINUX_X64_SYSCALL_GATED_BODY(...) \
 	            __VA_ARGS__;
 	    #else
@@ -6304,519 +7910,55 @@
 	    }
 	}
 
-#if !RAWR_AMALGAM_NO_SECTIONS
+#if !defined(RAWR_AMALGAM_NO_SECTIONS) || !RAWR_AMALGAM_NO_SECTIONS
 	#pragma endsection "rawr/platform/linux.cppm"
 #endif
 #if !RAWR_AMALGAM_NO_SECTIONS
-	#pragma section "rawr/lib/hash.cppm"
+	#pragma section "rawr/abi/cc.cppm"
 #endif
-	#if !RAWR_AMALGAM_NO_SOURCE_MAPPING
-		#line 1 "rawr/lib/hash.hpp"
-	#endif
-	#include "rawr.amalgam.hpp"
-
-#if !RAWR_AMALGAM_NO_SECTIONS
-	#pragma endsection "rawr/lib/hash.cppm"
-#endif
-#if !RAWR_AMALGAM_NO_SECTIONS
-	#pragma section "rawr/arch/x64/atomic.cppm"
-#endif
-	#if !RAWR_AMALGAM_NO_SOURCE_MAPPING
-		#line 1 "rawr/arch/x64/atomic.hpp"
+	#if !defined(RAWR_AMALGAM_NO_SOURCE_MAPPING) || !RAWR_AMALGAM_NO_SOURCE_MAPPING
+		#line 1 "rawr/abi/cc.hpp"
 	#endif
 	#include "rawr.amalgam.hpp"
 	#include "rawr.amalgam.hpp"
-	#include "rawr.amalgam.hpp"
-	#include "rawr.amalgam.hpp"
-	#include "rawr.amalgam.hpp"
-	
-	namespace rawr::arch::x64::atomic::msvc
-	{
-	    // RAWR_IS_64BIT is used instead of RAWR_ARCH_X64 because those intrinsics are also supported on arm64.
-	
-	    // MSVC intrinsics often need an exact type match, which can be a problem if you do signed char instead of
-	    // char or things like using int instead of long, even if they are the same size in that architecture.
-	    using rchar = RAWR_MSVC_ELSE(char, rs8);
-	    using rlong = RAWR_MSVC_ELSE(long, rs32);
-	
-	    RAWR_MSVC_INTRIN(1, _InterlockedCompareExchange8,  (rchar volatile*, rchar, rchar) -> rchar);
-	    RAWR_MSVC_INTRIN(1, _InterlockedCompareExchange16, (rs16  volatile*, rs16,  rs16)  -> rs16);
-	    RAWR_MSVC_INTRIN(1, _InterlockedCompareExchange,   (rlong volatile*, rlong, rlong) -> rlong);
-	    RAWR_MSVC_INTRIN(1, _InterlockedCompareExchange64, (rs64  volatile*, rs64,  rs64)  -> rs64);
-	
-	    RAWR_MSVC_INTRIN(1,             _InterlockedExchange8,  (rchar volatile*, rchar) -> rchar);
-	    RAWR_MSVC_INTRIN(1,             _InterlockedExchange16, (rs16  volatile*, rs16)  -> rs16);
-	    RAWR_MSVC_INTRIN(1,             _InterlockedExchange,   (rlong volatile*, rlong) -> rlong);
-	    RAWR_MSVC_INTRIN(RAWR_IS_64BIT, _InterlockedExchange64, (rs64  volatile*, rs64)  -> rs64);
-	
-	    RAWR_MSVC_INTRIN(1,             _InterlockedExchangeAdd8,  (rchar volatile*, rchar) -> rchar);
-	    RAWR_MSVC_INTRIN(1,             _InterlockedExchangeAdd16, (rs16  volatile*, rs16)  -> rs16);
-	    RAWR_MSVC_INTRIN(1,             _InterlockedExchangeAdd,   (rlong volatile*, rlong) -> rlong);
-	    RAWR_MSVC_INTRIN(RAWR_IS_64BIT, _InterlockedExchangeAdd64, (rs64  volatile*, rs64)  -> rs64);
-	
-	    RAWR_MSVC_INTRIN(RAWR_ARCH_FAMILY_X86, _ReadWriteBarrier, () -> void);
-	}
-	
-	namespace rawr::arch::x64::atomic::gnu
-	{
-	    // Explicit mapping, not a numeric cast: rawr::memory_order's
-	    // ordinal values do not line up with GCC's __ATOMIC_* constants
-	    // (which reserve a slot for the unused/deprecated `consume`), so
-	    // casting one to the other silently picks the wrong fence.
-	    RAWR_ALWAYS_INLINE constexpr auto to_gnu_order(sync::memory_order order) noexcept -> int
-	    RAWR_GNU({
-	        switch (order) {
-	            case sync::memory_order::relaxed: return __ATOMIC_RELAXED;
-	            case sync::memory_order::acquire: return __ATOMIC_ACQUIRE;
-	            case sync::memory_order::release: return __ATOMIC_RELEASE;
-	            case sync::memory_order::acq_rel: return __ATOMIC_ACQ_REL;
-	            default:                          return __ATOMIC_SEQ_CST;
-	        }
-	    });
-	
-	    template <RAint Type>
-	    RAWR_ALWAYS_INLINE constexpr auto atomic_compare_exchange_n(
-	        Type* ptr,
-	        Type* expected,
-	        Type  desired,
-	        bool  weak,
-	        int   success,
-	        int   failure
-	    ) -> bool RAWR_GNU({
-	        return ::__atomic_compare_exchange_n(ptr, expected, desired, weak, success, failure);
-	    });
-	
-	    template <RAint Type> RAWR_ALWAYS_INLINE constexpr auto atomic_load_n    (Type* addr,             int memorder) -> Type RAWR_GNU({ return ::__atomic_load_n(addr, memorder); });
-	    template <RAint Type> RAWR_ALWAYS_INLINE constexpr auto atomic_store_n   (Type* addr, Type val,   int memorder) -> void RAWR_GNU({ ::__atomic_store_n(addr, val, memorder); });
-	    template <RAint Type> RAWR_ALWAYS_INLINE constexpr auto atomic_fetch_add (Type* addr, Type delta, int memorder) -> Type RAWR_GNU({ return ::__atomic_fetch_add(addr, delta, memorder); });
-	    template <RAint Type> RAWR_ALWAYS_INLINE constexpr auto atomic_exchange_n(Type* addr, Type val,   int memorder) -> Type RAWR_GNU({ return ::__atomic_exchange_n(addr, val, memorder); });
-	}
-	
-	namespace rawr::arch::x64::atomic
-	{
-	    template <
-	        RAint T,
-	        sync::memory_order Success = sync::memory_order::seq_cst,
-	        sync::memory_order Failure = sync::memory_order::seq_cst
-	    >
-	    RAWR_ALWAYS_INLINE auto cas(T* addr, T& expected, T desired) noexcept -> bool
-	    {
-	        if constexpr(!this_arch.is_x64()) {
-	            static_assert(sass::fail<T>);
-	            return false;
-	        } else if constexpr(this_compiler.is_family_gnu()) {
-	            return gnu::atomic_compare_exchange_n(
-	                addr, &expected, desired, /*weak=*/true,
-	                gnu::to_gnu_order(Success), gnu::to_gnu_order(Failure));
-	        } else if constexpr(this_compiler.is_msvc()){
-	            // x64 MSVC intrinsics take no ordering argument: the LOCK-prefixed
-	            // instruction underneath is a full fence on this ISA regardless of
-	            // what was asked for (x86/x64 is TSO). Correct for every order,
-	            // including relaxed — just not as cheap as it could be for relaxed,
-	            // since these intrinsics are also full compiler barriers.
-	            using U = ruint_of<T>;
-	            U prior;
-	                 if constexpr (sizeof(T) == 1) prior = static_cast<U>(msvc::_InterlockedCompareExchange8 (reinterpret_cast<      rs8   volatile*>(addr), static_cast<      rs8>(desired),   static_cast<      rs8>(expected)));
-	            else if constexpr (sizeof(T) == 2) prior = static_cast<U>(msvc::_InterlockedCompareExchange16(reinterpret_cast<      rs16  volatile*>(addr), static_cast<      rs16>(desired),  static_cast<      rs16>(expected)));
-	            else if constexpr (sizeof(T) == 4) prior = static_cast<U>(msvc::_InterlockedCompareExchange  (reinterpret_cast<msvc::rlong volatile*>(addr), static_cast<msvc::rlong>(desired), static_cast<msvc::rlong>(expected)));
-	            else if constexpr (sizeof(T) == 8) prior = static_cast<U>(msvc::_InterlockedCompareExchange64(reinterpret_cast<      rs64  volatile*>(addr), static_cast<      rs64>(desired),  static_cast<      rs64>(expected)));
-	            else static_assert(sizeof(T) == 0, "rawr::arch::x64::cas: unsupported width");
-	
-	            bool const ok = (prior == static_cast<U>(expected));
-	            if (!ok) expected = static_cast<T>(prior);
-	            return ok;
-	        }
-	    }
-	
-	    template <RAint T, sync::memory_order Order = sync::memory_order::seq_cst>
-	    RAWR_ALWAYS_INLINE auto load(T const* addr) noexcept -> T
-	    {
-	        if constexpr(!this_arch.is_x64()) {
-	            static_assert(sass::fail<T>);
-	            return T{};
-	        } else if constexpr(this_compiler.is_family_gnu()) {
-	            return gnu::atomic_load_n(addr, gnu::to_gnu_order(Order));
-	        } else if constexpr(this_compiler.is_msvc()){
-	            // A naturally-aligned load/store of a machine word is already
-	            // atomic on x64 without any interlocked op — the cache-coherency
-	            // protocol guarantees a cache line can't tear mid-transfer. Only
-	            // a compiler barrier is needed to stop reordering across it, and
-	            // for seq_cst specifically, TSO still allows StoreLoad reordering
-	            // between an earlier store and this load, so seq_cst needs a real
-	            // fence.
-	            // No extra fence needed here for any order, including seq_cst:
-	            // store() below unconditionally routes through a LOCK-prefixed
-	            // exchange, which is what actually closes the StoreLoad-reordering
-	            // gap TSO allows. As long as every store on this word goes through
-	            // that path, a plain load + compiler barrier is sufficient here.
-	            T v = *static_cast<T const volatile*>(addr);
-	            msvc::_ReadWriteBarrier();
-	            return v;
-	        }
-	    }
-	
-	    template <RAint T, sync::memory_order Order = sync::memory_order::release>
-	    RAWR_ALWAYS_INLINE auto store(T* addr, T value) noexcept -> void
-	    {
-	        if constexpr(!this_arch.is_x64()) {
-	            static_assert(sass::fail<T>);
-	        } else if constexpr(this_compiler.is_family_gnu()) {
-	            gnu::atomic_store_n(addr, value, gnu::to_gnu_order(Order));
-	        } else if constexpr(this_compiler.is_msvc()){
-	            // Conservative on purpose: route every order through the full-fence
-	            // exchange rather than trying to hand-tune relaxed/release on TSO.
-	            // Correct for all orders, costs a touch more than a bare relaxed
-	            // store would need — see the note on cas() above for the same tradeoff.
-	                 if constexpr (sizeof(T) == 1) msvc::_InterlockedExchange8 (reinterpret_cast<      rs8   volatile*>(addr), static_cast<      rs8>(value));
-	            else if constexpr (sizeof(T) == 2) msvc::_InterlockedExchange16(reinterpret_cast<      rs16  volatile*>(addr), static_cast<      rs16>(value));
-	            else if constexpr (sizeof(T) == 4) msvc::_InterlockedExchange  (reinterpret_cast<msvc::rlong volatile*>(addr), static_cast<msvc::rlong>(value));
-	            else if constexpr (sizeof(T) == 8) msvc::_InterlockedExchange64(reinterpret_cast<      rs64  volatile*>(addr), static_cast<      rs64>(value));
-	            else static_assert(sizeof(T) == 0, "rawr::arch::x64::store: unsupported width");
-	        }
-	    }
-	
-	    template <RAint T, sync::memory_order Order = sync::memory_order::seq_cst>
-	    RAWR_ALWAYS_INLINE auto fetch_add(T* addr, T delta) noexcept -> T
-	    {
-	        if constexpr(!this_arch.is_x64()) {
-	            static_assert(sass::fail<T>);
-	            return T{};
-	        } else if constexpr(this_compiler.is_family_gnu()) {
-	            return gnu::atomic_fetch_add(addr, delta, gnu::to_gnu_order(Order));
-	        } else if constexpr(this_compiler.is_msvc()){
-	                 if constexpr (sizeof(T) == 1) return static_cast<T>(msvc::_InterlockedExchangeAdd8 (reinterpret_cast<      rs8   volatile*>(addr), static_cast<      rs8>(delta)));
-	            else if constexpr (sizeof(T) == 2) return static_cast<T>(msvc::_InterlockedExchangeAdd16(reinterpret_cast<      rs16  volatile*>(addr), static_cast<      rs16>(delta)));
-	            else if constexpr (sizeof(T) == 4) return static_cast<T>(msvc::_InterlockedExchangeAdd  (reinterpret_cast<msvc::rlong volatile*>(addr), static_cast<msvc::rlong>(delta)));
-	            else if constexpr (sizeof(T) == 8) return static_cast<T>(msvc::_InterlockedExchangeAdd64(reinterpret_cast<      rs64  volatile*>(addr), static_cast<      rs64>(delta)));
-	            else { static_assert(sizeof(T) == 0, "rawr::arch::x64::fetch_add: unsupported width"); return T{}; }
-	        }
-	    }
-	
-	    template <RAint T, sync::memory_order Order = sync::memory_order::seq_cst>
-	    RAWR_ALWAYS_INLINE auto exchange(T* addr, T value) noexcept -> T
-	    {
-	        if constexpr(!this_arch.is_x64()) {
-	            static_assert(sass::fail<T>);
-	            return T{};
-	        } else if constexpr(this_compiler.is_family_gnu()) {
-	            return gnu::atomic_exchange_n(addr, value, gnu::to_gnu_order(Order));
-	        } else if constexpr(this_compiler.is_msvc()){
-	                 if constexpr (sizeof(T) == 1) return static_cast<T>(msvc::_InterlockedExchange8 (reinterpret_cast<      rs8   volatile*>(addr), static_cast<      rs8>(value)));
-	            else if constexpr (sizeof(T) == 2) return static_cast<T>(msvc::_InterlockedExchange16(reinterpret_cast<      rs16  volatile*>(addr), static_cast<      rs16>(value)));
-	            else if constexpr (sizeof(T) == 4) return static_cast<T>(msvc::_InterlockedExchange  (reinterpret_cast<msvc::rlong volatile*>(addr), static_cast<msvc::rlong>(value)));
-	            else if constexpr (sizeof(T) == 8) return static_cast<T>(msvc::_InterlockedExchange64(reinterpret_cast<      rs64  volatile*>(addr), static_cast<      rs64>(value)));
-	            else { static_assert(sizeof(T) == 0, "rawr::arch::x64::exchange: unsupported width"); return T{}; }
-	        }
-	    }
-	}
 
-#if !RAWR_AMALGAM_NO_SECTIONS
-	#pragma endsection "rawr/arch/x64/atomic.cppm"
+#if !defined(RAWR_AMALGAM_NO_SECTIONS) || !RAWR_AMALGAM_NO_SECTIONS
+	#pragma endsection "rawr/abi/cc.cppm"
 #endif
 #if !RAWR_AMALGAM_NO_SECTIONS
-	#pragma section "rawr/lib/sync.cppm"
+	#pragma section "rawr/abi/cc/sysv.cppm"
 #endif
-	#if !RAWR_AMALGAM_NO_SOURCE_MAPPING
-		#line 1 "rawr/lib/sync.hpp"
+	#if !defined(RAWR_AMALGAM_NO_SOURCE_MAPPING) || !RAWR_AMALGAM_NO_SOURCE_MAPPING
+		#line 1 "rawr/abi/cc/sysv.hpp"
 	#endif
 	#include "rawr.amalgam.hpp"
 
-#if !RAWR_AMALGAM_NO_SECTIONS
-	#pragma endsection "rawr/lib/sync.cppm"
+#if !defined(RAWR_AMALGAM_NO_SECTIONS) || !RAWR_AMALGAM_NO_SECTIONS
+	#pragma endsection "rawr/abi/cc/sysv.cppm"
 #endif
 #if !RAWR_AMALGAM_NO_SECTIONS
-	#pragma section "rawr/san.cppm"
+	#pragma section "rawr/arch/x64.cppm"
 #endif
-	#if !RAWR_AMALGAM_NO_SOURCE_MAPPING
-		#line 1 "rawr/san.hpp"
+	#if !defined(RAWR_AMALGAM_NO_SOURCE_MAPPING) || !RAWR_AMALGAM_NO_SOURCE_MAPPING
+		#line 1 "rawr/arch/x64.hpp"
 	#endif
 	#include "rawr.amalgam.hpp"
 	#include "rawr.amalgam.hpp"
 	#include "rawr.amalgam.hpp"
-	#include "rawr.amalgam.hpp"
 
-#if !RAWR_AMALGAM_NO_SECTIONS
-	#pragma endsection "rawr/san.cppm"
+#if !defined(RAWR_AMALGAM_NO_SECTIONS) || !RAWR_AMALGAM_NO_SECTIONS
+	#pragma endsection "rawr/arch/x64.cppm"
 #endif
 #if !RAWR_AMALGAM_NO_SECTIONS
-	#pragma section "rawr/arch/x64/cpuid.cppm"
+	#pragma section "rawr/abi/cc/sysv/main.pp"
 #endif
-	#if !RAWR_AMALGAM_NO_SOURCE_MAPPING
-		#line 1 "rawr/arch/x64/cpuid.hpp"
-	#endif
-	#include "rawr.amalgam.hpp"
-	#include "rawr.amalgam.hpp"
-	#include "rawr.amalgam.hpp"
-	#include "rawr.amalgam.hpp"
-	#include "rawr.amalgam.hpp"
-	
-	namespace rawr::arch::x64::msvc
-	{
-	    RAWR_MSVC_INTRIN(RAWR_ARCH_X64, __cpuidex, (int[4], int, int) -> void);
-	}
-	
-	namespace rawr::arch::x64::gnu
-	{
-	    RAWR_TODO("__asm__ here feels like a copout, ideally there's a builtin we can call")
-	    RAWR_ALWAYS_INLINE auto ia32_cpuidext(int regs[4], int leaf, int subleaf) -> void
-	    RAWR_GNU_AND(RAWR_ARCH_X64, {
-	        __asm__ __volatile__(
-	            "cpuid"
-	            : "=a"(regs[0]), "=b"(regs[1]), "=c"(regs[2]), "=d"(regs[3])
-	            : "a"(leaf), "c"(subleaf)
-	        );
-	    });
-	}
-	
-	namespace rawr::arch::x64
-	{
-	    RAWR_TODO("This needs review for potential accidental overhead.")
-	    struct cpuid_args { ru32 leaf, subleaf; };
-	    struct cpuid_ret { ru32 regs[4]; };
-	
-	    template <typename = void>
-	    RAWR_ALWAYS_INLINE auto cpuid(cpuid_args args) -> cpuid_ret
-	    {
-	        cpuid_ret ret;
-	
-	        if constexpr(!this_arch.is_x64()) {
-	            static_assert(this_arch.is_x64());
-	        } else if constexpr(this_compiler.is_msvc()) {
-	            msvc::__cpuidex(reinterpret_cast<int*>(ret.regs), static_cast<int>(args.leaf), static_cast<int>(args.subleaf));
-	        } else if constexpr(this_compiler.is_family_gnu()) {
-	            gnu::ia32_cpuidext(reinterpret_cast<int*>(ret.regs), static_cast<int>(args.leaf), static_cast<int>(args.subleaf));
-	        }
-	
-	        return ret;
-	    }
-	
-	    // CPUID Leaf 1 (EAX = 1)
-	    // Storage layout maps exactly to registers: EAX [0-31], EBX [32-63], ECX [64-95], EDX [96-127]
-	    RAWR_BITFIELD_W(cpuid_leaf_1, byw16, ru32, (
-	        // --- EAX (Word 0: bits 0-31) ---
-	        (stepping,             0, 4),
-	        (model,                4, 4),
-	        (family,               8, 4),
-	        (processor_type,      12, 2),
-	        // Bits 14-15 reserved
-	        (extended_model,      16, 4),
-	        (extended_family,     20, 8),
-	        // Bits 28-31 reserved
-	
-	        // --- EBX (Word 1: bits 32-63) ---
-	        (brand_index,         32, 8),
-	        (clflush_line_size,   40, 8),
-	        (max_apic_ids,        48, 8),
-	        (initial_apic_id,     56, 8),
-	
-	        // --- ECX (Word 2: bits 64-95) ---
-	        (sse3,                64, 1, bool),
-	        (pclmulqdq,           65, 1, bool),
-	        (dtes64,              66, 1, bool),
-	        (monitor,             67, 1, bool),
-	        (ds_cpl,              68, 1, bool),
-	        (vmx,                 69, 1, bool),
-	        (smx,                 70, 1, bool),
-	        (eist,                71, 1, bool),
-	        (tm2,                 72, 1, bool),
-	        (ssse3,               73, 1, bool),
-	        (cnxt_id,             74, 1, bool),
-	        (sdbg,                75, 1, bool),
-	        (fma,                 76, 1, bool),
-	        (cmpxchg16b,          77, 1, bool),
-	        (xtpr_update_control, 78, 1, bool),
-	        (pdcm,                79, 1, bool),
-	        // Bit 16 (80) reserved
-	        (pcid,                81, 1, bool),
-	        (dca,                 82, 1, bool),
-	        (sse4_1,              83, 1, bool),
-	        (sse4_2,              84, 1, bool),
-	        (x2apic,              85, 1, bool),
-	        (movbe,               86, 1, bool),
-	        (popcnt,              87, 1, bool),
-	        (tsc_deadline,        88, 1, bool),
-	        (aesni,               89, 1, bool),
-	        (xsave,               90, 1, bool),
-	        (osxsave,             91, 1, bool),
-	        (avx,                 92, 1, bool),
-	        (f16c,                93, 1, bool),
-	        (rdrand,              94, 1, bool),
-	        (hypervisor,          95, 1, bool),
-	
-	        // --- EDX (Word 3: bits 96-127) ---
-	        (fpu,                 96, 1, bool),
-	        (vme,                 97, 1, bool),
-	        (de,                  98, 1, bool),
-	        (pse,                 99, 1, bool),
-	        (tsc,                100, 1, bool),
-	        (msr,                101, 1, bool),
-	        (pae,                102, 1, bool),
-	        (mce,                103, 1, bool),
-	        (cx8,                104, 1, bool),
-	        (apic,               105, 1, bool),
-	        // Bit 10 (106) reserved
-	        (sep,                107, 1, bool),
-	        (mtrr,               108, 1, bool),
-	        (pge,                109, 1, bool),
-	        (mca,                110, 1, bool),
-	        (cmov,               111, 1, bool),
-	        (pat,                112, 1, bool),
-	        (pse_36,             113, 1, bool),
-	        (psn,                114, 1, bool),
-	        (clfsh,              115, 1, bool),
-	        // Bit 20 (116) reserved
-	        (ds,                 117, 1, bool),
-	        (acpi,               118, 1, bool),
-	        (mmx,                119, 1, bool),
-	        (fxsr,               120, 1, bool),
-	        (sse,                121, 1, bool),
-	        (sse2,               122, 1, bool),
-	        (ss,                 123, 1, bool),
-	        (htt,                124, 1, bool),
-	        (tm,                 125, 1, bool),
-	        // Bit 30 (126) reserved
-	        (pbe,                127, 1, bool)
-	    ), (
-	        [[nodiscard]] constexpr auto eax() { return storage[0]; }
-	        [[nodiscard]] constexpr auto ebx() { return storage[1]; }
-	        [[nodiscard]] constexpr auto ecx() { return storage[2]; }
-	        [[nodiscard]] constexpr auto edx() { return storage[3]; }
-	    ));
-	
-	    // CPUID Leaf 7, Sub-leaf 0 (EAX = 7, ECX = 0)
-	    // Storage layout maps exactly to registers: EAX [0-31], EBX [32-63], ECX [64-95], EDX [96-127]
-	    RAWR_BITFIELD_W(cpuid_leaf_7_0, byw16, ru32,
-	    (
-	        // --- EAX (Word 0: bits 0-31) ---
-	        (max_sub_leaf,         0, 32), // Reports the maximum supported sub-leaf of leaf 7
-	
-	        // --- EBX (Word 1: bits 32-63) ---
-	        (fsgsbase,            32, 1, bool),
-	        (ia32_tsc_adjust,     33, 1, bool),
-	        (sgx,                 34, 1, bool),
-	        (bmi1,                35, 1, bool),
-	        (hle,                 36, 1, bool),
-	        (avx2,                37, 1, bool),
-	        (fdp_excptn_only,     38, 1, bool),
-	        (smep,                39, 1, bool),
-	        (bmi2,                40, 1, bool),
-	        (erms,                41, 1, bool),
-	        (invpcid,             42, 1, bool),
-	        (rtm,                 43, 1, bool),
-	        (rdt_m,               44, 1, bool),
-	        (deprecated_fpu,      45, 1, bool), // FPU CS/DS deprecated
-	        (mpx,                 46, 1, bool),
-	        (pqe,                 47, 1, bool),
-	        (avx512f,             48, 1, bool),
-	        (avx512dq,            49, 1, bool),
-	        (rdseed,              50, 1, bool),
-	        (adx,                 51, 1, bool),
-	        (smap,                52, 1, bool),
-	        (avx512_ifma,         53, 1, bool),
-	        (pcommit,             54, 1, bool),
-	        (clflushopt,          55, 1, bool),
-	        (clwb,                56, 1, bool),
-	        (intel_pt,            57, 1, bool),
-	        (avx512pf,            58, 1, bool),
-	        (avx512er,            59, 1, bool),
-	        (avx512cd,            60, 1, bool),
-	        (sha,                 61, 1, bool),
-	        (avx512bw,            62, 1, bool),
-	        (avx512vl,            63, 1, bool),
-	
-	        // --- ECX (Word 2: bits 64-95) ---
-	        (prefetchwt1,         64, 1, bool),
-	        (avx512_vbmi,         65, 1, bool),
-	        (umip,                66, 1, bool),
-	        (pku,                 67, 1, bool),
-	        (ospke,               68, 1, bool),
-	        (waitpkg,             69, 1, bool),
-	        (avx512_vbmi2,        70, 1, bool),
-	        (cet_ss,              71, 1, bool),
-	        (gfni,                72, 1, bool),
-	        (vaes,                73, 1, bool),
-	        (vpclmulqdq,          74, 1, bool),
-	        (avx512_vnni,         75, 1, bool),
-	        (avx512_bitalg,       76, 1, bool),
-	        (tme_en,              77, 1, bool),
-	        (avx512_vpopcntdq,    78, 1, bool),
-	        // Bit 15 (79) reserved
-	        (la57,                80, 1, bool),
-	        (mawau,               81, 5), // Bits 17-21
-	        (rdpid,               86, 1, bool), // Bit 22
-	        (kl,                  87, 1, bool),
-	        (bus_lock_detect,     88, 1, bool),
-	        (cldemote,            89, 1, bool),
-	        // Bit 26 (90) reserved
-	        (movdiri,             91, 1, bool),
-	        (movdir64b,           92, 1, bool),
-	        (enqcmd,              93, 1, bool),
-	        (sgx_lc,              94, 1, bool),
-	        (pks,                 95, 1, bool),
-	
-	        // --- EDX (Word 3: bits 96-127) ---
-	        // Bits 0-1 (96-97) reserved
-	        (avx512_4vnniw,       98, 1, bool),
-	        (avx512_4fmaps,       99, 1, bool),
-	        (fsrm,               100, 1, bool),
-	        (uintr,              101, 1, bool),
-	        // Bits 6-7 (102-103) reserved
-	        (avx512_vp2intersect,104, 1, bool),
-	        (srbds_ctrl,         105, 1, bool),
-	        (md_clear,           106, 1, bool),
-	        (rtm_always_abort,   107, 1, bool),
-	        // Bit 12 (108) reserved
-	        (tsx_force_abort,    109, 1, bool),
-	        (serialize,          110, 1, bool),
-	        (hybrid,             111, 1, bool),
-	        (tsxldtrk,           112, 1, bool),
-	        // Bit 17 (113) reserved
-	        (pconfig,            114, 1, bool),
-	        (lbr,                115, 1, bool),
-	        (cet_ibt,            116, 1, bool),
-	        // Bit 21 (117) reserved
-	        (amx_bf16,           118, 1, bool),
-	        (avx512_fp16,        119, 1, bool),
-	        (amx_tile,           120, 1, bool),
-	        (amx_int8,           121, 1, bool),
-	        (ibrs_ibpb,          122, 1, bool),
-	        (stibp,              123, 1, bool),
-	        (l1d_flush,          124, 1, bool),
-	        (ia32_arch_cap,      125, 1, bool),
-	        (ia32_core_cap,      126, 1, bool),
-	        (ssbd,               127, 1, bool)
-	    ), (
-	        [[nodiscard]] constexpr auto eax() { return storage[0]; }
-	        [[nodiscard]] constexpr auto ebx() { return storage[1]; }
-	        [[nodiscard]] constexpr auto ecx() { return storage[2]; }
-	        [[nodiscard]] constexpr auto edx() { return storage[3]; }
-	    ));
-	}
-
-#if !RAWR_AMALGAM_NO_SECTIONS
-	#pragma endsection "rawr/arch/x64/cpuid.cppm"
-#endif
-#if !RAWR_AMALGAM_NO_SECTIONS
-	#pragma section "rawr/abi/sysv.cppm"
-#endif
-	#if !RAWR_AMALGAM_NO_SOURCE_MAPPING
-		#line 1 "rawr/abi/sysv.hpp"
-	#endif
-	#include "rawr.amalgam.hpp"
-
-#if !RAWR_AMALGAM_NO_SECTIONS
-	#pragma endsection "rawr/abi/sysv.cppm"
-#endif
-#if !RAWR_AMALGAM_NO_SECTIONS
-	#pragma section "rawr/abi/sysv/main.pp"
-#endif
-	#if !RAWR_AMALGAM_NO_SOURCE_MAPPING
-		#line 3 "rawr/abi/sysv/main.pp"
+	#if !defined(RAWR_AMALGAM_NO_SOURCE_MAPPING) || !RAWR_AMALGAM_NO_SOURCE_MAPPING
+		#line 3 "rawr/abi/cc/sysv/main.pp"
 	#endif
 	#pragma once
 
-	#if RAWRSCAN_METADATA
-	    #define RAWR_PP_MODULE rawr.abi.sysv.main.pp
+	#ifdef RAWR_METADATA
+	    #define RAWR_PP_MODULE rawr.abi.cc.sysv.main.pp
 	#endif
 
 	#include "rawr.amalgam.hpp"
@@ -6829,54 +7971,54 @@
 	    // GCC injects a ud2 in _start, the RAWR_UNREACHABLE supresses it.
 	    // If you want a ud2 you should do it yourself, the trampoline is guaranteed
 	    // to not hit it.
-	    #define RAWR_ABI_SYSV_MAIN(...)                                                                            \
-	        static_assert(RAWR_ABI_SYSV_HAS_TRAMPOLINE, "SysV ctx trampoline not defined for this architecture" ); \
-	                                                                                                               \
-	        [[gnu::flatten]] RAWR_NORETURN RAWR_ALWAYS_INLINE auto rawr_user_main(__VA_ARGS__) noexcept -> void;   \
-	        extern "C" {                                                                                           \
-	            [[gnu::naked]] RAWR_NORETURN auto _start() noexcept -> void                                        \
-	            {                                                                                                  \
-	                __asm__(RAWR_ABI_SYSV_TRAMPOLINE);                                                             \
-	                RAWR_UNREACHABLE;                                                                              \
-	            }                                                                                                  \
-	                                                                                                               \
-	            [[gnu::flatten]] RAWR_NORETURN auto rawr_main(void* sp) noexcept -> void                           \
-	            {                                                                                                  \
-	                ::rawr::lib::diag::dwarf::mark_unwind_root();                                                  \
-	                auto ctx = ::rawr::abi::sysv::context64::from_stack_pointer(sp);                               \
-	                rawr_user_main(ctx);                                                                           \
-	            }                                                                                                  \
-	        }                                                                                                      \
+	    #define RAWR_ABI_CC_SYSV_MAIN(...)                                                                            \
+	        static_assert(RAWR_ABI_CC_SYSV_HAS_TRAMPOLINE, "SysV ctx trampoline not defined for this architecture" ); \
+	                                                                                                                  \
+	        [[gnu::flatten]] RAWR_NORETURN RAWR_ALWAYS_INLINE auto rawr_user_main(__VA_ARGS__) noexcept -> void;      \
+	        extern "C" {                                                                                              \
+	            [[gnu::naked]] RAWR_NORETURN auto _start() noexcept -> void                                           \
+	            {                                                                                                     \
+	                __asm__(RAWR_ABI_CC_SYSV_TRAMPOLINE);                                                             \
+	                RAWR_UNREACHABLE;                                                                                 \
+	            }                                                                                                     \
+	                                                                                                                  \
+	            [[gnu::flatten]] RAWR_NORETURN auto rawr_main(void* sp) noexcept -> void                              \
+	            {                                                                                                     \
+	                ::rawr::diag::dwarf::mark_unwind_root();                                                          \
+	                auto ctx = ::rawr::abi::cc::sysv::context64::from_stack_pointer(sp);                              \
+	                rawr_user_main(ctx);                                                                              \
+	            }                                                                                                     \
+	        }                                                                                                         \
 	        [[gnu::flatten]] RAWR_NORETURN RAWR_ALWAYS_INLINE auto rawr_user_main(__VA_ARGS__) noexcept -> void
 
 	#elif RAWR_COMPILER_CLANG
 	    // Clang complains about non-asm in naked functions. It also doesn't
 	    // inject a ud2 in _start, so we don't need to suppress it.
-	    #define RAWR_ABI_SYSV_MAIN(...)                                                                            \
-	        static_assert(RAWR_ABI_SYSV_HAS_TRAMPOLINE, "SysV ctx trampoline not defined for this architecture" ); \
-	                                                                                                               \
-	        [[gnu::flatten]] RAWR_NORETURN RAWR_ALWAYS_INLINE auto rawr_user_main(__VA_ARGS__) noexcept -> void;   \
-	        extern "C" {                                                                                           \
-	            [[gnu::naked]] RAWR_NORETURN auto _start() noexcept -> void                                        \
-	            { __asm__(RAWR_ABI_SYSV_TRAMPOLINE); }                                                             \
-	                                                                                                               \
-	            [[gnu::flatten]] RAWR_NORETURN auto rawr_main(void* sp) noexcept -> void                           \
-	            {                                                                                                  \
-	                ::rawr::lib::diag::dwarf::mark_unwind_root();                                                  \
-	                auto ctx = ::rawr::abi::sysv::context64::from_stack_pointer(sp);                               \
-	                rawr_user_main(ctx);                                                                           \
-	            }                                                                                                  \
-	        }                                                                                                      \
+	    #define RAWR_ABI_CC_SYSV_MAIN(...)                                                                            \
+	        static_assert(RAWR_ABI_CC_SYSV_HAS_TRAMPOLINE, "SysV ctx trampoline not defined for this architecture" ); \
+	                                                                                                                  \
+	        [[gnu::flatten]] RAWR_NORETURN RAWR_ALWAYS_INLINE auto rawr_user_main(__VA_ARGS__) noexcept -> void;      \
+	        extern "C" {                                                                                              \
+	            [[gnu::naked]] RAWR_NORETURN auto _start() noexcept -> void                                           \
+	            { __asm__(RAWR_ABI_CC_SYSV_TRAMPOLINE); }                                                             \
+	                                                                                                                  \
+	            [[gnu::flatten]] RAWR_NORETURN auto rawr_main(void* sp) noexcept -> void                              \
+	            {                                                                                                     \
+	                ::rawr::diag::dwarf::mark_unwind_root();                                                          \
+	                auto ctx = ::rawr::abi::cc::sysv::context64::from_stack_pointer(sp);                              \
+	                rawr_user_main(ctx);                                                                              \
+	            }                                                                                                     \
+	        }                                                                                                         \
 	        [[gnu::flatten]] RAWR_NORETURN auto rawr_user_main(__VA_ARGS__) noexcept -> void
 
 	#endif
 
-	#define RAWR_ABI_SYSV_MAIN_NOCTX                                             \
+	#define RAWR_ABI_CC_SYSV_MAIN_NOCTX                                          \
 	    RAWR_NORETURN RAWR_ALWAYS_INLINE auto rawr_user_main() noexcept -> void; \
 	    extern "C" {                                                             \
 	        RAWR_NORETURN auto rawr_main() noexcept -> void                      \
 	        {                                                                    \
-	            ::rawr::lib::diag::dwarf::mark_unwind_root();                    \
+	            ::rawr::diag::dwarf::mark_unwind_root();                         \
 	            rawr_user_main();                                                \
 	        }                                                                    \
 	        RAWR_ATTRIBUTE(alias("rawr_main"))                                   \
@@ -6884,38 +8026,38 @@
 	    }                                                                        \
 	    RAWR_NORETURN RAWR_ALWAYS_INLINE auto rawr_user_main() noexcept -> void
 
-#if !RAWR_AMALGAM_NO_SECTIONS
-	#pragma endsection "rawr/abi/sysv/main.pp"
+#if !defined(RAWR_AMALGAM_NO_SECTIONS) || !RAWR_AMALGAM_NO_SECTIONS
+	#pragma endsection "rawr/abi/cc/sysv/main.pp"
 #endif
 #if !RAWR_AMALGAM_NO_SECTIONS
-	#pragma section "rawr/lib/diag.cppm"
+	#pragma section "rawr/diag.cppm"
 #endif
-	#if !RAWR_AMALGAM_NO_SOURCE_MAPPING
-		#line 1 "rawr/lib/diag.hpp"
+	#if !defined(RAWR_AMALGAM_NO_SOURCE_MAPPING) || !RAWR_AMALGAM_NO_SOURCE_MAPPING
+		#line 1 "rawr/diag.hpp"
 	#endif
 	#include "rawr.amalgam.hpp"
 
-#if !RAWR_AMALGAM_NO_SECTIONS
-	#pragma endsection "rawr/lib/diag.cppm"
+#if !defined(RAWR_AMALGAM_NO_SECTIONS) || !RAWR_AMALGAM_NO_SECTIONS
+	#pragma endsection "rawr/diag.cppm"
 #endif
 #if !RAWR_AMALGAM_NO_SECTIONS
-	#pragma section "rawr/lib/intrin.cppm"
+	#pragma section "rawr/intrin.cppm"
 #endif
-	#if !RAWR_AMALGAM_NO_SOURCE_MAPPING
-		#line 1 "rawr/lib/intrin.hpp"
+	#if !defined(RAWR_AMALGAM_NO_SOURCE_MAPPING) || !RAWR_AMALGAM_NO_SOURCE_MAPPING
+		#line 1 "rawr/intrin.hpp"
 	#endif
 	#include "rawr.amalgam.hpp"
 	#include "rawr.amalgam.hpp"
 	#include "rawr.amalgam.hpp"
 	#include "rawr.amalgam.hpp"
 
-#if !RAWR_AMALGAM_NO_SECTIONS
-	#pragma endsection "rawr/lib/intrin.cppm"
+#if !defined(RAWR_AMALGAM_NO_SECTIONS) || !RAWR_AMALGAM_NO_SECTIONS
+	#pragma endsection "rawr/intrin.cppm"
 #endif
 #if !RAWR_AMALGAM_NO_SECTIONS
 	#pragma section "rawr/nostdlib/mem/memcpy/base.cppm"
 #endif
-	#if !RAWR_AMALGAM_NO_SOURCE_MAPPING
+	#if !defined(RAWR_AMALGAM_NO_SOURCE_MAPPING) || !RAWR_AMALGAM_NO_SOURCE_MAPPING
 		#line 1 "rawr/nostdlib/mem/memcpy/base.hpp"
 	#endif
 	#include "rawr.amalgam.hpp"
@@ -6933,13 +8075,13 @@
 	    }
 	}
 
-#if !RAWR_AMALGAM_NO_SECTIONS
+#if !defined(RAWR_AMALGAM_NO_SECTIONS) || !RAWR_AMALGAM_NO_SECTIONS
 	#pragma endsection "rawr/nostdlib/mem/memcpy/base.cppm"
 #endif
 #if !RAWR_AMALGAM_NO_SECTIONS
 	#pragma section "rawr/nostdlib/mem/memset/base.cppm"
 #endif
-	#if !RAWR_AMALGAM_NO_SOURCE_MAPPING
+	#if !defined(RAWR_AMALGAM_NO_SOURCE_MAPPING) || !RAWR_AMALGAM_NO_SOURCE_MAPPING
 		#line 1 "rawr/nostdlib/mem/memset/base.hpp"
 	#endif
 	#include "rawr.amalgam.hpp"
@@ -6951,174 +8093,73 @@
 	    { return rawr::intrin::mem::soft::memset(dst, val, n); }
 	}
 
-#if !RAWR_AMALGAM_NO_SECTIONS
+#if !defined(RAWR_AMALGAM_NO_SECTIONS) || !RAWR_AMALGAM_NO_SECTIONS
 	#pragma endsection "rawr/nostdlib/mem/memset/base.cppm"
 #endif
 #if !RAWR_AMALGAM_NO_SECTIONS
 	#pragma section "rawr/platform.cppm"
 #endif
-	#if !RAWR_AMALGAM_NO_SOURCE_MAPPING
+	#if !defined(RAWR_AMALGAM_NO_SOURCE_MAPPING) || !RAWR_AMALGAM_NO_SOURCE_MAPPING
 		#line 1 "rawr/platform.hpp"
 	#endif
 	#include "rawr.amalgam.hpp"
 
-#if !RAWR_AMALGAM_NO_SECTIONS
+#if !defined(RAWR_AMALGAM_NO_SECTIONS) || !RAWR_AMALGAM_NO_SECTIONS
 	#pragma endsection "rawr/platform.cppm"
 #endif
 #if !RAWR_AMALGAM_NO_SECTIONS
 	#pragma section "rawr/abi.cppm"
 #endif
-	#if !RAWR_AMALGAM_NO_SOURCE_MAPPING
+	#if !defined(RAWR_AMALGAM_NO_SOURCE_MAPPING) || !RAWR_AMALGAM_NO_SOURCE_MAPPING
 		#line 1 "rawr/abi.hpp"
 	#endif
 	#include "rawr.amalgam.hpp"
-	#include "rawr.amalgam.hpp"
 
-#if !RAWR_AMALGAM_NO_SECTIONS
+#if !defined(RAWR_AMALGAM_NO_SECTIONS) || !RAWR_AMALGAM_NO_SECTIONS
 	#pragma endsection "rawr/abi.cppm"
 #endif
 #if !RAWR_AMALGAM_NO_SECTIONS
-	#pragma section "rawr/lib/main.pp"
+	#pragma section "rawr/arch.cppm"
 #endif
-	#if !RAWR_AMALGAM_NO_SOURCE_MAPPING
-		#line 3 "rawr/lib/main.pp"
+	#if !defined(RAWR_AMALGAM_NO_SOURCE_MAPPING) || !RAWR_AMALGAM_NO_SOURCE_MAPPING
+		#line 1 "rawr/arch.hpp"
+	#endif
+	#include "rawr.amalgam.hpp"
+
+#if !defined(RAWR_AMALGAM_NO_SECTIONS) || !RAWR_AMALGAM_NO_SECTIONS
+	#pragma endsection "rawr/arch.cppm"
+#endif
+#if !RAWR_AMALGAM_NO_SECTIONS
+	#pragma section "rawr/abi/main.pp"
+#endif
+	#if !defined(RAWR_AMALGAM_NO_SOURCE_MAPPING) || !RAWR_AMALGAM_NO_SOURCE_MAPPING
+		#line 3 "rawr/abi/main.pp"
 	#endif
 	#pragma once
 
-	#if RAWRSCAN_METADATA
-	    #define RAWR_PP_MODULE rawr.lib.main.pp
+	#ifdef RAWR_METADATA
+	    #define RAWR_PP_MODULE rawr.abi.main.pp
 	#endif
 
 	#include "rawr.amalgam.hpp"
 
-	#if RAWR_ABI_SYSV
+	#if RAWR_ABI_CC_SYSV
 	    #include "rawr.amalgam.hpp"
-	    #define RAWR_MAIN(...)  RAWR_ABI_SYSV_MAIN(__VA_ARGS__)
-	    #define RAWR_MAIN_NOCTX RAWR_ABI_SYSV_MAIN_NOCTX
-	#elif RAWR_ABI_WIN64
+	    #define RAWR_ABI_MAIN(...)  RAWR_ABI_CC_SYSV_MAIN(__VA_ARGS__)
+	    #define RAWR_ABI_MAIN_NOCTX RAWR_ABI_CC_SYSV_MAIN_NOCTX
+	#elif RAWR_ABI_CC_WIN64
 	    #include "rawr.amalgam.hpp"
-	    #define RAWR_MAIN(...)  RAWR_ABI_WIN64_MAIN_NOCTX
-	    #define RAWR_MAIN_NOCTX RAWR_ABI_WIN64_MAIN_NOCTX
+	    #define RAWR_ABI_MAIN(...)  RAWR_ABI_CC_WIN64_MAIN_NOCTX
+	    #define RAWR_ABI_MAIN_NOCTX RAWR_ABI_CC_WIN64_MAIN_NOCTX
 	#endif
 
-#if !RAWR_AMALGAM_NO_SECTIONS
-	#pragma endsection "rawr/lib/main.pp"
-#endif
-#if !RAWR_AMALGAM_NO_SECTIONS
-	#pragma section "rawr/arch/x64/simd.cppm"
-#endif
-	#if !RAWR_AMALGAM_NO_SOURCE_MAPPING
-		#line 1 "rawr/arch/x64/simd.hpp"
-	#endif
-	#include "rawr.amalgam.hpp"
-	#include "rawr.amalgam.hpp"
-	#include "rawr.amalgam.hpp"
-	#include "rawr.amalgam.hpp"
-	#include "rawr.amalgam.hpp"
-	
-	// MSVC is quite picky about intrinsics, you have to *declare* them.
-	// Its also very picky about the names of the types involved.
-	// Somehow its not picky about whether or not they are namespaced.
-	namespace rawr::arch::x64::msvc
-	{
-	    union RAWR_DECLSPEC(intrin_type) alignas(16) __m128 {
-	        rawr::ru8  ru8 [16];
-	        rawr::rs8  rs8 [16];
-	        rawr::ru16 ru16[8];
-	        rawr::rs16 rs16[8];
-	        rawr::ru32 ru32[4];
-	        rawr::rs32 rs32[4];
-	        rawr::rf32 rf32[4];
-	        rawr::ru64 ru64[2];
-	        rawr::rs64 rs64[2];
-	        rawr::rf64 rf64[2];
-	    };
-	    using __m128i = __m128;
-	    using __m128d = __m128;
-	
-	    union RAWR_DECLSPEC(intrin_type) alignas(32) __m256 {
-	        rawr::ru8  ru8 [32];
-	        rawr::rs8  rs8 [32];
-	        rawr::ru16 ru16[16];
-	        rawr::rs16 rs16[16];
-	        rawr::ru32 ru32[8];
-	        rawr::rs32 rs32[8];
-	        rawr::rf32 rf32[8];
-	        rawr::ru64 ru64[4];
-	        rawr::rs64 rs64[4];
-	        rawr::rf64 rf64[4];
-	    };
-	    using __m256i = __m256;
-	    using __m256d = __m256;
-	
-	    union RAWR_DECLSPEC(intrin_type) alignas(64) __m512 {
-	        rawr::ru8  ru8 [64];
-	        rawr::rs8  rs8 [64];
-	        rawr::ru16 ru16[32];
-	        rawr::rs16 rs16[32];
-	        rawr::ru32 ru32[16];
-	        rawr::rs32 rs32[16];
-	        rawr::rf32 rf32[16];
-	        rawr::ru64 ru64[8];
-	        rawr::rs64 rs64[8];
-	        rawr::rf64 rf64[8];
-	    };
-	    using __m512i = __m512;
-	    using __m512d = __m512;
-	
-	    // These HAVE to be declared exactly like this, otherwise MSVC
-	    // complains. The text needs to be EXACTLY this, you can't alias
-	    // type names or have the type be a struct instead of an union or
-	    // anything like that either.
-	    RAWR_MSVC_INTRIN(RAWR_ARCH_X64, _mm_add_epi32, (__m128i, __m128i) -> __m128i);
-	}
-	
-	namespace rawr::arch::x64::gnu
-	{
-	    RAWR_ALWAYS_INLINE constexpr auto add_u32x4(simd::storage::ru32x4 lhs, simd::storage::ru32x4 rhs) -> simd::storage::ru32x4
-	    RAWR_GNU({ return { lhs.lanes + rhs.lanes }; });
-	}
-	
-	namespace rawr::arch::x64::sse
-	{
-	    namespace soft
-	    {
-	        template <compilers C = this_compiler, archs A = this_arch>
-	        RAWR_ALWAYS_INLINE constexpr auto add_u32x4(simd::storage::ru32x4 lhs, simd::storage::ru32x4 rhs) -> simd::storage::ru32x4
-	        {
-	            simd::storage::ru32x4 ret{};
-	            for(auto i = 0; i < 4; ++i)
-	            { ret.lanes[i] = lhs.lanes[i] + rhs.lanes[i]; }
-	            return ret;
-	        }
-	    }
-	
-	    template <compilers C = this_compiler, archs A = this_arch>
-	    RAWR_ALWAYS_INLINE constexpr auto add_u32x4(simd::storage::ru32x4 lhs, simd::storage::ru32x4 rhs) -> simd::storage::ru32x4
-	    {
-	        if constexpr(!this_arch.is_x64()) {
-	            static_assert("Unimplemented");
-	            return dummy_return{};
-	        } else if constexpr(this_compiler.is_family_gnu()) {
-	            return gnu::add_u32x4(lhs, rhs);
-	        } else if constexpr(this_compiler.is_msvc()) {
-	            if(intrin::is_consteval()) { return soft::add_u32x4(lhs, rhs); }
-	            auto val = msvc::_mm_add_epi32(
-	                reinterpret_cast<msvc::__m128&>(lhs),
-	                reinterpret_cast<msvc::__m128&>(rhs)
-	            );
-	            return reinterpret_cast<simd::storage::ru32x4&>(val);
-	        }
-	    }
-	}
-
-#if !RAWR_AMALGAM_NO_SECTIONS
-	#pragma endsection "rawr/arch/x64/simd.cppm"
+#if !defined(RAWR_AMALGAM_NO_SECTIONS) || !RAWR_AMALGAM_NO_SECTIONS
+	#pragma endsection "rawr/abi/main.pp"
 #endif
 #if !RAWR_AMALGAM_NO_SECTIONS
 	#pragma section "rawr/lib/fmt.cppm"
 #endif
-	#if !RAWR_AMALGAM_NO_SOURCE_MAPPING
+	#if !defined(RAWR_AMALGAM_NO_SOURCE_MAPPING) || !RAWR_AMALGAM_NO_SOURCE_MAPPING
 		#line 1 "rawr/lib/fmt.hpp"
 	#endif
 	#include "rawr.amalgam.hpp"
@@ -7682,13 +8723,13 @@
 	    };
 	}
 
-#if !RAWR_AMALGAM_NO_SECTIONS
+#if !defined(RAWR_AMALGAM_NO_SECTIONS) || !RAWR_AMALGAM_NO_SECTIONS
 	#pragma endsection "rawr/lib/fmt.cppm"
 #endif
 #if !RAWR_AMALGAM_NO_SECTIONS
 	#pragma section "rawr/lib/integer/strong.cppm"
 #endif
-	#if !RAWR_AMALGAM_NO_SOURCE_MAPPING
+	#if !defined(RAWR_AMALGAM_NO_SOURCE_MAPPING) || !RAWR_AMALGAM_NO_SOURCE_MAPPING
 		#line 1 "rawr/lib/integer/strong.hpp"
 	#endif
 	#include "rawr.amalgam.hpp"
@@ -8546,20 +9587,20 @@
 	    RAWR_LIB_INTEGER_SPECIALIZE3(s32)
 	    RAWR_LIB_INTEGER_SPECIALIZE3(s64)
 
-#if !RAWR_AMALGAM_NO_SECTIONS
+#if !defined(RAWR_AMALGAM_NO_SECTIONS) || !RAWR_AMALGAM_NO_SECTIONS
 	#pragma endsection "rawr/lib/integer/strong.cppm"
 #endif
 #if !RAWR_AMALGAM_NO_SECTIONS
-	#pragma section "rawr/lib/test.cppm"
+	#pragma section "rawr/test.cppm"
 #endif
-	#if !RAWR_AMALGAM_NO_SOURCE_MAPPING
-		#line 1 "rawr/lib/test.hpp"
+	#if !defined(RAWR_AMALGAM_NO_SOURCE_MAPPING) || !RAWR_AMALGAM_NO_SOURCE_MAPPING
+		#line 1 "rawr/test.hpp"
 	#endif
 	#include "rawr.amalgam.hpp"
 	#include "rawr.amalgam.hpp"
 	#include "rawr.amalgam.hpp"
 	
-	namespace rawr::inline lib::inline test::msvc
+	namespace rawr::test::msvc
 	{
 	    // MSVC: __declspec(noinline) creates an opaque call boundary without volatile
 	    // semantics or static initialisation. Safe in nostdlib test binaries.
@@ -8567,7 +9608,7 @@
 	    RAWR_DECLSPEC(noinline) auto no_fold(T v) noexcept -> T { return v; }
 	}
 	
-	namespace rawr::inline lib::inline test
+	namespace rawr::test
 	{
 	    RAWR_GNU(
 	        template<typename T>
@@ -8605,7 +9646,7 @@
 	        get_info_t get_info;
 	    };
 	
-	    RAWR_LINKER_SECTION_DEFINE(rawr_lib_test_section, section, test_section_entry);
+	    RAWR_LINKER_SET_DEFINE(rawr_test_section, section, test_section_entry);
 	
 	    template <typename T>
 	    concept TestSuite = requires(T t)
@@ -8674,81 +9715,68 @@
 	    };
 	}
 
-#if !RAWR_AMALGAM_NO_SECTIONS
-	#pragma endsection "rawr/lib/test.cppm"
+#if !defined(RAWR_AMALGAM_NO_SECTIONS) || !RAWR_AMALGAM_NO_SECTIONS
+	#pragma endsection "rawr/test.cppm"
 #endif
 #if !RAWR_AMALGAM_NO_SECTIONS
 	#pragma section "rawr/nostdlib/mem/memcpy/extern_decl.cppm"
 #endif
-	#if !RAWR_AMALGAM_NO_SOURCE_MAPPING
+	#if !defined(RAWR_AMALGAM_NO_SOURCE_MAPPING) || !RAWR_AMALGAM_NO_SOURCE_MAPPING
 		#line 1 "rawr/nostdlib/mem/memcpy/extern_decl.hpp"
 	#endif
 	#include "rawr.amalgam.hpp"
 	
-	#if !RAWR_AMALGAM || (RAWR_AMALGAM && (RAWR_AMALGAM_NOSTDLIB || RAWR_AMALGAM_NOSTDLIB_MEMCPY))
-	    extern "C" {
-	        auto memcpy(void* dst, void* const src, decltype(sizeof(0)) n) -> void*
-	        { return rawr::nostdlib::memcpy(dst, src, n); }
+	extern "C" {
+	    auto memcpy(void* dst, void* const src, decltype(sizeof(0)) n) -> void*
+	        RAWR_AMALGAM_NOSTDLIB_GATED(RAWR_AMALGAM_NOSTDLIB_MEMCPY,
+	            { return rawr::nostdlib::memcpy(dst, src, n); }
+	        );
 	    }
-	#endif
 
-#if !RAWR_AMALGAM_NO_SECTIONS
+#if !defined(RAWR_AMALGAM_NO_SECTIONS) || !RAWR_AMALGAM_NO_SECTIONS
 	#pragma endsection "rawr/nostdlib/mem/memcpy/extern_decl.cppm"
 #endif
 #if !RAWR_AMALGAM_NO_SECTIONS
 	#pragma section "rawr/nostdlib/mem/memset/extern_decl.cppm"
 #endif
-	#if !RAWR_AMALGAM_NO_SOURCE_MAPPING
+	#if !defined(RAWR_AMALGAM_NO_SOURCE_MAPPING) || !RAWR_AMALGAM_NO_SOURCE_MAPPING
 		#line 1 "rawr/nostdlib/mem/memset/extern_decl.hpp"
 	#endif
 	#include "rawr.amalgam.hpp"
 	
-	#if !RAWR_AMALGAM || (RAWR_AMALGAM && (RAWR_AMALGAM_NOSTDLIB || RAWR_AMALGAM_NOSTDLIB_MEMSET))
-	    extern "C" {
-	        auto memset(void* dst, int val, decltype(sizeof(0)) n) -> void*
+	extern "C" {
+	    auto memset(void* dst, int val, decltype(sizeof(0)) n) -> void*
+	    RAWR_AMALGAM_NOSTDLIB_GATED(RAWR_AMALGAM_NOSTDLIB_MEMSET,
 	        { return rawr::nostdlib::memset(dst, val, n); }
-	    }
-	#endif
+	    );
+	}
 
-#if !RAWR_AMALGAM_NO_SECTIONS
+#if !defined(RAWR_AMALGAM_NO_SECTIONS) || !RAWR_AMALGAM_NO_SECTIONS
 	#pragma endsection "rawr/nostdlib/mem/memset/extern_decl.cppm"
-#endif
-#if !RAWR_AMALGAM_NO_SECTIONS
-	#pragma section "rawr/arch/x64.cppm"
-#endif
-	#if !RAWR_AMALGAM_NO_SOURCE_MAPPING
-		#line 1 "rawr/arch/x64.hpp"
-	#endif
-	#include "rawr.amalgam.hpp"
-	#include "rawr.amalgam.hpp"
-	#include "rawr.amalgam.hpp"
-
-#if !RAWR_AMALGAM_NO_SECTIONS
-	#pragma endsection "rawr/arch/x64.cppm"
 #endif
 #if !RAWR_AMALGAM_NO_SECTIONS
 	#pragma section "rawr/lib/integer.cppm"
 #endif
-	#if !RAWR_AMALGAM_NO_SOURCE_MAPPING
+	#if !defined(RAWR_AMALGAM_NO_SOURCE_MAPPING) || !RAWR_AMALGAM_NO_SOURCE_MAPPING
 		#line 1 "rawr/lib/integer.hpp"
 	#endif
 	#include "rawr.amalgam.hpp"
 	#include "rawr.amalgam.hpp"
 	#include "rawr.amalgam.hpp"
 
-#if !RAWR_AMALGAM_NO_SECTIONS
+#if !defined(RAWR_AMALGAM_NO_SECTIONS) || !RAWR_AMALGAM_NO_SECTIONS
 	#pragma endsection "rawr/lib/integer.cppm"
 #endif
 #if !RAWR_AMALGAM_NO_SECTIONS
-	#pragma section "rawr/lib/test.pp"
+	#pragma section "rawr/test.pp"
 #endif
-	#if !RAWR_AMALGAM_NO_SOURCE_MAPPING
-		#line 3 "rawr/lib/test.pp"
+	#if !defined(RAWR_AMALGAM_NO_SOURCE_MAPPING) || !RAWR_AMALGAM_NO_SOURCE_MAPPING
+		#line 3 "rawr/test.pp"
 	#endif
 	#pragma once
 
-	#if RAWRSCAN_METADATA
-	    #define RAWR_PP_MODULE rawr.lib.test.pp
+	#ifdef RAWR_METADATA
+	    #define RAWR_PP_MODULE rawr.test.pp
 	#endif
 
 	#include "rawr.amalgam.hpp"
@@ -8762,14 +9790,14 @@
 	    namespace                                                                                             \
 	    {                                                                                                     \
 	        struct RAWR_TEST_CONCAT(rawr_normal_test_, Counter)                                               \
-	            : ::rawr::lib::test::normal_test_suite<RAWR_TEST_CONCAT(rawr_normal_test_, Counter)>          \
+	            : ::rawr::test::normal_test_suite<RAWR_TEST_CONCAT(rawr_normal_test_, Counter)>               \
 	        {                                                                                                 \
 	            static constexpr auto name()       -> char const* { return #Name; }                           \
 	            static constexpr auto name_size()                 { char n[] = #Name; return sizeof(n) - 1; } \
 	                             auto run_checks() -> void;                                                   \
 	        };                                                                                                \
 	    }                                                                                                     \
-	    RAWR_LINKER_SECTION_REGISTER(rawr_lib_test_section, ::rawr::lib::test::section, {                     \
+	    RAWR_LINKER_SET_REGISTER(rawr_test_section, ::rawr::test::section, {                                  \
 	        .run      = RAWR_TEST_CONCAT(rawr_normal_test_, Counter)::run,                                    \
 	        .get_info = RAWR_TEST_CONCAT(rawr_normal_test_, Counter)::get_info                                \
 	    });                                                                                                   \
@@ -8781,48 +9809,37 @@
 	#define RAWR_TEST_CONCAT_(a, b) a##b
 	#define RAWR_TEST_CONCAT(a, b) RAWR_TEST_CONCAT_(a, b)
 
-#if !RAWR_AMALGAM_NO_SECTIONS
-	#pragma endsection "rawr/lib/test.pp"
+#if !defined(RAWR_AMALGAM_NO_SECTIONS) || !RAWR_AMALGAM_NO_SECTIONS
+	#pragma endsection "rawr/test.pp"
 #endif
 #if !RAWR_AMALGAM_NO_SECTIONS
 	#pragma section "rawr/nostdlib/mem/memcpy.cppm"
 #endif
-	#if !RAWR_AMALGAM_NO_SOURCE_MAPPING
+	#if !defined(RAWR_AMALGAM_NO_SOURCE_MAPPING) || !RAWR_AMALGAM_NO_SOURCE_MAPPING
 		#line 1 "rawr/nostdlib/mem/memcpy.hpp"
 	#endif
 	#include "rawr.amalgam.hpp"
 	#include "rawr.amalgam.hpp"
 
-#if !RAWR_AMALGAM_NO_SECTIONS
+#if !defined(RAWR_AMALGAM_NO_SECTIONS) || !RAWR_AMALGAM_NO_SECTIONS
 	#pragma endsection "rawr/nostdlib/mem/memcpy.cppm"
 #endif
 #if !RAWR_AMALGAM_NO_SECTIONS
 	#pragma section "rawr/nostdlib/mem/memset.cppm"
 #endif
-	#if !RAWR_AMALGAM_NO_SOURCE_MAPPING
+	#if !defined(RAWR_AMALGAM_NO_SOURCE_MAPPING) || !RAWR_AMALGAM_NO_SOURCE_MAPPING
 		#line 1 "rawr/nostdlib/mem/memset.hpp"
 	#endif
 	#include "rawr.amalgam.hpp"
 	#include "rawr.amalgam.hpp"
 
-#if !RAWR_AMALGAM_NO_SECTIONS
+#if !defined(RAWR_AMALGAM_NO_SECTIONS) || !RAWR_AMALGAM_NO_SECTIONS
 	#pragma endsection "rawr/nostdlib/mem/memset.cppm"
-#endif
-#if !RAWR_AMALGAM_NO_SECTIONS
-	#pragma section "rawr/arch.cppm"
-#endif
-	#if !RAWR_AMALGAM_NO_SOURCE_MAPPING
-		#line 1 "rawr/arch.hpp"
-	#endif
-	#include "rawr.amalgam.hpp"
-
-#if !RAWR_AMALGAM_NO_SECTIONS
-	#pragma endsection "rawr/arch.cppm"
 #endif
 #if !RAWR_AMALGAM_NO_SECTIONS
 	#pragma section "rawr/lib.cppm"
 #endif
-	#if !RAWR_AMALGAM_NO_SOURCE_MAPPING
+	#if !defined(RAWR_AMALGAM_NO_SOURCE_MAPPING) || !RAWR_AMALGAM_NO_SOURCE_MAPPING
 		#line 1 "rawr/lib.hpp"
 	#endif
 	#include "rawr.amalgam.hpp"
@@ -8834,35 +9851,31 @@
 	#include "rawr.amalgam.hpp"
 	#include "rawr.amalgam.hpp"
 	#include "rawr.amalgam.hpp"
-	#include "rawr.amalgam.hpp"
-	#include "rawr.amalgam.hpp"
-	#include "rawr.amalgam.hpp"
-	#include "rawr.amalgam.hpp"
-	#include "rawr.amalgam.hpp"
-	#include "rawr.amalgam.hpp"
-	#include "rawr.amalgam.hpp"
 
-#if !RAWR_AMALGAM_NO_SECTIONS
+#if !defined(RAWR_AMALGAM_NO_SECTIONS) || !RAWR_AMALGAM_NO_SECTIONS
 	#pragma endsection "rawr/lib.cppm"
 #endif
 #if !RAWR_AMALGAM_NO_SECTIONS
 	#pragma section "rawr/nostdlib/mem.cppm"
 #endif
-	#if !RAWR_AMALGAM_NO_SOURCE_MAPPING
+	#if !defined(RAWR_AMALGAM_NO_SOURCE_MAPPING) || !RAWR_AMALGAM_NO_SOURCE_MAPPING
 		#line 1 "rawr/nostdlib/mem.hpp"
 	#endif
 	#include "rawr.amalgam.hpp"
 	#include "rawr.amalgam.hpp"
 
-#if !RAWR_AMALGAM_NO_SECTIONS
+#if !defined(RAWR_AMALGAM_NO_SECTIONS) || !RAWR_AMALGAM_NO_SECTIONS
 	#pragma endsection "rawr/nostdlib/mem.cppm"
 #endif
 #if !RAWR_AMALGAM_NO_SECTIONS
 	#pragma section "rawr.cppm"
 #endif
-	#if !RAWR_AMALGAM_NO_SOURCE_MAPPING
+	#if !defined(RAWR_AMALGAM_NO_SOURCE_MAPPING) || !RAWR_AMALGAM_NO_SOURCE_MAPPING
 		#line 1 "rawr.hpp"
 	#endif
+	#include "rawr.amalgam.hpp"
+	#include "rawr.amalgam.hpp"
+	#include "rawr.amalgam.hpp"
 	#include "rawr.amalgam.hpp"
 	#include "rawr.amalgam.hpp"
 	#include "rawr.amalgam.hpp"
@@ -8873,21 +9886,24 @@
 	// export import rawr.nostdlib;
 	#include "rawr.amalgam.hpp"
 	#include "rawr.amalgam.hpp"
+	#include "rawr.amalgam.hpp"
+	#include "rawr.amalgam.hpp"
+	#include "rawr.amalgam.hpp"
 
-#if !RAWR_AMALGAM_NO_SECTIONS
+#if !defined(RAWR_AMALGAM_NO_SECTIONS) || !RAWR_AMALGAM_NO_SECTIONS
 	#pragma endsection "rawr.cppm"
 #endif
 #if !RAWR_AMALGAM_NO_SECTIONS
 	#pragma section "rawr/nostdlib.cppm"
 #endif
-	#if !RAWR_AMALGAM_NO_SOURCE_MAPPING
+	#if !defined(RAWR_AMALGAM_NO_SOURCE_MAPPING) || !RAWR_AMALGAM_NO_SOURCE_MAPPING
 		#line 1 "rawr/nostdlib.hpp"
 	#endif
 	#include "rawr.amalgam.hpp"
 
-#if !RAWR_AMALGAM_NO_SECTIONS
+#if !defined(RAWR_AMALGAM_NO_SECTIONS) || !RAWR_AMALGAM_NO_SECTIONS
 	#pragma endsection "rawr/nostdlib.cppm"
 #endif
 #if !RAWR_AMALGAM_NO_SOURCE_MAPPING
-#line 8891 "rawr.amalgam.raw.hpp"
+	#line 9909 "rawr.amalgam.raw.hpp"
 #endif

@@ -1,11 +1,11 @@
 export module rawr.platform.linux;
 import        rawr.lib.integer.base;
 import        rawr.lib.integer.raw;
-import        rawr.detection;
-#include     "rawr/lib/compiler.pp"
-#include     "rawr/detection/platform.pp"
-#include     "rawr/detection/arch.pp"
-#include     "rawr/detection/compiler.pp"
+import        rawr.this_target;
+#include     "rawr/compiler/utils.pp"
+#include     "rawr/platform/detection.pp"
+#include     "rawr/arch/detection.pp"
+#include     "rawr/compiler/detection.pp"
 #include     "rawr/lib/pp.pp"
 #include     "rawr/lib/rich_enum.pp"
 
@@ -241,7 +241,7 @@ export namespace rawr::platform::linux
 
 export namespace rawr::platform::linux::x64::syscall
 {
-    #if RAWR_PLATFORM_LINUX && RAWR_ARCH_X64 && RAWR_COMPILER_FAMILY_GNU
+    #if RAWR_PLATFORM_LINUX && RAWR_ARCH_X64 && RAWR_COMPILER_GNU
         #define RAWR_PLATFORM_LINUX_X64_SYSCALL_GATED_BODY(...) \
             __VA_ARGS__;
     #else

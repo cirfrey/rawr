@@ -40,6 +40,6 @@
 #include "rawr/distribution/todo.undef.pp"
 #include "rawr/detection/platform.undef.pp"
 #include "rawr/detection/arch.undef.pp"
-#if RAWRSCAN_METADATA
+#ifdef RAWR_METADATA
     #undef RAWR_PP_MODULE
 #endif

@@ -1,6 +1,6 @@
 // GENERATED — do not edit
 
-#if RAWRSCAN_METADATA
+#ifdef RAWR_METADATA
     #undef RAWR_PP_MODULE
     #define RAWR_PP_MODULE rawr.lib.test.pp
 #endif
@@ -27,7 +27,7 @@
                              auto run_checks() -> void;                                                   \
         };                                                                                                \
     }                                                                                                     \
-    RAWR_LINKER_SECTION_REGISTER(rawr_lib_test_section, ::rawr::lib::test::section, {                     \
+    RAWR_LINKER_SET_REGISTER(rawr_lib_test_section, ::rawr::lib::test::section, {                         \
         .run      = RAWR_TEST_CONCAT(rawr_normal_test_, Counter)::run,                                    \
         .get_info = RAWR_TEST_CONCAT(rawr_normal_test_, Counter)::get_info                                \
     });                                                                                                   \

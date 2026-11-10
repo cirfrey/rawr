@@ -546,29 +546,29 @@ def _gen_amalgam(entries: list[ManifestEntry],
         parts.append('#endif\n')
 
         if e.kind == 'pp':
-            parts.append('\t#if !RAWR_AMALGAM_NO_SOURCE_MAPPING\n')
+            parts.append('\t#if !defined(RAWR_AMALGAM_NO_SOURCE_MAPPING) || !RAWR_AMALGAM_NO_SOURCE_MAPPING\n')
             parts.append(f'\t\t#line 3 "{e.file}"\n')
             parts.append('\t#endif\n')
             parts.extend(inline_pp(e.file))
 
         elif e.kind == 'module':
             hpp_disp = e.file[:-5] + '.hpp'
-            parts.append('\t#if !RAWR_AMALGAM_NO_SOURCE_MAPPING\n')
+            parts.append('\t#if !defined(RAWR_AMALGAM_NO_SOURCE_MAPPING) || !RAWR_AMALGAM_NO_SOURCE_MAPPING\n')
             parts.append(f'\t\t#line 1 "{hpp_disp}"\n')
             parts.append('\t#endif\n')
             parts.extend(body_with_inline(lines))
             parts.append('\n')
 
-        parts.append('#if !RAWR_AMALGAM_NO_SECTIONS\n')
+        parts.append('#if !defined(RAWR_AMALGAM_NO_SECTIONS) || !RAWR_AMALGAM_NO_SECTIONS\n')
         parts.append(f'\t#pragma endsection "{e.file}"\n')
         parts.append('#endif\n')
 
     content = ''.join(parts)
-    restore_line = content.count('\n') + 1
+    restore_line = content.count('\n') + 3
 
     parts.extend([
         '#if !RAWR_AMALGAM_NO_SOURCE_MAPPING\n',
-        f'#line {restore_line} "{name}"\n',
+        f'\t#line {restore_line} "{name}"\n',
         '#endif\n',
     ])
 

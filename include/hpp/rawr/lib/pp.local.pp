@@ -5,7 +5,7 @@
 // others. Up to 256 arguments are supported; the limit can be raised by adding
 // more RAWR_PP_FOR_EACH_n macros.
 
-#if RAWRSCAN_METADATA
+#ifdef RAWR_METADATA
     #undef RAWR_PP_MODULE
     #define RAWR_PP_MODULE rawr.lib.pp.pp
 #endif

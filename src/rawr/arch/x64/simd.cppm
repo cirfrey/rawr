@@ -1,11 +1,11 @@
 export module rawr.arch.x64.simd;
-import        rawr.lib.simd.storage;
+import        rawr.simd.storage;
 import        rawr.lib.dummy_return;
-import        rawr.detection;
+import        rawr.this_target;
 import        rawr.lib.integer.raw;
-import        rawr.lib.intrin;
-#include     "rawr/detection/arch.pp"
-#include     "rawr/lib/compiler.pp"
+import        rawr.intrin.base;
+#include     "rawr/arch/detection.pp"
+#include     "rawr/compiler/utils.pp"
 
 // MSVC is quite picky about intrinsics, you have to *declare* them.
 // Its also very picky about the names of the types involved.
@@ -90,7 +90,7 @@ export namespace rawr::arch::x64::sse
         if constexpr(!this_arch.is_x64()) {
             static_assert("Unimplemented");
             return dummy_return{};
-        } else if constexpr(this_compiler.is_family_gnu()) {
+        } else if constexpr(this_compiler.is_gnu()) {
             return gnu::add_u32x4(lhs, rhs);
         } else if constexpr(this_compiler.is_msvc()) {
             if(intrin::is_consteval()) { return soft::add_u32x4(lhs, rhs); }

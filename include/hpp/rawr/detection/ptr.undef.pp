@@ -8,10 +8,10 @@
     #undef RAWR_IS_32BIT
 #endif
 #if RAWR_PTR_SIZE == 8
-    #undef RAWR_IS_64BIT
+    #undef RAWR_ABI_IS_64BIT
 #endif
 #undef RAWR_IS_32BIT
-#undef RAWR_IS_64BIT
+#undef RAWR_ABI_IS_64BIT
 #if defined(__SIZEOF_POINTER__)
     #undef RAWR_PTR_SIZE
 #elif RAWR_PLATFORM_WINDOWS && defined(_WIN64)
@@ -21,6 +21,6 @@
 #endif
 #include "rawr/detection/compiler.undef.pp"
 #include "rawr/detection/platform.undef.pp"
-#if RAWRSCAN_METADATA
+#ifdef RAWR_METADATA
     #undef RAWR_PP_MODULE
 #endif

@@ -2,7 +2,7 @@
 // Usage: RAWR_TODO("Some todo here")
 #pragma once
 
-#if RAWRSCAN_METADATA
+#ifdef RAWR_METADATA
     #define RAWR_PP_MODULE rawr.distribution.todo.pp
 #endif
 

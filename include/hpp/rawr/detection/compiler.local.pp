@@ -1,6 +1,6 @@
 // GENERATED — do not edit
 
-#if RAWRSCAN_METADATA
+#ifdef RAWR_METADATA
     #undef RAWR_PP_MODULE
     #define RAWR_PP_MODULE rawr.detection.compiler.pp
 #endif
@@ -76,11 +76,11 @@
     #define RAWR_COMPILER_VERSION_BUILD 0
 #endif
 
-#undef RAWR_COMPILER_FAMILY_GNU
-#define RAWR_COMPILER_FAMILY_GNU 0
+#undef RAWR_COMPILER_GNU
+#define RAWR_COMPILER_GNU 0
 #if RAWR_COMPILER_CLANG || RAWR_COMPILER_GCC
-    #undef  RAWR_COMPILER_FAMILY_GNU
-    #define RAWR_COMPILER_FAMILY_GNU 1
+    #undef  RAWR_COMPILER_GNU
+    #define RAWR_COMPILER_GNU 1
 #endif
 
 #if !RAWR_DETECTION_NO_COMPILER_ERROR

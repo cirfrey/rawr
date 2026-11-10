@@ -1,6 +1,6 @@
 export module rawr.lib.typing;
-import        rawr.lib.intrin.base;
-#include     "rawr/lib/compiler.pp"
+import        rawr.intrin.base;
+#include     "rawr/compiler/utils.pp"
 
 export namespace rawr::inline lib::inline typing::inline base
 {

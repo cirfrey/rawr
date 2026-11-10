@@ -1,5 +1,5 @@
 // GENERATED — do not edit
-#if RAWR_ARCH_X86
+#if RAWR_ARCH_IA32
     #undef RAWR_ABI_SYSV_TRAMPOLINE
 #elif RAWR_ARCH_X64
     #undef RAWR_ABI_SYSV_TRAMPOLINE
@@ -23,6 +23,6 @@
 #undef RAWR_ABI_SYSV_TRAMPOLINE_X64
 #undef RAWR_ABI_SYSV_TRAMPOLINE_X86
 #include "rawr/detection/arch.undef.pp"
-#if RAWRSCAN_METADATA
+#ifdef RAWR_METADATA
     #undef RAWR_PP_MODULE
 #endif

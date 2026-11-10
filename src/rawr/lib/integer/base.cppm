@@ -1,8 +1,8 @@
 export module rawr.lib.integer.base;
 import        rawr.lib.bits;
-#include     "rawr/lib/compiler.pp"
-#include     "rawr/detection/feature.pp"
-#include     "rawr/detection/compiler.pp"
+#include     "rawr/compiler/utils.pp"
+#include     "rawr/lib/integer/detection.pp"
+#include     "rawr/compiler/detection.pp"
 
 
 namespace rawr::inline lib::inline integer::inline base::detail
@@ -41,7 +41,7 @@ namespace rawr::inline lib::inline integer::inline base::detail
     using select_type_by_size = decltype(select_type_by_size_helper<Bits, Types...>());
 
     // Silence warning: ISO C++ does not support '__int128' for 'type name' [-Wpedantic]
-    #if RAWR_HAS_INT128
+    #if RAWR_INTEGER_HAS_INT128
         RAWR_GCC_PRAGMA(GCC diagnostic push)
         RAWR_GCC_PRAGMA(GCC diagnostic ignored "-Wpedantic")
         using int128_t  = __int128;
@@ -76,7 +76,7 @@ namespace rawr::inline lib::inline integer::inline base::detail
             signed int,
             signed long,
             signed long long
-            #if RAWR_HAS_INT128
+            #if RAWR_INTEGER_HAS_INT128
                 , int128_t
             #endif
         >;
@@ -90,7 +90,7 @@ namespace rawr::inline lib::inline integer::inline base::detail
             unsigned int,
             unsigned long,
             unsigned long long
-            #if RAWR_HAS_INT128
+            #if RAWR_INTEGER_HAS_INT128
                 , uint128_t
             #endif
         >;
@@ -119,7 +119,7 @@ namespace rawr::inline lib::inline integer::inline base::detail
 
 export namespace rawr::inline lib::inline integer::inline base
 {
-    inline constexpr bool has_int128 = RAWR_HAS_INT128;
+    inline constexpr bool has_int128 = RAWR_INTEGER_HAS_INT128;
     // TODO: transparently alias int128 here somehow? maybe with an error type?
 
     // These encode only RAW integer types.
@@ -133,13 +133,13 @@ export namespace rawr::inline lib::inline integer::inline base
     #else
         template <typename T, bitwidth Bits = biw0> concept RSint = (
             __is_same(T, signed   char) || __is_same(T, signed   short) || __is_same(T, signed   int) || __is_same(T, signed   long) || __is_same(T, signed long long)
-            #if RAWR_HAS_INT128
+            #if RAWR_INTEGER_HAS_INT128
                 || __is_same(T, detail::int128_t)
             #endif
             ) && (Bits == biw0 || bitsof<T> == Bits);
         template <typename T, bitwidth Bits = biw0> concept RUint = (
             __is_same(T, unsigned char) || __is_same(T, unsigned short) || __is_same(T, unsigned int) || __is_same(T, unsigned long) || __is_same(T, unsigned long long)
-            #if RAWR_HAS_INT128
+            #if RAWR_INTEGER_HAS_INT128
                 || __is_same(T, detail::uint128_t)
             #endif
             )  && (Bits == biw0 || bitsof<T> == Bits);

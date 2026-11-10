@@ -2,7 +2,7 @@
 // Goal: Make it so annoying that you have no choice but to tackle the TODO.
 // Usage: RAWR_TODO("Some todo here")
 
-#if RAWRSCAN_METADATA
+#ifdef RAWR_METADATA
     #undef RAWR_PP_MODULE
     #define RAWR_PP_MODULE rawr.distribution.todo.pp
 #endif

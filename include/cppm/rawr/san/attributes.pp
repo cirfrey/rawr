@@ -1,10 +1,10 @@
 #pragma once
 
-#if RAWRSCAN_METADATA
+#ifdef RAWR_METADATA
     #define RAWR_PP_MODULE rawr.san.attributes.pp
 #endif
 
-#include "rawr/lib/compiler.pp"
+#include "rawr/compiler/utils.pp"
 
 #define RAWR_NO_SANITIZE_THREAD    RAWR_ATTRIBUTE(no_sanitize("thread"))
 #define RAWR_NO_SANITIZE_MEMORY    RAWR_ATTRIBUTE(no_sanitize("memory"))

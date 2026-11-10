@@ -6,6 +6,6 @@
 #undef RAWR_CHECK
 #undef RAWR_TEST
 #include "rawr/lib/linker_section.undef.pp"
-#if RAWRSCAN_METADATA
+#ifdef RAWR_METADATA
     #undef RAWR_PP_MODULE
 #endif

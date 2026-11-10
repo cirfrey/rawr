@@ -1,3 +1,2 @@
 export module rawr.abi;
-export import rawr.abi.sysv;
-export import rawr.abi.win64;
+export import rawr.abi.cc;

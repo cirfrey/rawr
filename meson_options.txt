@@ -10,3 +10,188 @@ option('scratchpad',
     value: false,
     description: 'Enable scratchpad functionality'
 )
+
+option('todo',
+    type: 'boolean',
+    value: true,
+    description: 'Enable/Disable RAWR_TODO() warnings'
+)
+
+option('amalgam',
+    type: 'array',
+    choices: ['no-source-mapping', 'no-sections'],
+    value: [],
+    description:
+        'no-source-mapping: Makes amalgam report its real lines in error messages, instead of the original header\'s\n' +
+        'no-sections: Makes amalgam emit no "#pragma section".\n'
+)
+
+option('abi_cc',
+    type: 'combo',
+    value: 'auto',
+    description:
+        'Forcefully declare the target calling convention.\n' +
+        'If unsure just leave at auto.',
+    choices: [
+        'auto',
+        'unknown',
+        'sysv',
+        'win64',
+        'aapcs64',
+        'aapcs64_apple',
+        'aapcs64_win',
+        'arm64ec',
+        'aapcs32',
+        'riscv',
+        'xtensa',
+        'avr',
+        'wasm',
+    ],
+)
+
+option('abi_dm',
+    type: 'combo',
+    value: 'auto',
+    description:
+        'Forcefully declare the target data model.\n' +
+        'If unsure just leave at auto.',
+    choices: [
+        'auto',
+        'unknown',
+        'ilp32',
+        'lp64',
+        'llp64',
+        'ilp64',
+        'lp32',
+        'ip16',
+    ],
+)
+
+option(
+    'arch',
+    type: 'combo',
+    value: 'auto',
+    description:
+        'Forcefully declare the target architecture.\n' +
+        'If unsure just leave at auto.',
+    choices : [
+        'auto',
+        'unknown',
+        'ia32',
+        'x64',
+        'arm64',
+        'arm32',
+        'riscv64',
+        'riscv32',
+        'xtensa',
+        'avr',
+        'wasm32',
+        'wasm64',
+        'ppc32',
+        'ppc64',
+        'loong64',
+        'mips32',
+        'mips64',
+        's390',
+        's390x',
+        'msp430',
+        'sparc32',
+        'sparc64',
+        'superh',
+    ],
+)
+option(
+    'arch_armfeatures',
+    type : 'array',
+    value : ['auto'],
+    description :
+        'Forcefully declare the supported arm features.\n' +
+        'Any value other than auto means ONLY the declared features.\n' +
+        'If unsure just leave at auto.',
+    choices : [
+        'auto',
+        'none',
+        'neon',
+        'sve',
+        'sve2',
+        'dotprod',
+        'fp16',
+        'bf16',
+        'atomic-cas',
+        'all',
+    ],
+)
+option(
+    'arch_riscvfeatures',
+    type : 'array',
+    value : ['auto'],
+    description :
+        'Forcefully declare the supported riscv features.\n' +
+        'Any value other than auto means ONLY the declared features.\n' +
+        'If unsure just leave at auto.',
+    choices : [
+        'auto',
+        'none',
+        'atomic',
+        'all',
+    ],
+)
+option(
+    'arch_wasmfeatures',
+    type : 'array',
+    value : ['auto'],
+    description :
+        'Forcefully declare the supported wasm features.\n' +
+        'Any value other than auto means ONLY the declared features.\n' +
+        'If unsure just leave at auto.',
+    choices : [
+        'auto',
+        'none',
+        'atomics',
+        'all',
+    ],
+)
+option(
+    'arch_x86features',
+    type : 'array',
+    value : ['auto'],
+    description :
+        'Forcefully declare the supported x86 features.\n' +
+        'Any value other than auto means ONLY the declared features.\n' +
+        'If unsure just leave at auto.',
+    choices : [
+        'auto',
+        'none',
+        'sse',
+        'sse2',
+        'sse41',
+        'sse42',
+        'avx',
+        'avx2',
+        'avx512f',
+        'fma',
+        'bmi1',
+        'bmi2',
+        'popcnt',
+        'lzcnt',
+        'clwb',
+        'all',
+    ],
+)
+
+option(
+    'bin',
+    type: 'combo',
+    value: 'auto',
+    description:
+        'Forcefully declare the target binary format.\n' +
+        'If unsure just leave at auto.',
+    choices : [
+        'auto',
+        'unknown',
+        'elf',
+        'macho',
+        'pe',
+        'wasm',
+    ],
+)

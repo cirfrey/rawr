@@ -5,7 +5,7 @@
 // more RAWR_PP_FOR_EACH_n macros.
 #pragma once
 
-#if RAWRSCAN_METADATA
+#ifdef RAWR_METADATA
     #define RAWR_PP_MODULE rawr.lib.pp.pp
 #endif
 

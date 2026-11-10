@@ -16,11 +16,11 @@
 // follows after run() returns. No heap, no failure buffer.
 
 #define RAWR_AMALGAM_NOSTDLIB 1
-import rawr.lib.test;
+import rawr.test;
 import rawr.lib.integer.raw;
 import rawr.platform.linux;
 import rawr.nostdlib;
-#include "rawr/lib/main.pp"
+#include "rawr/abi/main.pp"
 
 
 // ── Output helpers ────────────────────────────────────────────────────────────
@@ -52,7 +52,7 @@ struct suite_state {
     unsigned failed = 0u;
 };
 
-auto check_callback(rawr::lib::test::test_suite_check c, void* ud) noexcept -> void {
+auto check_callback(rawr::test::test_suite_check c, void* ud) noexcept -> void {
     auto& s = *static_cast<suite_state*>(ud);
 
     if (c.cond) { ++s.passed; return; }
@@ -71,13 +71,13 @@ auto check_callback(rawr::lib::test::test_suite_check c, void* ud) noexcept -> v
 
 // ── Entry point ───────────────────────────────────────────────────────────────
 
-RAWR_MAIN_NOCTX
+RAWR_ABI_MAIN_NOCTX
 {
     unsigned total_passed = 0u;
     unsigned total_failed = 0u;
     unsigned suites_run   = 0u;
 
-    for (auto const& entry : rawr::lib::test::section) {
+    for (auto const& entry : rawr::test::section) {
         auto const info = entry.get_info();
         suite_state state{};
 

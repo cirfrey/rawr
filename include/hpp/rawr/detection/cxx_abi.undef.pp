@@ -10,6 +10,6 @@
 #undef RAWR_CXX_ABI_MSVC
 #undef RAWR_CXX_ABI_ITANIUM
 #include "rawr/detection/compiler.undef.pp"
-#if RAWRSCAN_METADATA
+#ifdef RAWR_METADATA
     #undef RAWR_PP_MODULE
 #endif

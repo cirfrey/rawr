@@ -21,6 +21,6 @@
 #undef RAWR_RICH_FLAGS
 #undef RAWR_RICH_ENUM
 #include "rawr/lib/pp.undef.pp"
-#if RAWRSCAN_METADATA
+#ifdef RAWR_METADATA
     #undef RAWR_PP_MODULE
 #endif

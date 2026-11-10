@@ -1,6 +1,6 @@
 // GENERATED — do not edit
 
-#if RAWRSCAN_METADATA
+#ifdef RAWR_METADATA
     #undef RAWR_PP_MODULE
     #define RAWR_PP_MODULE rawr.detection.ptr.pp
 #endif
@@ -19,13 +19,13 @@
     #define RAWR_PTR_SIZE 4
 #endif
 
-#undef RAWR_IS_64BIT
-#define RAWR_IS_64BIT 0
+#undef RAWR_ABI_IS_64BIT
+#define RAWR_ABI_IS_64BIT 0
 #undef RAWR_IS_32BIT
 #define RAWR_IS_32BIT 0
 #if RAWR_PTR_SIZE == 8
-    #undef  RAWR_IS_64BIT
-    #define RAWR_IS_64BIT 1
+    #undef  RAWR_ABI_IS_64BIT
+    #define RAWR_ABI_IS_64BIT 1
 #endif
 #if RAWR_PTR_SIZE == 4
     #undef  RAWR_IS_32BIT

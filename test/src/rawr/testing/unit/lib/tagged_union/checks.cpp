@@ -10,10 +10,10 @@
 // The int lives on the constexpr evaluation stack (C++20), so destructor
 // calls are observable within constant expressions.
 
-import rawr.lib.intrin.base;
+import rawr.intrin.base;
 #include "rawr/lib/tagged_union.pp"
-#include "rawr/lib/test.pp"
-#include "rawr/lib/compiler.pp"
+#include "rawr/test.pp"
+#include "rawr/compiler/utils.pp"
 
 namespace
 {

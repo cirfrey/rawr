@@ -53,7 +53,7 @@ namespace rawr::inline lib::inline test
         get_info_t get_info;
     };
 
-    RAWR_LINKER_SECTION_DEFINE(rawr_lib_test_section, section, test_section_entry);
+    RAWR_LINKER_SET_DEFINE(rawr_lib_test_section, section, test_section_entry);
 
     template <typename T>
     concept TestSuite = requires(T t)

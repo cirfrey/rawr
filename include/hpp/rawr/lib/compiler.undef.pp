@@ -25,7 +25,7 @@
     #undef RAWR_NOT_CLANG
     #undef RAWR_CLANG
 #endif
-#if RAWR_COMPILER_FAMILY_GNU
+#if RAWR_COMPILER_GNU
     #undef RAWR_GNU_PRAGMA
     #undef RAWR_GNU_AND
     #undef RAWR_GNU_ELSE
@@ -99,6 +99,6 @@
 #undef RAWR_RAW_PRAGMA
 #include "rawr/lib/pp.undef.pp"
 #include "rawr/detection/compiler.undef.pp"
-#if RAWRSCAN_METADATA
+#ifdef RAWR_METADATA
     #undef RAWR_PP_MODULE
 #endif

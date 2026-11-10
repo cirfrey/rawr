@@ -20,6 +20,6 @@
 #undef RAWR_LS_CONCAT_
 #include "rawr/detection/bin.undef.pp"
 #include "rawr/detection/compiler.undef.pp"
-#if RAWRSCAN_METADATA
+#ifdef RAWR_METADATA
     #undef RAWR_PP_MODULE
 #endif

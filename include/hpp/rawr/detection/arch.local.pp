@@ -1,12 +1,12 @@
 // GENERATED — do not edit
 
-#if RAWRSCAN_METADATA
+#ifdef RAWR_METADATA
     #undef RAWR_PP_MODULE
     #define RAWR_PP_MODULE rawr.detection.arch.pp
 #endif
 
-#undef RAWR_ARCH_X86
-#define RAWR_ARCH_X86     0
+#undef RAWR_ARCH_IA32
+#define RAWR_ARCH_IA32     0
 #undef RAWR_ARCH_X64
 #define RAWR_ARCH_X64     0
 #undef RAWR_ARCH_ARM64
@@ -62,8 +62,8 @@
     #define RAWR_ARCH_X64 1
 #elif defined(__i386__) || defined(__i386) || defined(_M_IX86)
     // __i386 (no trailing __) is the GCC spelling; _M_IX86 is MSVC
-    #undef  RAWR_ARCH_X86
-    #define RAWR_ARCH_X86 1
+    #undef  RAWR_ARCH_IA32
+    #define RAWR_ARCH_IA32 1
 #elif defined(__aarch64__) || defined(_M_ARM64)
     #undef  RAWR_ARCH_ARM64
     #define RAWR_ARCH_ARM64 1
@@ -137,138 +137,138 @@
     #define RAWR_ARCH_UNKNOWN 1
 #endif
 
-#undef RAWR_ARCH_FAMILY_RISCV
-#define RAWR_ARCH_FAMILY_RISCV 0
-#undef RAWR_ARCH_FAMILY_X86
-#define RAWR_ARCH_FAMILY_X86   0
-#undef RAWR_ARCH_FAMILY_WASM
-#define RAWR_ARCH_FAMILY_WASM  0
-#undef RAWR_ARCH_FAMILY_ARM
-#define RAWR_ARCH_FAMILY_ARM   0
-#undef RAWR_ARCH_FAMILY_PPC
-#define RAWR_ARCH_FAMILY_PPC   0
-#undef RAWR_ARCH_FAMILY_MIPS
-#define RAWR_ARCH_FAMILY_MIPS  0
-#undef RAWR_ARCH_FAMILY_S390
-#define RAWR_ARCH_FAMILY_S390  0
-#undef RAWR_ARCH_FAMILY_SPARC
-#define RAWR_ARCH_FAMILY_SPARC 0
+#undef RAWR_ARCH_RISCV
+#define RAWR_ARCH_RISCV 0
+#undef RAWR_ARCH_X86
+#define RAWR_ARCH_X86   0
+#undef RAWR_ARCH_WASM
+#define RAWR_ARCH_WASM  0
+#undef RAWR_ARCH_ARM
+#define RAWR_ARCH_ARM   0
+#undef RAWR_ARCH_PPC
+#define RAWR_ARCH_PPC   0
+#undef RAWR_ARCH_MIPS
+#define RAWR_ARCH_MIPS  0
+#undef RAWR_ARCH_IBMZ
+#define RAWR_ARCH_IBMZ  0
+#undef RAWR_ARCH_SPARC
+#define RAWR_ARCH_SPARC 0
 #if RAWR_ARCH_RISCV64 || RAWR_ARCH_RISCV32
-    #undef  RAWR_ARCH_FAMILY_RISCV
-    #define RAWR_ARCH_FAMILY_RISCV 1
+    #undef  RAWR_ARCH_RISCV
+    #define RAWR_ARCH_RISCV 1
 #endif
 #if RAWR_ARCH_WASM32 || RAWR_ARCH_WASM64
-    #undef  RAWR_ARCH_FAMILY_WASM
-    #define RAWR_ARCH_FAMILY_WASM 1
+    #undef  RAWR_ARCH_WASM
+    #define RAWR_ARCH_WASM 1
 #endif
-#if RAWR_ARCH_X64 || RAWR_ARCH_X86
-    #undef  RAWR_ARCH_FAMILY_X86
-    #define RAWR_ARCH_FAMILY_X86 1
+#if RAWR_ARCH_X64 || RAWR_ARCH_IA32
+    #undef  RAWR_ARCH_X86
+    #define RAWR_ARCH_X86 1
 #endif
 #if RAWR_ARCH_ARM64 || RAWR_ARCH_ARM32
-    #undef  RAWR_ARCH_FAMILY_ARM
-    #define RAWR_ARCH_FAMILY_ARM 1
+    #undef  RAWR_ARCH_ARM
+    #define RAWR_ARCH_ARM 1
 #endif
 #if RAWR_ARCH_PPC64 || RAWR_ARCH_PPC32
-    #undef  RAWR_ARCH_FAMILY_PPC
-    #define RAWR_ARCH_FAMILY_PPC 1
+    #undef  RAWR_ARCH_PPC
+    #define RAWR_ARCH_PPC 1
 #endif
 #if RAWR_ARCH_MIPS64 || RAWR_ARCH_MIPS32
-    #undef  RAWR_ARCH_FAMILY_MIPS
-    #define RAWR_ARCH_FAMILY_MIPS 1
+    #undef  RAWR_ARCH_MIPS
+    #define RAWR_ARCH_MIPS 1
 #endif
 #if RAWR_ARCH_S390X || RAWR_ARCH_S390
-    #undef  RAWR_ARCH_FAMILY_S390
-    #define RAWR_ARCH_FAMILY_S390 1
+    #undef  RAWR_ARCH_IBMZ
+    #define RAWR_ARCH_IBMZ 1
 #endif
 #if RAWR_ARCH_SPARC64 || RAWR_ARCH_SPARC32
-    #undef  RAWR_ARCH_FAMILY_SPARC
-    #define RAWR_ARCH_FAMILY_SPARC 1
+    #undef  RAWR_ARCH_SPARC
+    #define RAWR_ARCH_SPARC 1
 #endif
 
 // Defaults
-#undef RAWR_ARCH_X86_SSE
-#define RAWR_ARCH_X86_SSE     0
-#undef RAWR_ARCH_X86_SSE2
-#define RAWR_ARCH_X86_SSE2    0
-#undef RAWR_ARCH_X86_SSE41
-#define RAWR_ARCH_X86_SSE41   0
-#undef RAWR_ARCH_X86_SSE42
-#define RAWR_ARCH_X86_SSE42   0
-#undef RAWR_ARCH_X86_AVX
-#define RAWR_ARCH_X86_AVX     0
-#undef RAWR_ARCH_X86_AVX2
-#define RAWR_ARCH_X86_AVX2    0
-#undef RAWR_ARCH_X86_AVX512F
-#define RAWR_ARCH_X86_AVX512F 0
-#undef RAWR_ARCH_X86_FMA
-#define RAWR_ARCH_X86_FMA     0
-#undef RAWR_ARCH_X86_BMI1
-#define RAWR_ARCH_X86_BMI1    0
-#undef RAWR_ARCH_X86_BMI2
-#define RAWR_ARCH_X86_BMI2    0
-#undef RAWR_ARCH_X86_POPCNT
-#define RAWR_ARCH_X86_POPCNT  0
-#undef RAWR_ARCH_X86_LZCNT
-#define RAWR_ARCH_X86_LZCNT   0
-#undef RAWR_ARCH_X86_CLWB
-#define RAWR_ARCH_X86_CLWB    0
-#if RAWR_ARCH_FAMILY_X86
+#undef RAWR_ARCH_IA32_SSE
+#define RAWR_ARCH_IA32_SSE     0
+#undef RAWR_ARCH_IA32_SSE2
+#define RAWR_ARCH_IA32_SSE2    0
+#undef RAWR_ARCH_IA32_SSE41
+#define RAWR_ARCH_IA32_SSE41   0
+#undef RAWR_ARCH_IA32_SSE42
+#define RAWR_ARCH_IA32_SSE42   0
+#undef RAWR_ARCH_IA32_AVX
+#define RAWR_ARCH_IA32_AVX     0
+#undef RAWR_ARCH_IA32_AVX2
+#define RAWR_ARCH_IA32_AVX2    0
+#undef RAWR_ARCH_IA32_AVX512F
+#define RAWR_ARCH_IA32_AVX512F 0
+#undef RAWR_ARCH_IA32_FMA
+#define RAWR_ARCH_IA32_FMA     0
+#undef RAWR_ARCH_IA32_BMI1
+#define RAWR_ARCH_IA32_BMI1    0
+#undef RAWR_ARCH_IA32_BMI2
+#define RAWR_ARCH_IA32_BMI2    0
+#undef RAWR_ARCH_IA32_POPCNT
+#define RAWR_ARCH_IA32_POPCNT  0
+#undef RAWR_ARCH_IA32_LZCNT
+#define RAWR_ARCH_IA32_LZCNT   0
+#undef RAWR_ARCH_IA32_CLWB
+#define RAWR_ARCH_IA32_CLWB    0
+#if RAWR_ARCH_X86
     // SSE / SSE2 are guaranteed on x64 by ABI, so we use ||, not &&
     #if RAWR_ARCH_X64 || defined(__SSE__)
-        #undef  RAWR_ARCH_X86_SSE
-        #define RAWR_ARCH_X86_SSE 1
+        #undef  RAWR_ARCH_IA32_SSE
+        #define RAWR_ARCH_IA32_SSE 1
     #endif
     #if RAWR_ARCH_X64 || defined(__SSE2__)
-        #undef  RAWR_ARCH_X86_SSE2
-        #define RAWR_ARCH_X86_SSE2 1
+        #undef  RAWR_ARCH_IA32_SSE2
+        #define RAWR_ARCH_IA32_SSE2 1
     #endif
     #if defined(__SSE4_1__)
-        #undef  RAWR_ARCH_X86_SSE41
-        #define RAWR_ARCH_X86_SSE41 1
+        #undef  RAWR_ARCH_IA32_SSE41
+        #define RAWR_ARCH_IA32_SSE41 1
     #endif
     #if defined(__SSE4_2__)
-        #undef  RAWR_ARCH_X86_SSE42
-        #define RAWR_ARCH_X86_SSE42 1
+        #undef  RAWR_ARCH_IA32_SSE42
+        #define RAWR_ARCH_IA32_SSE42 1
     #endif
     #if defined(__AVX__)
-        #undef  RAWR_ARCH_X86_AVX
-        #define RAWR_ARCH_X86_AVX 1
+        #undef  RAWR_ARCH_IA32_AVX
+        #define RAWR_ARCH_IA32_AVX 1
     #endif
     #if defined(__AVX2__)
-        #undef  RAWR_ARCH_X86_AVX2
-        #define RAWR_ARCH_X86_AVX2 1
+        #undef  RAWR_ARCH_IA32_AVX2
+        #define RAWR_ARCH_IA32_AVX2 1
     #endif
     #if defined(__AVX512F__)
-        #undef  RAWR_ARCH_X86_AVX512F
-        #define RAWR_ARCH_X86_AVX512F 1
+        #undef  RAWR_ARCH_IA32_AVX512F
+        #define RAWR_ARCH_IA32_AVX512F 1
     #endif
     #if defined(__FMA__)
-        #undef  RAWR_ARCH_X86_FMA
-        #define RAWR_ARCH_X86_FMA 1
+        #undef  RAWR_ARCH_IA32_FMA
+        #define RAWR_ARCH_IA32_FMA 1
     #endif
     #if defined(__BMI__)
-        #undef  RAWR_ARCH_X86_BMI1
-        #define RAWR_ARCH_X86_BMI1 1
+        #undef  RAWR_ARCH_IA32_BMI1
+        #define RAWR_ARCH_IA32_BMI1 1
     #endif
     #if defined(__BMI2__)
-        #undef  RAWR_ARCH_X86_BMI2
-        #define RAWR_ARCH_X86_BMI2 1
+        #undef  RAWR_ARCH_IA32_BMI2
+        #define RAWR_ARCH_IA32_BMI2 1
     #endif
     #if defined(__POPCNT__)
-        #undef  RAWR_ARCH_X86_POPCNT
-        #define RAWR_ARCH_X86_POPCNT 1
+        #undef  RAWR_ARCH_IA32_POPCNT
+        #define RAWR_ARCH_IA32_POPCNT 1
     #endif
     #if defined(__LZCNT__)
-        #undef  RAWR_ARCH_X86_LZCNT
-        #define RAWR_ARCH_X86_LZCNT 1
+        #undef  RAWR_ARCH_IA32_LZCNT
+        #define RAWR_ARCH_IA32_LZCNT 1
     #endif
     #if defined(__CLWB__)
-        #undef  RAWR_ARCH_X86_CLWB
-        #define RAWR_ARCH_X86_CLWB 1
+        #undef  RAWR_ARCH_IA32_CLWB
+        #define RAWR_ARCH_IA32_CLWB 1
     #endif
     // Note: MSVC exposes few independent ISA flags — only AVX/AVX2/AVX512 via /arch:.
-    // CLWB, FMA, BMI etc. must be injected via -DRAWR_ARCH_X86_FEATURE_CLWB=1
+    // CLWB, FMA, BMI etc. must be injected via -DRAWR_ARCH_IA32_FEATURE_CLWB=1
     // in the build system when targeting those features on MSVC.
 #endif
 
@@ -286,7 +286,7 @@
 #define RAWR_ARCH_ARM_BF16       0
 #undef RAWR_ARCH_ARM_ATOMIC_CAS
 #define RAWR_ARCH_ARM_ATOMIC_CAS 0
-#if RAWR_ARCH_FAMILY_ARM
+#if RAWR_ARCH_ARM
     #if defined(__ARM_NEON)
         #undef  RAWR_ARCH_ARM_NEON
         #define RAWR_ARCH_ARM_NEON 1
@@ -326,7 +326,7 @@
 
 #undef RAWR_ARCH_RISCV_ATOMIC
 #define RAWR_ARCH_RISCV_ATOMIC 0
-#if RAWR_ARCH_FAMILY_RISCV
+#if RAWR_ARCH_RISCV
     // Set by GCC/Clang when the 'A' (atomic) extension is targeted
     // (-matomic, or an "a"-suffixed -march, e.g. rv32ima). Many minimal
     // embedded RV32I cores omit the A extension deliberately to save area.
@@ -338,7 +338,7 @@
 
 #undef RAWR_ARCH_WASM_ATOMICS
 #define RAWR_ARCH_WASM_ATOMICS 0
-#if RAWR_ARCH_FAMILY_WASM
+#if RAWR_ARCH_WASM
     // Set by Clang when compiled with -matomics (the threads/atomics
     // proposal). Without it, a wasm module has no shared memory across
     // execution agents — see RAWR_ARCH_HAS_CAS below.

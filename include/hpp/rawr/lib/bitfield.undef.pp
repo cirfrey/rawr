@@ -13,6 +13,6 @@
 #undef RAWR_BITFIELD_W
 #undef RAWR_BITFIELD
 #include "rawr/lib/pp.undef.pp"
-#if RAWRSCAN_METADATA
+#ifdef RAWR_METADATA
     #undef RAWR_PP_MODULE
 #endif

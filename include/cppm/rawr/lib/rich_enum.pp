@@ -3,7 +3,7 @@
 // MSVC: /Zc:preprocessor required.
 #pragma once
 
-#if RAWRSCAN_METADATA
+#ifdef RAWR_METADATA
     #define RAWR_PP_MODULE rawr.lib.rich_enum.pp
 #endif
 

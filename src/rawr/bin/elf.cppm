@@ -1,5 +1,5 @@
 export module rawr.bin.elf;
-#include     "rawr/lib/compiler.pp"
+#include     "rawr/compiler/utils.pp"
 
 // In a static binary with a proper linker script these symbols always exist.
 // The empty case is already covered by start == end. Null checks produce extra instructions

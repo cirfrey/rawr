@@ -1,38 +1,38 @@
 export module rawr.arch.x64.atomic;
 import        rawr.lib.integer.base;
 import        rawr.lib.integer.raw;
-import        rawr.lib.sync.base;
-import        rawr.detection;
+import        rawr.sync.base;
+import        rawr.this_target;
 import        rawr.lib.sass;
-#include     "rawr/detection/ptr.pp"
-#include     "rawr/detection/arch.pp"
-#include     "rawr/lib/compiler.pp"
+#include     "rawr/abi/dm/detection.pp"
+#include     "rawr/arch/detection.pp"
+#include     "rawr/compiler/utils.pp"
 
 export namespace rawr::arch::x64::atomic::msvc
 {
-    // RAWR_IS_64BIT is used instead of RAWR_ARCH_X64 because those intrinsics are also supported on arm64.
+    // RAWR_ABI_IS_64BIT is used instead of RAWR_ARCH_X64 because those intrinsics are also supported on arm64.
 
     // MSVC intrinsics often need an exact type match, which can be a problem if you do signed char instead of
     // char or things like using int instead of long, even if they are the same size in that architecture.
     using rchar = RAWR_MSVC_ELSE(char, rs8);
     using rlong = RAWR_MSVC_ELSE(long, rs32);
 
-    RAWR_MSVC_INTRIN(1, _InterlockedCompareExchange8,  (rchar volatile*, rchar, rchar) -> rchar);
-    RAWR_MSVC_INTRIN(1, _InterlockedCompareExchange16, (rs16  volatile*, rs16,  rs16)  -> rs16);
-    RAWR_MSVC_INTRIN(1, _InterlockedCompareExchange,   (rlong volatile*, rlong, rlong) -> rlong);
-    RAWR_MSVC_INTRIN(1, _InterlockedCompareExchange64, (rs64  volatile*, rs64,  rs64)  -> rs64);
+    RAWR_MSVC_INTRIN(1,                 _InterlockedCompareExchange8,  (rchar volatile*, rchar, rchar) -> rchar);
+    RAWR_MSVC_INTRIN(1,                 _InterlockedCompareExchange16, (rs16  volatile*, rs16,  rs16)  -> rs16);
+    RAWR_MSVC_INTRIN(1,                 _InterlockedCompareExchange,   (rlong volatile*, rlong, rlong) -> rlong);
+    RAWR_MSVC_INTRIN(1,                 _InterlockedCompareExchange64, (rs64  volatile*, rs64,  rs64)  -> rs64);
 
-    RAWR_MSVC_INTRIN(1,             _InterlockedExchange8,  (rchar volatile*, rchar) -> rchar);
-    RAWR_MSVC_INTRIN(1,             _InterlockedExchange16, (rs16  volatile*, rs16)  -> rs16);
-    RAWR_MSVC_INTRIN(1,             _InterlockedExchange,   (rlong volatile*, rlong) -> rlong);
-    RAWR_MSVC_INTRIN(RAWR_IS_64BIT, _InterlockedExchange64, (rs64  volatile*, rs64)  -> rs64);
+    RAWR_MSVC_INTRIN(1,                 _InterlockedExchange8,         (rchar volatile*, rchar) -> rchar);
+    RAWR_MSVC_INTRIN(1,                 _InterlockedExchange16,        (rs16  volatile*, rs16)  -> rs16);
+    RAWR_MSVC_INTRIN(1,                 _InterlockedExchange,          (rlong volatile*, rlong) -> rlong);
+    RAWR_MSVC_INTRIN(RAWR_ABI_DM_PTR64, _InterlockedExchange64,        (rs64  volatile*, rs64)  -> rs64);
 
-    RAWR_MSVC_INTRIN(1,             _InterlockedExchangeAdd8,  (rchar volatile*, rchar) -> rchar);
-    RAWR_MSVC_INTRIN(1,             _InterlockedExchangeAdd16, (rs16  volatile*, rs16)  -> rs16);
-    RAWR_MSVC_INTRIN(1,             _InterlockedExchangeAdd,   (rlong volatile*, rlong) -> rlong);
-    RAWR_MSVC_INTRIN(RAWR_IS_64BIT, _InterlockedExchangeAdd64, (rs64  volatile*, rs64)  -> rs64);
+    RAWR_MSVC_INTRIN(1,                 _InterlockedExchangeAdd8,      (rchar volatile*, rchar) -> rchar);
+    RAWR_MSVC_INTRIN(1,                 _InterlockedExchangeAdd16,     (rs16  volatile*, rs16)  -> rs16);
+    RAWR_MSVC_INTRIN(1,                 _InterlockedExchangeAdd,       (rlong volatile*, rlong) -> rlong);
+    RAWR_MSVC_INTRIN(RAWR_ABI_DM_PTR64, _InterlockedExchangeAdd64,     (rs64  volatile*, rs64)  -> rs64);
 
-    RAWR_MSVC_INTRIN(RAWR_ARCH_FAMILY_X86, _ReadWriteBarrier, () -> void);
+    RAWR_MSVC_INTRIN(RAWR_ARCH_IA32,    _ReadWriteBarrier,             () -> void);
 }
 
 export namespace rawr::arch::x64::atomic::gnu
@@ -82,7 +82,7 @@ export namespace rawr::arch::x64::atomic
         if constexpr(!this_arch.is_x64()) {
             static_assert(sass::fail<T>);
             return false;
-        } else if constexpr(this_compiler.is_family_gnu()) {
+        } else if constexpr(this_compiler.is_gnu()) {
             return gnu::atomic_compare_exchange_n(
                 addr, &expected, desired, /*weak=*/true,
                 gnu::to_gnu_order(Success), gnu::to_gnu_order(Failure));
@@ -112,7 +112,7 @@ export namespace rawr::arch::x64::atomic
         if constexpr(!this_arch.is_x64()) {
             static_assert(sass::fail<T>);
             return T{};
-        } else if constexpr(this_compiler.is_family_gnu()) {
+        } else if constexpr(this_compiler.is_gnu()) {
             return gnu::atomic_load_n(addr, gnu::to_gnu_order(Order));
         } else if constexpr(this_compiler.is_msvc()){
             // A naturally-aligned load/store of a machine word is already
@@ -138,7 +138,7 @@ export namespace rawr::arch::x64::atomic
     {
         if constexpr(!this_arch.is_x64()) {
             static_assert(sass::fail<T>);
-        } else if constexpr(this_compiler.is_family_gnu()) {
+        } else if constexpr(this_compiler.is_gnu()) {
             gnu::atomic_store_n(addr, value, gnu::to_gnu_order(Order));
         } else if constexpr(this_compiler.is_msvc()){
             // Conservative on purpose: route every order through the full-fence
@@ -159,7 +159,7 @@ export namespace rawr::arch::x64::atomic
         if constexpr(!this_arch.is_x64()) {
             static_assert(sass::fail<T>);
             return T{};
-        } else if constexpr(this_compiler.is_family_gnu()) {
+        } else if constexpr(this_compiler.is_gnu()) {
             return gnu::atomic_fetch_add(addr, delta, gnu::to_gnu_order(Order));
         } else if constexpr(this_compiler.is_msvc()){
                  if constexpr (sizeof(T) == 1) return static_cast<T>(msvc::_InterlockedExchangeAdd8 (reinterpret_cast<      rs8   volatile*>(addr), static_cast<      rs8>(delta)));
@@ -176,7 +176,7 @@ export namespace rawr::arch::x64::atomic
         if constexpr(!this_arch.is_x64()) {
             static_assert(sass::fail<T>);
             return T{};
-        } else if constexpr(this_compiler.is_family_gnu()) {
+        } else if constexpr(this_compiler.is_gnu()) {
             return gnu::atomic_exchange_n(addr, value, gnu::to_gnu_order(Order));
         } else if constexpr(this_compiler.is_msvc()){
                  if constexpr (sizeof(T) == 1) return static_cast<T>(msvc::_InterlockedExchange8 (reinterpret_cast<      rs8   volatile*>(addr), static_cast<      rs8>(value)));

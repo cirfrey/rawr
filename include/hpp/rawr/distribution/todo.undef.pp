@@ -16,6 +16,6 @@
 #endif
 #undef RAWR_TODO_STRINGIFY
 #undef RAWR_TODO_STRINGIFY_
-#if RAWRSCAN_METADATA
+#ifdef RAWR_METADATA
     #undef RAWR_PP_MODULE
 #endif

@@ -11,6 +11,6 @@
 #else
     #undef RAWR_CXX_VERSION
 #endif
-#if RAWRSCAN_METADATA
+#ifdef RAWR_METADATA
     #undef RAWR_PP_MODULE
 #endif

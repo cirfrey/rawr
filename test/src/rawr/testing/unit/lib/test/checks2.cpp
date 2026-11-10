@@ -1,6 +1,6 @@
-#include "rawr/lib/test.pp"
+#include "rawr/test.pp"
 
-// Meta-tests for rawr::lib::test — TU 2.
+// Meta-tests for rawr::test — TU 2.
 // Expected results in expected.hpp. Comments reference expected[] indices.
 //
 // All four suites in this file must appear in the linker section alongside

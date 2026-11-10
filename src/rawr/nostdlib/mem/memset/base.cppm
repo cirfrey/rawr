@@ -1,6 +1,6 @@
 export module rawr.nostdlib.mem.memset.base;
-import        rawr.lib.intrin.mem;
-#include     "rawr/lib/compiler.pp"
+import        rawr.intrin.mem;
+#include     "rawr/compiler/utils.pp"
 
 export namespace rawr::nostdlib::inline mem
 {

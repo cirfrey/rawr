@@ -51,7 +51,7 @@ conventions may be design guidelines/targets, but aren't authoritative.
 
 ## An example
 
-A typical `RAWR_MAIN` consists of a minimal trampoline from `_start` (if needed on the platform) directly into your code.
+A typical `RAWR_ABI_MAIN` consists of a minimal trampoline from `_start` (if needed on the platform) directly into your code.
 
 And then you're free to decide:
 
@@ -117,7 +117,7 @@ using the amalgam. Again, don't expect fast compilation times.
 ```cpp
 #include "https://raw.githubusercontent.com/cirfrey/rawr/refs/heads/main/include/amalgam/rawr.amalgam.hpp"
 
-RAWR_MAIN_NOCTX
+RAWR_ABI_MAIN_NOCTX
 {
     namespace plat = rawr::platform::linux::x64;
     plat::syscall::write(plat::fd_stdout, "Howdy, world!").discard();
@@ -174,14 +174,14 @@ For example:
 // Snipped from rawr/abi/sysv/main.pp
 // Notice the ::rawr symbols refereced.
 
-#define RAWR_ABI_SYSV_MAIN(...)                                                                            \
-    static_assert(RAWR_ABI_SYSV_HAS_TRAMPOLINE, "SysV ctx trampoline not defined for this architecture" ); \
+#define RAWR_ABI_CC_SYSV_MAIN(...)                                                                            \
+    static_assert(RAWR_ABI_CC_SYSV_HAS_TRAMPOLINE, "SysV ctx trampoline not defined for this architecture" ); \
                                                                                                            \
     [[gnu::flatten]] RAWR_NORETURN RAWR_ALWAYS_INLINE auto rawr_user_main(__VA_ARGS__) noexcept -> void;   \
     extern "C" {                                                                                           \
         [[gnu::naked]] RAWR_NORETURN auto _start() noexcept -> void                                        \
         {                                                                                                  \
-            __asm__(RAWR_ABI_SYSV_TRAMPOLINE);                                                             \
+            __asm__(RAWR_ABI_CC_SYSV_TRAMPOLINE);                                                             \
             RAWR_UNREACHABLE;                                                                              \
         }                                                                                                  \
                                                                                                            \

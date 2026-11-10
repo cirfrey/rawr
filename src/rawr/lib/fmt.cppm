@@ -1,8 +1,9 @@
 export module rawr.lib.fmt;
 import        rawr.lib.type_name;
-import        rawr.lib.intrin;
+import        rawr.intrin;
 import        rawr.lib.bits;
 import        rawr.lib.integer.base;
+#include     "rawr/compiler/detection.pp"
 
 export namespace rawr::inline lib::format
 {

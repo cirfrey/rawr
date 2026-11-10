@@ -1,3 +1,4 @@
 // GENERATED — do not edit
 #pragma once
 #include "rawr/lib/bitfield.local.pp"
+include/cppm/rawr/abi/detection.pp include/cppm/rawr/abi/ptr.pp include/cppm/rawr/arch/detection.pp include/cppm/rawr/arch/endian.pp include/cppm/rawr/arch/arm/detection.pp include/cppm/rawr/arch/riscv/detection.pp include/cppm/rawr/arch/wasm/detection.pp include/cppm/rawr/arch/x86/detection.pp include/cppm/rawr/bin/detection.pp include/cppm/rawr/compiler/detection.pp include/cppm/rawr/cxx/detection.pp include/cppm/rawr/cxx/version.pp include/cppm/rawr/cxx/feature.pp include/cppm/rawr/env/detection.pp include/cppm/rawr/platform/detection.pp include/cppm/rawr/san/detection.pp include/cppm/rawr/lib/integer/detection.pp include/cppm/rawr/lib/rich_enum.pp

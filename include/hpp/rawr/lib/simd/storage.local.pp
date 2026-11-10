@@ -1,6 +1,6 @@
 // GENERATED — do not edit
 
-#if RAWRSCAN_METADATA
+#ifdef RAWR_METADATA
     #undef RAWR_PP_MODULE
     #define RAWR_PP_MODULE rawr.lib.simd.storage.pp
 #endif
@@ -9,7 +9,7 @@
 
 // TODO: refactor to use RAWR_DECLSPEC and RAWR_ATTRIBUTE (?).
 
-#if RAWR_COMPILER_FAMILY_GNU
+#if RAWR_COMPILER_GNU
     // By wrapping the vector attribute in a struct, we completely disable
     // the implicit GNU math operators (+, -, *, /) making the types inert.
     // The x64 System V and ARM64 ABIs guarantee this is still passed in

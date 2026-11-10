@@ -1,12 +1,11 @@
 export module rawr.arch.x64.cpuid;
-import        rawr.lib.bitfield;
 import        rawr.lib.integer.base;
 import        rawr.lib.integer.raw;
 import        rawr.lib.bits;
-import        rawr.detection;
-#include     "rawr/detection/arch.pp"
-#include     "rawr/lib/compiler.pp"
-#include     "rawr/lib/bitfield.pp"
+import        rawr.this_target;
+#include     "rawr/arch/detection.pp"
+#include     "rawr/compiler/utils.pp"
+#include     "rawr/bitfield.pp"
 #include     "rawr/distribution/todo.pp"
 
 export namespace rawr::arch::x64::msvc
@@ -42,7 +41,7 @@ export namespace rawr::arch::x64
             static_assert(this_arch.is_x64());
         } else if constexpr(this_compiler.is_msvc()) {
             msvc::__cpuidex(reinterpret_cast<int*>(ret.regs), static_cast<int>(args.leaf), static_cast<int>(args.subleaf));
-        } else if constexpr(this_compiler.is_family_gnu()) {
+        } else if constexpr(this_compiler.is_gnu()) {
             gnu::ia32_cpuidext(reinterpret_cast<int*>(ret.regs), static_cast<int>(args.leaf), static_cast<int>(args.subleaf));
         }
 

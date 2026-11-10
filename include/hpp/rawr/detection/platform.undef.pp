@@ -56,6 +56,6 @@
 #undef RAWR_PLATFORM_WINDOWS
 #undef RAWR_PLATFORM_LINUX
 #include "rawr/distribution/todo.undef.pp"
-#if RAWRSCAN_METADATA
+#ifdef RAWR_METADATA
     #undef RAWR_PP_MODULE
 #endif

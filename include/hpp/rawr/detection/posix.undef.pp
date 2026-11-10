@@ -5,6 +5,6 @@
 #undef RAWR_IS_POSIX
 #include "rawr/detection/env.undef.pp"
 #include "rawr/detection/platform.undef.pp"
-#if RAWRSCAN_METADATA
+#ifdef RAWR_METADATA
     #undef RAWR_PP_MODULE
 #endif

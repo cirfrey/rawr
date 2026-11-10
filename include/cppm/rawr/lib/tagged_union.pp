@@ -1,11 +1,11 @@
 #pragma once
 
-#if RAWRSCAN_METADATA
+#ifdef RAWR_METADATA
     #define RAWR_PP_MODULE rawr.lib.tagged_union.pp
 #endif
 
-import rawr.lib.integer.base;
-import rawr.lib.intrin.construct_at;
+import    rawr.lib.integer.base;
+import    rawr.intrin.construct_at;
 #include "rawr/lib/pp.pp"
 
 // =========================================================================

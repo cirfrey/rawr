@@ -1,6 +1,6 @@
 #pragma once
 
-#if RAWRSCAN_METADATA
+#ifdef RAWR_METADATA
     #define RAWR_PP_MODULE rawr.distribution.version.pp
 #endif
 

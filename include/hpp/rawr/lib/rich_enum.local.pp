@@ -3,7 +3,7 @@
 // Provides RAWR_RICH_ENUM and RAWR_RICH_FLAGS.
 // MSVC: /Zc:preprocessor required.
 
-#if RAWRSCAN_METADATA
+#ifdef RAWR_METADATA
     #undef RAWR_PP_MODULE
     #define RAWR_PP_MODULE rawr.lib.rich_enum.pp
 #endif

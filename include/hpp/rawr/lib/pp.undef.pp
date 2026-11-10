@@ -292,6 +292,6 @@
 #undef RAWR_PP_WHEN
 #undef RAWR_PP_WHEN_1
 #undef RAWR_PP_WHEN_0
-#if RAWRSCAN_METADATA
+#ifdef RAWR_METADATA
     #undef RAWR_PP_MODULE
 #endif

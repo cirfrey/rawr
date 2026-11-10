@@ -9,6 +9,6 @@
     #include "rawr/abi/win64/main.undef.pp"
 #endif
 #include "rawr/detection/abi.undef.pp"
-#if RAWRSCAN_METADATA
+#ifdef RAWR_METADATA
     #undef RAWR_PP_MODULE
 #endif

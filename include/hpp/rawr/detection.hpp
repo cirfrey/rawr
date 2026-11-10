@@ -29,25 +29,19 @@ namespace rawr::inline lib::inline detection
 
 
     RAWR_RICH_ENUM(abis, ru8, (
-        unknown,
-        sysv, win64,
-        aapcs64, aapcs64_apple, aapcs32,
-        riscv_lp64, riscv_ilp32,
-        xtensa, avr, wasm
+        (unknown,       RAWR_ABI_CCID_UNKNOWN),
+        (sysv,          RAWR_ABI_CCID_SYSV),
+        (win64,         RAWR_ABI_CCID_WIN64),
+        (aapcs64,       RAWR_ABI_CCID_AAPCS64),
+        (aapcs64_apple, RAWR_ABI_CCID_AAPCS64_APPLE),
+        (aapcs32,       RAWR_ABI_CCID_AAPCS32),
+        (riscv_lp64,    RAWR_ABI_CCID_RISCV_LP64),
+        (riscv_ilp32,   RAWR_ABI_CCID_RISCV_ILP32),
+        (xtensa,        RAWR_ABI_CCID_XTENSA),
+        (avr,           RAWR_ABI_CCID_AVR),
+        (wasm,          RAWR_ABI_CCID_WASM)
     ), ());
-    constexpr abis this_abi =
-        RAWR_ABI_SYSV ?          abis::sysv :
-        RAWR_ABI_WIN64 ?         abis::win64 :
-        RAWR_ABI_AAPCS64_APPLE ? abis::aapcs64_apple :
-        RAWR_ABI_AAPCS64 ?       abis::aapcs64 :
-        RAWR_ABI_AAPCS32 ?       abis::aapcs32 :
-        RAWR_ABI_RISCV_LP64 ?    abis::riscv_lp64 :
-        RAWR_ABI_RISCV_ILP32 ?   abis::riscv_ilp32 :
-        RAWR_ABI_XTENSA ?        abis::xtensa :
-        RAWR_ABI_AVR ?           abis::avr :
-        RAWR_ABI_WASM ?          abis::wasm :
-                                 abis::unknown;
-
+    constexpr abis this_abi = abis::from_underlying_unchecked(RAWR_ABI_CCID);
 
     RAWR_RICH_ENUM(cxx_abis, ru8, (unknown, itanium, msvc), ());
     constexpr cxx_abis this_cxx_abi =

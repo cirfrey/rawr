@@ -1,13 +1,11 @@
 
-# Short term - 18/09/26 - 28/09/26
+# Short term
 
 [ ] rawr::sync
     - [X] detection stuff
     - [~] arch::X::atomic
     - [ ] guard<>
-[ ] detection.pp: optional error on unknown arch/bin/etc
-[ ] Distribution
-    - [ ] Meson project version from rawr/lib/dist/version.(h)pp
+[ ] rawr::hw
 
 ## If theres time
 
@@ -47,27 +45,23 @@
 [ ] fix rawr::abi::microsoft (teb)
     - [ ] rawr::data::ptr<>
     - [ ] rawr::data::ref<>
-[ ] fix local docker compiler-explorer
-[ ] Meson: setup headeronly.
 [ ] Incorporate stuff from intrin_handoff.hpp (?)
 [ ] Flesh out
-    - [ ] rawr/data/linker_section
-    - [ ] rawr/data/environment
+    - [X] rawr/data/linker_section
+    - [X] rawr/data/environment
     - [ ] rawr/lib/dummy_return.hpp -> static_assert.hpp or similar
     - [ ] rawr/lib/endian.hpp
     - [X] rawr/lib/fmt.hpp
-    - [ ] rawr/lib/hash.hpp
+    - [X] rawr/lib/hash.hpp
     - [ ] rawr/lib/serialize.hpp (?)
 [ ] rawr::lib::scoped_hook
 [ ] Distribution
-    - [ ] module.manifest comment explaining format.
+    - [X] module.manifest comment explaining format.
     - [ ] CMake.
     - [ ] Integrate with package managers.
 
 # Even longer term
 
-[ ] replace clang-scan-deps with bespoke script
-    - [ ] Also validates that #ifdef RAWR_MODULE import/include lists match.
 [ ] rawr::lib::numeric
     - [~] rawr::lib::numeric::strong_integer -> needs ::numeric
     - [ ] rawr::lib::numeric::strong_fixed

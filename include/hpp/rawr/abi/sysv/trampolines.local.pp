@@ -1,6 +1,6 @@
 // GENERATED — do not edit
 
-#if RAWRSCAN_METADATA
+#ifdef RAWR_METADATA
     #undef RAWR_PP_MODULE
     #define RAWR_PP_MODULE rawr.abi.sysv.trampolines.pp
 #endif
@@ -31,7 +31,7 @@
 
 #undef RAWR_ABI_SYSV_HAS_TRAMPOLINE
 #define RAWR_ABI_SYSV_HAS_TRAMPOLINE 1
-#if RAWR_ARCH_X86
+#if RAWR_ARCH_IA32
     #undef RAWR_ABI_SYSV_TRAMPOLINE
     #define RAWR_ABI_SYSV_TRAMPOLINE RAWR_ABI_SYSV_TRAMPOLINE_X86
 #elif RAWR_ARCH_X64

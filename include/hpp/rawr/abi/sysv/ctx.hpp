@@ -50,7 +50,7 @@ namespace rawr::abi::sysv::inline ctx
         (minsigstksz,       51)  // minimum alternate signal stack size in bytes
     ), ());
 
-    #define RAWR_ABI_SYSV_AUXVE_(Name, word_t)                                                                                    \
+    #define RAWR_ABI_CC_SYSV_AUXVE_(Name, word_t)                                                                                    \
         struct Name {                                                                                                             \
             word_t a_type;                                                                                                        \
             word_t a_val;                                                                                                         \
@@ -126,9 +126,9 @@ namespace rawr::abi::sysv::inline ctx
             [[nodiscard]] constexpr auto sysinfo()              const noexcept -> word_t { return a_val; }                        \
             [[nodiscard]] constexpr auto sysinfo_ehdr()         const noexcept -> word_t { return a_val; }                        \
         }
-    RAWR_ABI_SYSV_AUXVE_(auxve32, ru32);
-    RAWR_ABI_SYSV_AUXVE_(auxve64, ru64);
-    #undef RAWR_ABI_SYSV_AUXVE_
+    RAWR_ABI_CC_SYSV_AUXVE_(auxve32, ru32);
+    RAWR_ABI_CC_SYSV_AUXVE_(auxve64, ru64);
+    #undef RAWR_ABI_CC_SYSV_AUXVE_
 
     // ── auxv ─────────────────────────────────────────────────────────────────
     // Thin wrapper enabling range-for over an auxv vector.
@@ -137,7 +137,7 @@ namespace rawr::abi::sysv::inline ctx
     // Usage:
     //   for (auto& at : ctx.auxv) { switch (at.tag()) { ... } }
     //   for (auto* at = ctx.auxv.first; !at->is_null(); ++at) { ... } // manual
-    #define RAWR_ABI_SYSV_AUXV_(Name, Entry)                                                                              \
+    #define RAWR_ABI_CC_SYSV_AUXV_(Name, Entry)                                                                              \
         struct Name {                                                                                                     \
             Entry* first = nullptr;                                                                                       \
                                                                                                                           \
@@ -153,9 +153,9 @@ namespace rawr::abi::sysv::inline ctx
             [[nodiscard]] constexpr auto begin() const noexcept -> iterator { return { first }; }                         \
             [[nodiscard]] constexpr auto end()   const noexcept -> sentinel { return {};        }                         \
         }
-    RAWR_ABI_SYSV_AUXV_(auxv32, auxve32);
-    RAWR_ABI_SYSV_AUXV_(auxv64, auxve64);
-    #undef RAWR_ABI_SYSV_AUXV_
+    RAWR_ABI_CC_SYSV_AUXV_(auxv32, auxve32);
+    RAWR_ABI_CC_SYSV_AUXV_(auxv64, auxve64);
+    #undef RAWR_ABI_CC_SYSV_AUXV_
 
     RAWR_TODO("Implement context32 and select the correct one in the RAWR_ABI_SYSV_MAIN macro. Requires lib::ptr<>")
     struct context64 {

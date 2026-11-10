@@ -33,6 +33,161 @@ dir_amalgam = dir_rawr/'include'/'amalgam'
 
 additional_cpp_args = []
 
+if get_option('abi_cc') != 'auto'
+    additional_cpp_args += [{
+        'unknown':       '-DRAWR_SET_ABI_CCID=RAWR_ABI_CCID_UNKNOWN',
+        'sysv':          '-DRAWR_SET_ABI_CCID=RAWR_ABI_CCID_SYSV',
+        'win64':         '-DRAWR_SET_ABI_CCID=RAWR_ABI_CCID_WIN64',
+        'aapcs64':       '-DRAWR_SET_ABI_CCID=RAWR_ABI_CCID_AAPCS64',
+        'aapcs64_apple': '-DRAWR_SET_ABI_CCID=RAWR_ABI_CCID_AAPCS64_APPLE',
+        'aapcs64_win':   '-DRAWR_SET_ABI_CCID=RAWR_ABI_CCID_AAPCS64_WIN',
+        'arm64ec':       '-DRAWR_SET_ABI_CCID=RAWR_ABI_CCID_ARM64EC',
+        'aapcs32':       '-DRAWR_SET_ABI_CCID=RAWR_ABI_CCID_AAPCS32',
+        'riscv':         '-DRAWR_SET_ABI_CCID=RAWR_ABI_CCID_RISCV',
+        'xtensa':        '-DRAWR_SET_ABI_CCID=RAWR_ABI_CCID_XTENSA',
+        'avr':           '-DRAWR_SET_ABI_CCID=RAWR_ABI_CCID_AVR',
+        'wasm':          '-DRAWR_SET_ABI_CCID=RAWR_ABI_CCID_WASM',
+    }[get_option('abi_cc')]]
+endif
+if get_option('abi_dm') != 'auto'
+    additional_cpp_args += [{
+        'unknown': '-DRAWR_SET_ABI_DMID=RAWR_ABI_DMID_UNKNOWN',
+        'ilp32':   '-DRAWR_SET_ABI_DMID=RAWR_ABI_DMID_ILP32',
+        'lp64':    '-DRAWR_SET_ABI_DMID=RAWR_ABI_DMID_LP64',
+        'llp64':   '-DRAWR_SET_ABI_DMID=RAWR_ABI_DMID_LLP64',
+        'ilp64':   '-DRAWR_SET_ABI_DMID=RAWR_ABI_DMID_ILP64',
+        'lp32':    '-DRAWR_SET_ABI_DMID=RAWR_ABI_DMID_LP32',
+        'ip16':    '-DRAWR_SET_ABI_DMID=RAWR_ABI_DMID_IP16',
+    },[get_option('abi_dm')]]
+endif
+if get_option('arch') != 'auto'
+    additional_cpp_args += [{
+        'unknown': '-DRAWR_SET_ARCHID=RAWR_ARCHID_UNKNOWN',
+        'ia32':    '-DRAWR_SET_ARCHID=RAWR_ARCHID_IA32',
+        'x64':     '-DRAWR_SET_ARCHID=RAWR_ARCHID_X64',
+        'arm64':   '-DRAWR_SET_ARCHID=RAWR_ARCHID_ARM64',
+        'arm32':   '-DRAWR_SET_ARCHID=RAWR_ARCHID_ARM32',
+        'riscv64': '-DRAWR_SET_ARCHID=RAWR_ARCHID_RISCV64',
+        'riscv32': '-DRAWR_SET_ARCHID=RAWR_ARCHID_RISCV32',
+        'xtensa':  '-DRAWR_SET_ARCHID=RAWR_ARCHID_XTENSA',
+        'avr':     '-DRAWR_SET_ARCHID=RAWR_ARCHID_AVR',
+        'wasm32':  '-DRAWR_SET_ARCHID=RAWR_ARCHID_WASM32',
+        'wasm64':  '-DRAWR_SET_ARCHID=RAWR_ARCHID_WASM64',
+        'ppc32':   '-DRAWR_SET_ARCHID=RAWR_ARCHID_PPC32',
+        'ppc64':   '-DRAWR_SET_ARCHID=RAWR_ARCHID_PPC64',
+        'loong64': '-DRAWR_SET_ARCHID=RAWR_ARCHID_LOONG64',
+        'mips32':  '-DRAWR_SET_ARCHID=RAWR_ARCHID_MIPS32',
+        'mips64':  '-DRAWR_SET_ARCHID=RAWR_ARCHID_MIPS64',
+        's390':    '-DRAWR_SET_ARCHID=RAWR_ARCHID_S390',
+        's390x':   '-DRAWR_SET_ARCHID=RAWR_ARCHID_S390X',
+        'msp430':  '-DRAWR_SET_ARCHID=RAWR_ARCHID_MSP430',
+        'sparc32': '-DRAWR_SET_ARCHID=RAWR_ARCHID_SPARC32',
+        'sparc64': '-DRAWR_SET_ARCHID=RAWR_ARCHID_SPARC64',
+        'superh':  '-DRAWR_SET_ARCHID=RAWR_ARCHID_SUPERH',
+    }[get_option('arch')]]
+endif
+if not (get_option('arch_armfeatures').length() == 1 and 'auto' in get_option('arch_armfeatures'))
+    armfeatures_str = '0'
+    foreach armfeature : get_option('arhc_armfeatures')
+        if armfeature == 'auto'
+            #error
+        endif
+
+        armfeatures_str += '+' + {
+            'none':       '0',
+            'neon':       'RAWR_ARCH_ARMFEATUREID_NEON',
+            'sve':        'RAWR_ARCH_ARMFEATUREID_SVE',
+            'sve2':       'RAWR_ARCH_ARMFEATUREID_SVE2',
+            'dotprod':    'RAWR_ARCH_ARMFEATUREID_DOTPROD',
+            'fp16':       'RAWR_ARCH_ARMFEATUREID_FP16',
+            'bf16':       'RAWR_ARCH_ARMFEATUREID_BF16',
+            'atomic-cas': 'RAWR_ARCH_ARMFEATUREID_ATOMIC_CAS',
+            'all':        'RAWR_ARCH_ARMFEATUREID_ALL'
+        }[armfeature]
+    endforeach
+
+    additional_cpp_args += ['-DRAWR_SET_ARCH_ARMFEATURES=(' + armfeatures_str + ')']
+endif
+if not (get_option('arch_riscvfeatures').length() == 1 and 'auto' in get_option('arch_riscvfeatures'))
+    riscvfeatures_str = '0'
+    foreach riscvfeature : get_option('arch_riscvfeatures')
+        if riscvfeature == 'auto'
+            #error
+        endif
+
+        riscvfeatures_str += '+' + {
+            'none':   '0',
+            'atomic': 'RAWR_ARCH_RISCVFEATUREID_ATOMIC',
+            'all':    'RAWR_ARCH_RISCVFEATUREID_ALL'
+        }[riscvfeature]
+    endforeach
+
+    additional_cpp_args += ['-DRAWR_SET_ARCH_RISCVFEATURES=(' + riscvfeatures_str + ')']
+endif
+if not (get_option('arch_wasmfeatures').length() == 1 and 'auto' in get_option('arch_wasmfeatures'))
+    wasmfeatures_str = '0'
+    foreach wasmfeature : get_option('arch_wasmfeatures')
+        if wasmfeature == 'auto'
+            #error
+        endif
+
+        wasmfeatures_str += '+' + {
+            'none':    '0',
+            'atomics': 'RAWR_ARCH_WASMFEATUREID_ATOMICS',
+            'all':     'RAWR_ARCH_WASMFEATUREID_ALL'
+        }[wasmfeature]
+    endforeach
+
+    additional_cpp_args += ['-DRAWR_SET_ARCH_WASMFEATURES=(' + wasmfeatures_str + ')']
+endif
+if not (get_option('arch_x86features').length() == 1 and 'auto' in get_option('arch_x86features'))
+    x86features_str = '0'
+    foreach x86feature : get_option('arch_x86features')
+        if x86feature == 'auto'
+            #error
+        endif
+
+        x86features_str += '+' + {
+            'none':    '0',
+            'sse':     'RAWR_ARCH_X86_FEATUREID_SSE',
+            'sse2':    'RAWR_ARCH_X86_FEATUREID_SSE2',
+            'sse41':   'RAWR_ARCH_X86_FEATUREID_SSE41',
+            'sse42':   'RAWR_ARCH_X86_FEATUREID_SSE42',
+            'avx':     'RAWR_ARCH_X86_FEATUREID_AVX',
+            'avx2':    'RAWR_ARCH_X86_FEATUREID_AVX2',
+            'avx512f': 'RAWR_ARCH_X86_FEATUREID_AVX512F',
+            'fma':     'RAWR_ARCH_X86_FEATUREID_FMA',
+            'bmi1':    'RAWR_ARCH_X86_FEATUREID_BMI1',
+            'bmi2':    'RAWR_ARCH_X86_FEATUREID_BMI2',
+            'popcnt':  'RAWR_ARCH_X86_FEATUREID_POPCNT',
+            'lzcnt':   'RAWR_ARCH_X86_FEATUREID_LZCNT',
+            'clwb':    'RAWR_ARCH_X86_FEATUREID_CLWB',
+            'all':     'RAWR_ARCH_WASMFEATUREID_ALL',
+        }[x86feature]
+    endforeach
+
+    additional_cpp_args += ['-DRAWR_SET_ARCH_X86FEATURES=(' + x86features_str + ')']
+endif
+if get_option('bin') != 'auto'
+    additional_cpp_args += [{
+        'unknown': '-DRAWR_SET_BINID=RAWR_BINID_UNKNOWN',
+        'elf':     '-DRAWR_SET_BINID=RAWR_BINID_ELF',
+        'macho':   '-DRAWR_SET_BINID=RAWR_BINID_MACHO',
+        'pe':      '-DRAWR_SET_BINID=RAWR_BINID_PE',
+        'wasm':    '-DRAWR_SET_BINID=RAWR_BINID_WASM',
+    }[get_option('bin')]]
+endif
+
+if get_option('todo')
+    additional_cpp_args += ['-DRAWR_NO_TODO']
+endif
+if 'no-source-mapping' in get_option('amalgam')
+    additional_cpp_args += ['-DRAWR_AMALGAM_NO_SOURCE_MAPPING']
+endif
+if 'no-sections' in get_option('amalgam')
+    additional_cpp_args += ['-DRAWR_AMALGAM_NO_SECTIONS']
+endif
+
 #
 # Build tracing.
 #
@@ -49,7 +204,7 @@ freestanding_dep = cpp.get_id() == 'msvc' \
         # no RTTI, no stack cookie
         # exceptions: build TUs with /EHs-c- and treat 'throw' as an error at review time;
         # MSVC has no clean single-flag "no exceptions" the way gcc/clang do.
-        compile_args: ['/GR-', '/GS-'],
+        compile_args: ['/GR-', '/GS-', '/w14668'],
     ) \
     : declare_dependency(
         compile_args: cpp.get_supported_arguments([
@@ -57,6 +212,7 @@ freestanding_dep = cpp.get_id() == 'msvc' \
             '-fno-rtti',
             '-fno-stack-protector',
             '-ffreestanding',
+            '-Wundef',
         ]),
         link_args: ['-nostdlib'],
     )
@@ -110,7 +266,7 @@ foreach manifest_entry : module_manifest.stdout().strip().split('\n')
     if deps_str != ''
         foreach d : deps_str.split(',')
             if d not in mod_deps
-                error('Did not find module ' + d)
+                error('Did not find module ' + d + ' for entry [' + manifest_entry + ']')
             endif
             current_deps += mod_deps[d]
         endforeach
@@ -119,7 +275,7 @@ foreach manifest_entry : module_manifest.stdout().strip().split('\n')
         foreach d_ : ppdeps_str.split(',')
             d = d_.replace('/', '.')
             if d not in mod_deps
-                error('Did not find module ' + d)
+                error('Did not find module ' + d + ' for entry [' + manifest_entry + ']')
             endif
             current_deps += mod_deps[d]
         endforeach
@@ -211,9 +367,11 @@ hpp_gen = custom_target(
     build_by_default: true,
     command: [python, rawrgen, 'demodularize', dir_src,dir_cppm_pp, '--out', '@OUTDIR@'],
 )
-rawr_headeronly_dep = declare_dependency(
+# Disabled until .undef.pp is sorted out.
+rawr_headeronly_dep = true ? disabler() : declare_dependency(
     include_directories: include_directories(fs.relative_to(dir_generated_hpp, dir_build)),
     sources: hpp_gen,
+    compile_args: additional_cpp_args,
 )
 run_target(
     'commit-hpp',
@@ -247,6 +405,7 @@ amalgam_gen = custom_target(
 rawr_amalgam_dep = declare_dependency(
     include_directories: include_directories(fs.relative_to(dir_generated_amalgam, dir_build)),
     sources: amalgam_gen,
+    compile_args: additional_cpp_args,
 )
 run_target(
     'commit-amalgam',

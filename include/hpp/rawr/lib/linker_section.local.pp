@@ -108,7 +108,7 @@
 //       test into that section with RAWR_LINKER_SECTION_REGISTER. Note the namespace scoping
 //       on declaration/registration and the way the arguments are passed around inside the macros.
 
-#if RAWRSCAN_METADATA
+#ifdef RAWR_METADATA
     #undef RAWR_PP_MODULE
     #define RAWR_PP_MODULE rawr.lib.linker_section.pp
 #endif

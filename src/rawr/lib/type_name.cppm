@@ -1,5 +1,5 @@
 export module rawr.lib.type_name;
-#include     "rawr/detection/compiler.pp"
+#include     "rawr/compiler/detection.pp"
 
 namespace rawr::inline lib::type_name::detail
 {
@@ -30,7 +30,7 @@ namespace rawr::inline lib::type_name::detail
 
     template <typename T>
     consteval auto get_tn_info() -> tn_info {
-        #if RAWR_COMPILER_FAMILY_GNU
+        #if RAWR_COMPILER_GNU
             constexpr auto name           = __PRETTY_FUNCTION__;
             constexpr char start_marker[] = "T = ";
             constexpr char end_marker[]   = "]";

@@ -1,9 +1,9 @@
 export module rawr.lib.integer.strong;
 import        rawr.lib.integer.base;
 import        rawr.lib.integer.raw;
-import        rawr.lib.intrin;
+import        rawr.intrin;
 import        rawr.lib.bits;
-#include     "rawr/lib/compiler.pp"
+#include     "rawr/compiler/utils.pp"
 #include     "rawr/distribution/todo.pp"
 
 

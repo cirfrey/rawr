@@ -1,5 +1,5 @@
 export module rawr.lib.source_location;
-#include     "rawr/detection/compiler.pp"
+#include     "rawr/compiler/detection.pp"
 
 export namespace rawr::inline lib
 {

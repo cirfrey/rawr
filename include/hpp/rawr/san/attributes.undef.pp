@@ -6,6 +6,6 @@
 #undef RAWR_NO_SANITIZE_MEMORY
 #undef RAWR_NO_SANITIZE_THREAD
 #include "rawr/lib/compiler.undef.pp"
-#if RAWRSCAN_METADATA
+#ifdef RAWR_METADATA
     #undef RAWR_PP_MODULE
 #endif

@@ -1,7 +1,7 @@
 export module rawr.lib.integer.raw;
 import        rawr.lib.integer.base;
 import        rawr.lib.bits;
-#include     "rawr/detection/feature.pp"
+#include     "rawr/lib/integer/detection.pp"
 
 // Just in case you need the actual underlying type aliases. Prefer the strong
 // wrapped versions instead.
@@ -14,7 +14,7 @@ export namespace rawr::inline lib::inline integer::inline raw
     using rf32  = rfloat_exact<biw32>; using rf64  = rfloat_exact<biw64>;
 
     // TODO: i dont like this.
-    #if RAWR_HAS_INT128
+    #if RAWR_INTEGER_HAS_INT128
         using ru128 = ruint_exact<biw128>; using rs128 = rsint_exact<biw128>;
     #endif
 

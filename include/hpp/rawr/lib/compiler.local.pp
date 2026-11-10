@@ -1,7 +1,7 @@
 // GENERATED — do not edit
 // Macro utilities for ergonomic compiler gating.
 
-#if RAWRSCAN_METADATA
+#ifdef RAWR_METADATA
     #undef RAWR_PP_MODULE
     #define RAWR_PP_MODULE rawr.lib.compiler.pp
 #endif
@@ -152,7 +152,7 @@
     #define RAWR_MSVC_INTRIN(Cond, Name, ...) auto Name __VA_ARGS__
 #endif
 
-#if RAWR_COMPILER_FAMILY_GNU
+#if RAWR_COMPILER_GNU
     #undef RAWR_GNU
     #define RAWR_GNU(...)              __VA_ARGS__
     #undef RAWR_NOT_GNU

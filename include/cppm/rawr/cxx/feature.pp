@@ -1,0 +1,89 @@
+#pragma once
+
+#ifdef RAWR_METADATA
+    #define RAWR_PP_MODULE rawr.cxx.feature.pp
+#endif
+
+#include "rawr/compiler/detection.pp"
+
+// --- Ids. ---
+
+#define RAWR_CXXFEATUREID_HAS_EXCEPTIONS 1
+#define RAWR_CXXFEATUREID_HAS_CFI_ASM    2
+#define RAWR_CXXFEATUREID_HAS_RTTI       4
+#define RAWR_CXXFEATUREID_IS_HOSTED      8
+#define RAWR_CXXFEATUREID_ALL            15
+
+// --- Detection. ---
+
+#define RAWR_DETECTED_CXXFEATURE_HAS_EXCEPTIONS 0
+#define RAWR_DETECTED_CXXFEATURE_HAS_CFI_ASM    0
+#define RAWR_DETECTED_CXXFEATURE_HAS_RTTI       0
+#define RAWR_DETECTED_CXXFEATURE_IS_HOSTED      0
+#if defined(__cpp_exceptions) || defined(__EXCEPTIONS) || defined(_CPPUNWIND)
+    #undef  RAWR_DETECTED_CXXFEATURE_HAS_EXCEPTIONS
+    #define RAWR_DETECTED_CXXFEATURE_HAS_EXCEPTIONS 1
+#endif
+#if RAWR_COMPILER_GNU && defined(__GCC_HAVE_DWARF2_CFI_ASM)
+    #undef  RAWR_DETECTED_CXXFEATURE_HAS_CFI_ASM
+    #define RAWR_DETECTED_CXXFEATURE_HAS_CFI_ASM 1
+#endif
+#if defined(__cpp_rtti) || defined(__GXX_RTTI) || defined(_CPPRTTI)
+    #undef  RAWR_DETECTED_CXXFEATURE_HAS_RTTI
+    #define RAWR_DETECTED_CXXFEATURE_HAS_RTTI 1
+#endif
+#if !(defined(__STDC_HOSTED__) && __STDC_HOSTED__ == 0)
+    // __STDC_HOSTED__ == 0 means the compiler was invoked in freestanding mode (-ffreestanding).
+    // Bare-metal toolchains (arm-none-eabi, avr-gcc, xtensa, riscv) default to hosted unless -ffreestanding is passed.
+    #undef  RAWR_DETECTED_CXXFEATURE_IS_HOSTED
+    #define RAWR_DETECTED_CXXFEATURE_IS_HOSTED 1
+#endif
+
+
+// --- Detected aggregate. ---
+
+#define RAWR_DETECTED_CXXFEATURES ( \
+    (RAWR_DETECTED_CXXFEATURE_HAS_EXCEPTIONS * RAWR_CXXFEATUREID_HAS_EXCEPTIONS) | \
+    (RAWR_DETECTED_CXXFEATURE_HAS_CFI_ASM    * RAWR_CXXFEATUREID_HAS_CFI_ASM) | \
+    (RAWR_DETECTED_CXXFEATURE_HAS_RTTI       * RAWR_CXXFEATUREID_HAS_RTTI) | \
+    (RAWR_DETECTED_CXXFEATURE_IS_HOSTED      * RAWR_CXXFEATUREID_IS_HOSTED) | \
+0 )
+
+// --- User override. ---
+// -DRAWR_SET_CXXFEATURES=(RAWR_CXXFEATURE_A|RAWR_CXXFEATURE_B) replaces detection (RAWR_DETECTED_CXXFEATURES keeps the detected set).
+#ifdef RAWR_CXXFEATURES
+    #error "rawr: RAWR_CXXFEATURES is an output of detection; to override it define RAWR_SET_CXXFEATURES"
+#endif
+#ifdef RAWR_SET_CXXFEATURES
+    #if RAWR_SET_CXXFEATURES & ~RAWR_CXXFEATUREID_ALL
+        #error "rawr: RAWR_SET_CXXFEATURES contains bits that are not RAWR_CXXFEATUREID_* values"
+    #endif
+    #define RAWR_CXXFEATURES        RAWR_SET_CXXFEATURES
+    #define RAWR_CXXFEATURES_SOURCE RAWR_IDSOURCE_OVERRIDE
+#else
+    #define RAWR_CXXFEATURES        RAWR_DETECTED_CXXFEATURES
+    #define RAWR_CXXFEATURES_SOURCE RAWR_IDSOURCE_DETECTED
+#endif
+
+// --- Canonical macros. ---
+
+#define RAWR_CXXFEATURE_HAS_EXCEPTIONS 0
+#define RAWR_CXXFEATURE_HAS_CFI_ASM 0
+#define RAWR_CXXFEATURE_HAS_RTTI 0
+#define RAWR_CXXFEATURE_IS_HOSTED 0
+#if RAWR_CXXFEATURES & RAWR_CXXFEATUREID_HAS_EXCEPTIONS
+    #undef  RAWR_CXXFEATURE_HAS_EXCEPTIONS
+    #define RAWR_CXXFEATURE_HAS_EXCEPTIONS 1
+#endif
+#if RAWR_CXXFEATURES & RAWR_CXXFEATUREID_HAS_CFI_ASM
+    #undef  RAWR_CXXFEATURE_HAS_CFI_ASM
+    #define RAWR_CXXFEATURE_HAS_CFI_ASM 1
+#endif
+#if RAWR_CXXFEATURES & RAWR_CXXFEATUREID_HAS_RTTI
+    #undef  RAWR_CXXFEATURE_HAS_RTTI
+    #define RAWR_CXXFEATURE_HAS_RTTI 1
+#endif
+#if RAWR_CXXFEATURES & RAWR_CXXFEATUREID_IS_HOSTED
+    #undef  RAWR_CXXFEATURE_IS_HOSTED
+    #define RAWR_CXXFEATURE_IS_HOSTED 1
+#endif

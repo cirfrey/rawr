@@ -1,6 +1,6 @@
 // GENERATED — do not edit
 
-#if RAWRSCAN_METADATA
+#ifdef RAWR_METADATA
     #undef RAWR_PP_MODULE
     #define RAWR_PP_MODULE rawr.detection.endian.pp
 #endif
@@ -38,7 +38,7 @@
 #elif RAWR_ARCH_S390X || RAWR_ARCH_S390 || RAWR_ARCH_SPARC64 || RAWR_ARCH_SPARC32
     #undef  RAWR_ENDIAN_BIG
     #define RAWR_ENDIAN_BIG 1
-#elif RAWR_ARCH_X64    || RAWR_ARCH_X86       || RAWR_ARCH_ARM64  || \
+#elif RAWR_ARCH_X64    || RAWR_ARCH_IA32       || RAWR_ARCH_ARM64  || \
       RAWR_ARCH_ARM32  || RAWR_ARCH_RISCV64   || RAWR_ARCH_RISCV32|| \
       RAWR_ARCH_XTENSA || RAWR_ARCH_LOONG64   || RAWR_ARCH_AVR    || \
       RAWR_ARCH_WASM   || RAWR_ARCH_MSP430

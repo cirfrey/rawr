@@ -8,6 +8,6 @@
 #include "rawr/lib/compiler.undef.pp"
 #include "rawr/detection/compiler.undef.pp"
 #include "rawr/abi/sysv/trampolines.undef.pp"
-#if RAWRSCAN_METADATA
+#ifdef RAWR_METADATA
     #undef RAWR_PP_MODULE
 #endif

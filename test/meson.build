@@ -7,8 +7,8 @@ amalgam_testdir    = test_generated_dir / 'amalgam'
 default_unit_test_runner = [cppm_testdir/'unit/generic_runner.cpp']
 
 unit_test_groups = {
-    'lib.tagged_union':        { 'files': [cppm_testdir/'unit/lib/tagged_union/checks.cpp'] },
-    'lib.intrin.construct_at': { 'files': [cppm_testdir/'unit/lib/intrin/construct_at/checks.cpp'] },
+    'lib.tagged_union':    { 'files': [cppm_testdir/'unit/lib/tagged_union/checks.cpp'] },
+    'intrin.construct_at': { 'files': [cppm_testdir/'unit/intrin/construct_at/checks.cpp'] },
     'lib.test' : {
         'files': [
             cppm_testdir/'unit/lib/test/checks.cpp',

@@ -19,6 +19,6 @@
 #undef RAWR_TU_ENUM
 #undef RAWR_TAGGED_UNION
 #include "rawr/lib/pp.undef.pp"
-#if RAWRSCAN_METADATA
+#ifdef RAWR_METADATA
     #undef RAWR_PP_MODULE
 #endif

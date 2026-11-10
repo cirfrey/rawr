@@ -1,4 +1,4 @@
-// Custom runner for rawr::lib::test meta-tests.
+// Custom runner for rawr::test meta-tests.
 //
 // Cannot rely on the generic runner — the generic runner depends on the
 // invariants verified here. Data declarations live in expected.hpp.
@@ -15,12 +15,12 @@
 //   - Observed loc.line is non-zero           (check_loc_invalid)
 
 #define RAWR_AMALGAM_NOSTDLIB 1
-import rawr.lib.test;
+import rawr.test;
 import rawr.lib.integer.raw;
 import rawr.platform.linux;
-import rawr.lib.hash.fnv1a;
+import rawr.hash.fnv1a;
 import rawr.nostdlib;
-#include "rawr/lib/main.pp"
+#include "rawr/abi/main.pp"
 
 struct expected_check {
     bool        cond;
@@ -134,9 +134,9 @@ static auto streq(const char* a, const char* b) noexcept -> bool {
     return *a == *b;
 }
 
-RAWR_MAIN_NOCTX
+RAWR_ABI_MAIN_NOCTX
 {
-    using namespace rawr::lib::hash::fnv1a::literals;
+    using namespace rawr::hash::fnv1a::literals;
     using namespace rawr::platform::linux::x64;
 
     // ── Observed buffers ──────────────────────────────────────────────────────
@@ -183,11 +183,11 @@ RAWR_MAIN_NOCTX
 
     // ── Run ───────────────────────────────────────────────────────────────────
 
-    for (auto const& suite : rawr::lib::test::section) {
+    for (auto const& suite : rawr::test::section) {
         auto const suite_info = suite.get_info();
 
         auto* m = [&]() -> suite_manifest* {
-            auto const h = rawr::fnv1a::hash64(suite_info.name, suite_info.name_size);
+            auto const h = rawr::hash::fnv1a64(suite_info.name, suite_info.name_size);
             for (auto& m : manifests) { if (m.name_hash == h) { return &m; } }
             return nullptr;
         }();
@@ -208,7 +208,7 @@ RAWR_MAIN_NOCTX
             continue;
         }
 
-        suite.run([](rawr::lib::test::test_suite_check c, void* ud) noexcept -> void {
+        suite.run([](rawr::test::test_suite_check c, void* ud) noexcept -> void {
             auto& m = *static_cast<suite_manifest*>(ud);
             if (m.observed_idx < m.expected_count)
                 m.observed[m.observed_idx++] = {

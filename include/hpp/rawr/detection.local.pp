@@ -10,14 +10,14 @@
 //
 // Composite flags are defined in #if blocks to allow things like RAWR_PP_IF(COMPOSITE, ...),
 // If we naiively did
-//     #define RAWR_IS_64BIT (RAWR_PTR_SIZE == 8)
+//     #define RAWR_ABI_IS_64BIT (RAWR_PTR_SIZE == 8)
 // The following expansion would happen
-//     RAWR_PP_IF(RAWR_IS_64BIT, ...) => RAWR_PP_IF_(4 == 8)
+//     RAWR_PP_IF(RAWR_ABI_IS_64BIT, ...) => RAWR_PP_IF_(4 == 8)
 // That doesn't compile, instead we define it inside an #if block and the expansion
 // behaves as you'd expect.
 // It's a little more work on our end, but thats what we're here for, right?
 
-#if RAWRSCAN_METADATA
+#ifdef RAWR_METADATA
     #undef RAWR_PP_MODULE
     #define RAWR_PP_MODULE rawr.detection.pp
 #endif

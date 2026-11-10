@@ -1,6 +1,6 @@
-#include "rawr/lib/test.pp"
+#include "rawr/test.pp"
 
-// Meta-tests for rawr::lib::test — TU 1.
+// Meta-tests for rawr::test — TU 1.
 // Expected results in expected.hpp. Comments reference expected[] indices.
 
 // ── dummy ─────────────────────────────────────────────────────────────────────

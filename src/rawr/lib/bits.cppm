@@ -1,9 +1,9 @@
 export module rawr.lib.bits;
-#include     "rawr/detection/ptr.pp"
+#include     "rawr/abi/dm/bits.pp"
 
 export namespace rawr::inline lib::inline bits
 {
-    inline constexpr auto bits_in_byte = RAWR_BITS_IN_BYTE;
+    inline constexpr auto bits_in_byte = RAWR_ABI_DM_BITS_IN_BYTE;
 
     struct bitwidth {
         unsigned long long val{};

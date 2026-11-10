@@ -1,6 +1,6 @@
 export module rawr.san.lsan;
-import rawr.lib.intrin.base;
-#include "rawr/detection/san.pp"
+import        rawr.intrin.base;
+#include     "rawr/san/detection.pp"
 
 namespace rawr::san::lsan::detail
 {
@@ -14,7 +14,7 @@ namespace rawr::san::lsan::detail
 
 export namespace rawr::san::lsan
 {
-    inline constexpr bool compiled = RAWR_SAN_LSAN != 0;
+    inline constexpr bool compiled = RAWR_SANFEATURE_LSAN != 0;
 
     constexpr auto ignore_object([[maybe_unused]] void const* address) noexcept -> void
     {
